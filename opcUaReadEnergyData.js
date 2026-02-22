@@ -1,11 +1,12 @@
 const { OPCUAClient, AttributeIds, DataType } = require("node-opcua");
 const { saveDataToSQLServer } = require('./sqlIntegration');
 require('dotenv').config();
+const config = require("./nodeIds.json");
 const { timestampFunction } = require('./timestamp');
 async function readOpcActiveEnergyTags() {
     const client = OPCUAClient.create({ endpoint_must_exist: false });
     const endpointUrl = process.env.OPC_UA_SERVER_URL; 
-    const nodeIds = ["ns=2;s=stCB[1].rActiveEnergy", "ns=2;s=stCB[4].rActiveEnergy"];
+    const nodeIds = config.nodeIds; 
     let activeEnergy = [];
     try {
         await client.connect(endpointUrl);
@@ -13,9 +14,9 @@ async function readOpcActiveEnergyTags() {
         const session = await client.createSession();
     console.log({"Session created": true, timestamp: timestampFunction()});
         // Read a variable node (example nodeId)
-        for (const nodeId of nodeIds) {
-            const dataValue = await session.readVariableValue(nodeId);
-            activeEnergy[nodeId] = dataValue.value.value;
+         for (let i = 0; i < nodeIds.length; i++)  {
+            const dataValue = await session.readVariableValue(nodeIds[i]);
+            activeEnergy[i] = dataValue.value.value;
         }
         console.log("Active Energy values:", activeEnergy, { timestamp: timestampFunction() });
         await session.close();
@@ -28,7 +29,7 @@ async function readOpcActiveEnergyTags() {
 
     // Save active energy values to SQL Server
     if (activeEnergy) {
-        await saveDataToSQLServer(activeEnergy);
+        await saveDataToSQLServer(activeEnergy, nodeIds.length);
     } 
 }
 module.exports = { readOpcActiveEnergyTags };

@@ -1,10 +1,12 @@
 const sql = require('mssql');
 require('dotenv').config();
 const { timestampFunction } = require('./timestamp');
-const nodeIds = ["ns=2;s=stCB[1].rActiveEnergy", "ns=2;s=stCB[4].rActiveEnergy"];
+const { storeData } = require('./energyDatacsv');
+const { LogLevel } = require('node-opcua-debug');
 const sqlTable = process.env.TABLE; 
 
-async function saveDataToSQLServer(data) {
+async function saveDataToSQLServer(data, numberOfNodes) {
+
     try {
         const pool = await sql.connect({    
             server: process.env.SERVER,
@@ -18,17 +20,18 @@ async function saveDataToSQLServer(data) {
                });
             if (pool.connected) {
                 console.log("Connected to SQL Server.", { timestamp: timestampFunction() });
-                for (const nodeId of nodeIds) {
+                for (let i = 0; i < numberOfNodes; i++) {
                     const query = `
                     INSERT INTO ${sqlTable} (breakerId, activeEnergy)
                     VALUES (@breakerId, @activeEnergy)
                    `;
                     const request = pool.request();
-                    request.input('breakerId', sql.Int, (nodeIds.indexOf(nodeId) + 1)); // Assuming breakerId starts from 1
-                    request.input('activeEnergy', sql.Float, data[nodeId]);
+                    request.input('breakerId', sql.Int, (i + 1)); // Assuming breakerId starts from 1
+                    request.input('activeEnergy', sql.Float, data[i]);
                     await request.query(query);
-                    console.log(`Active energy value for ${nodeId} saved to SQL Server.`, { timestamp: timestampFunction() });
                 }
+                await storeData(data);
+                
                 console.log("End of SQL Server operations.", { timestamp: timestampFunction() });
                }
            } catch (err) {

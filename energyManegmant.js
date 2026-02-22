@@ -9,4 +9,4 @@ async function main() {
 }
 
 
-setInterval(main, 5000); // Run every 1 hour
+setInterval(main, 60 * 60 * 1000); // Run every hour
