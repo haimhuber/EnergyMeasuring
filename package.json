@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "dotenv": "^17.3.1",
+    "luxon": "^3.7.2",
     "mssql": "^12.2.0",
     "node-opcua": "^2.163.1"
   }

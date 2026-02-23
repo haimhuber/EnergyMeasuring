@@ -1,4 +1,5 @@
 const readEnergyData = require('./opcUaReadEnergyData');
+const { DateTime } = require('luxon');
 async function main() {
     try {   
         const energyData = await readEnergyData.readOpcActiveEnergyTags();
@@ -8,5 +9,20 @@ async function main() {
     }
 }
 
+function scheduleNextRun(callback) {
+  const now = DateTime.now().setZone('Asia/Jerusalem');
+  const nextHour = now.plus({ hours: 1 }).startOf('hour');
+  const delay = nextHour.toMillis() - now.toMillis();
 
-setInterval(main, 60 * 60 * 1000); // Run every hour
+  setTimeout(() => {
+    callback();
+    scheduleNextRun(callback); // מתזמן מחדש כל פעם
+  }, delay);
+}
+
+// שימוש
+scheduleNextRun(() => {
+  const israelNow = DateTime.now().setZone('Asia/Jerusalem');
+  console.log("Running at:", israelNow.toISO());
+  main();
+});
