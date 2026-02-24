@@ -16,11 +16,10 @@ function scheduleNextRun(callback) {
 
   setTimeout(() => {
     callback();
-    scheduleNextRun(callback); // מתזמן מחדש כל פעם
+    scheduleNextRun(callback);
   }, delay);
 }
 
-// שימוש
 scheduleNextRun(() => {
   const israelNow = DateTime.now().setZone('Asia/Jerusalem');
   console.log("Running at:", israelNow.toISO());
