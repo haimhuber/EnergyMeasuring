@@ -25,6 +25,9 @@ async function readOpcActiveEnergyTags() {
         console.log("Error:", err);
         console.log("OPC UA Server might be down. Returning null for demand status.", { timestamp: timestampFunction()});
         activeEnergy = null;
+    } finally {
+        console.log({"Disconnected from OPC UA server": true, timestamp: timestampFunction()}); 
+        await client.disconnect();
     }
 
     // Save active energy values to SQL Server
