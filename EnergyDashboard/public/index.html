@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ABB — Energy Report Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- ✅ Chart.js with defer -->
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<style>
+  /* (same CSS you had) */
+  :root { --red:#FF000F; --red-dk:#CC000C; --black:#0F0F0F; --dark:#1A1A1A; --mid:#555; --light:#F4F4F4; --border:#E2E2E2; --peak-bg:#FFF3F3; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'DM Sans',sans-serif; background:#111; color:var(--black); min-height:100vh; }
+  .nav { background:var(--black); padding:0 48px; display:flex; align-items:center; justify-content:space-between; height:56px; position:sticky; top:0; z-index:100; }
+  .nav-logo { font-size:28px; font-weight:700; letter-spacing:5px; color:#fff; }
+  .nav-sub { font-size:13px; font-weight:500; letter-spacing:3px; text-transform:uppercase; color:#555; }
+  .selector-section { background:var(--red); padding:48px; position:relative; overflow:hidden; }
+  .selector-section::before { content:'ABB'; position:absolute; right:-20px; top:-40px; font-size:220px; font-weight:700; letter-spacing:10px; color:rgba(0,0,0,0.08); pointer-events:none; user-select:none; }
+  .selector-label { font-size:13px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:rgba(255,255,255,0.6); margin-bottom:10px; }
+  .selector-title { font-size:38px; font-weight:700; color:#fff; margin-bottom:36px; }
+  .controls { display:grid; grid-template-columns:1.4fr 1fr 1fr 0.8fr auto; gap:16px; align-items:end; max-width:1050px; }
+  .ctrl-group label { display:block; font-size:13px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.65); margin-bottom:10px; }
+  .ctrl-group select, .ctrl-group input[type="date"] {
+    width:100%; background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.25);
+    color:#fff; padding:15px 18px; font-family:'DM Sans',sans-serif; font-size:17px; font-weight:600;
+    appearance:none; -webkit-appearance:none; cursor:pointer; outline:none; transition:background 0.15s, border-color 0.15s;
+  }
+  .ctrl-group select:hover, .ctrl-group input[type="date"]:hover { background:rgba(255,255,255,0.2); border-color:rgba(255,255,255,0.5); }
+  .ctrl-group select option { background:#1a1a1a; color:#fff; }
+  input[type="date"]::-webkit-calendar-picker-indicator { filter:invert(1); opacity:0.6; cursor:pointer; }
+  .view-toggle { display:flex; border:1px solid rgba(255,255,255,0.25); overflow:hidden; }
+  .view-toggle input[type="radio"] { display:none; }
+  .view-toggle .vt-btn { display:block; padding:15px 22px; font-family:'DM Sans',sans-serif; font-size:15px; font-weight:600; color:rgba(255,255,255,0.5); background:rgba(255,255,255,0.08); transition:all 0.15s; white-space:nowrap; border-right:1px solid rgba(255,255,255,0.15); cursor:pointer; }
+  .view-toggle label:last-child .vt-btn { border-right:none; }
+  .view-toggle input[type="radio"]:checked + .vt-btn { background:rgba(0,0,0,0.35); color:#fff; }
+  .btn-generate { background:var(--black); color:#fff; border:none; padding:15px 32px; font-family:'DM Sans',sans-serif; font-size:16px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; cursor:pointer; transition:background 0.15s, transform 0.1s; white-space:nowrap; display:flex; align-items:center; gap:8px; height:100%; }
+  .btn-generate:hover { background:#333; }
+  .btn-generate:active { transform:scale(0.97); }
+  .btn-generate .arrow { transition:transform 0.2s; }
+  .btn-generate:hover .arrow { transform:translateX(4px); }
+  .status-bar { background:var(--dark); padding:12px 48px; display:flex; align-items:center; gap:12px; font-size:14px; font-family:'DM Mono',monospace; color:#666; min-height:48px; }
+  .status-dot { width:7px; height:7px; border-radius:50%; background:#444; flex-shrink:0; }
+  .status-dot.active { background:#00cc66; box-shadow:0 0 6px #00cc66; }
+  .status-dot.loading { background:var(--red); animation:pulse 0.8s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .report-area { padding:40px 48px; background:#1a1a1a; min-height:calc(100vh - 220px); }
+  .placeholder { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:400px; opacity:0.25; color:#fff; text-align:center; gap:16px; }
+  .placeholder .big { font-size:72px; font-weight:700; letter-spacing:8px; }
+  .placeholder .sm { font-size:12px; letter-spacing:3px; text-transform:uppercase; }
+  .report-card { background:#fff; box-shadow:0 16px 60px rgba(0,0,0,0.4); display:none; animation:slideUp 0.35s cubic-bezier(0.22,1,0.36,1); }
+  .report-card.visible { display:block; }
+  @keyframes slideUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+  .rpt-header { background:var(--red); padding:28px 40px; display:flex; align-items:center; justify-content:space-between; }
+  .rpt-logo { font-size:40px; font-weight:700; letter-spacing:5px; color:#fff; }
+  .rpt-header-right { text-align:right; }
+  .rpt-header-right .rpt-type { font-size:12px; letter-spacing:3px; text-transform:uppercase; color:rgba(255,255,255,0.6); margin-bottom:4px; }
+  .rpt-header-right .rpt-name { font-size:24px; font-weight:600; color:#fff; }
+  .rpt-subbar { background:var(--dark); padding:9px 40px; display:flex; justify-content:space-between; align-items:center; }
+  .rpt-subbar .sl { font-size:13px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:#fff; }
+  .rpt-subbar .sr { font-size:13px; color:#666; font-family:'DM Mono',monospace; }
+  .rpt-meta { display:grid; grid-template-columns:repeat(5,1fr); border-bottom:1px solid var(--border); }
+  .rpt-meta-cell { padding:14px 20px; border-right:1px solid var(--border); text-align:center; }
+  .rpt-meta-cell:last-child { border-right:none; }
+  .rpt-meta-cell .ml { font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:#aaa; margin-bottom:6px; }
+  .rpt-meta-cell .mv { font-size:17px; font-weight:700; color:var(--dark); }
+  .rpt-legend { background:var(--light); padding:10px 40px; display:flex; gap:28px; border-bottom:1px solid var(--border); }
+  .rpt-legend-item { display:flex; align-items:center; gap:7px; font-size:14px; color:#555; }
+  .sw { width:9px; height:9px; border-radius:2px; flex-shrink:0; }
+  .sw.pk { background:var(--red); }
+  .sw.op { background:var(--dark); }
+  .rpt-body { display:grid; grid-template-columns:1fr 400px; border-bottom:1px solid var(--border); }
+  .rpt-chart-panel { padding:28px 28px 28px 40px; border-right:1px solid var(--border); }
+  .rpt-chart-title { font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:#aaa; margin-bottom:16px; }
+  .chart-container { position:relative; height:300px; }
+  .chart-pills { display:flex; gap:12px; margin-top:20px; }
+  .pill { flex:1; padding:12px 16px; }
+  .pill.pk { background:var(--peak-bg); border-left:3px solid var(--red); }
+  .pill.op { background:#f5f5f5; border-left:3px solid var(--dark); }
+  .pill .pl { font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:#888; margin-bottom:4px; }
+  .pill .pv { font-size:20px; font-weight:700; color:var(--dark); }
+  .pill .ps { font-size:12px; color:#888; margin-top:2px; font-family:'DM Mono',monospace; }
+
+  /* ✅ Important: show full table (no clipping) */
+  .rpt-table-panel { overflow: visible; max-height: none; }
+  .rpt-table-wrap { padding:0 24px; }
+  .rpt-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .rpt-table thead { position:sticky; top:0; z-index:2; }
+  .rpt-table thead tr { border-bottom:2px solid var(--red); }
+  .rpt-table th { padding:12px 8px; font-size:10px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:#aaa; text-align:center; background:#fff; }
+  .rpt-table th:first-child { text-align:left; }
+  .rpt-table td { padding:10px 8px; text-align:center; border-bottom:1px solid #f2f2f2; color:#333; }
+  .rpt-table td:first-child { text-align:left; font-family:'DM Mono',monospace; font-size:12px; }
+  .rpt-table td.n { font-family:'DM Mono',monospace; font-size:12px; }
+  .rpt-table tr.pk-row td { background:var(--peak-bg); }
+  .tag { display:inline-block; font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; padding:2px 7px; border-radius:2px; color:#fff; }
+  .tag.pk { background:var(--red); }
+  .tag.op { background:var(--dark); }
+
+  .rpt-totals { margin:0 40px; border-top:2px solid var(--red); padding:20px 0 28px; display:grid; grid-template-columns:1fr auto; gap:20px; align-items:center; }
+  .rpt-totals-lines { display:flex; flex-direction:column; gap:8px; }
+  .rpt-tot-line { display:flex; justify-content:space-between; font-size:15px; color:#555; padding-bottom:8px; border-bottom:1px solid #f0f0f0; }
+  .rpt-tot-line:last-child { border-bottom:none; }
+  .rpt-tot-line .tv { font-family:'DM Mono',monospace; font-weight:500; color:var(--dark); }
+  .rpt-note { font-size:12px; color:#ccc; margin-top:8px; }
+  .rpt-total-box { background:var(--red); color:#fff; padding:22px 32px; text-align:center; min-width:170px; }
+  .rpt-total-box .tbl { font-size:12px; letter-spacing:2px; text-transform:uppercase; opacity:0.75; margin-bottom:8px; }
+  .rpt-total-box .tba { font-size:40px; font-weight:700; line-height:1; }
+  .rpt-total-box .tbc { font-size:15px; opacity:0.7; margin-top:4px; }
+  .rpt-export-bar { padding:14px 40px; background:#f0f0f0; display:flex; justify-content:flex-end; border-top:1px solid var(--border); }
+  .btn-print { display:inline-flex; align-items:center; gap:7px; background:var(--red); color:#fff; border:none; padding:10px 24px; font-family:'DM Sans',sans-serif; font-size:15px; font-weight:600; cursor:pointer; transition:background 0.15s; }
+  .btn-print:hover { background:var(--red-dk); }
+  .btn-print svg { width:14px; height:14px; fill:#fff; }
+  .rpt-footer { background:var(--dark); padding:10px 40px; display:flex; justify-content:space-between; font-size:12px; color:#555; font-family:'DM Mono',monospace; }
+  .rpt-footer .fa { color:var(--red); font-weight:700; letter-spacing:2px; margin-right:5px; }
+  .no-data { display:none; padding:60px; text-align:center; color:#aaa; }
+  .no-data.visible { display:block; }
+  .no-data .nd-icon { font-size:48px; margin-bottom:16px; opacity:0.4; }
+  .no-data .nd-text { font-size:14px; }
+
+  @media print {
+    body { background:#fff; }
+    .nav, .selector-section, .status-bar, .placeholder, .no-data, .rpt-export-bar { display:none !important; }
+    .report-area { background:#fff; padding:0; }
+    .report-card { box-shadow:none; }
+    .rpt-body { grid-template-columns:1fr; }
+    .rpt-chart-panel { border-right:none; }
+    .rpt-table-panel { max-height:none; overflow:visible; }
+  }
+</style>
+</head>
+
+<body>
+<div class="nav">
+  <span class="nav-logo">ABB</span>
+  <span class="nav-sub">Energy Monitoring System</span>
+</div>
+
+<div class="selector-section">
+  <div class="selector-label">Report Generator</div>
+  <div class="selector-title">Generate Energy Invoice</div>
+  <div class="controls">
+    <div class="ctrl-group">
+      <label>Breaker</label>
+      <select id="sel-breaker">
+        <option value="">— Select breaker —</option>
+        <option value="1">1 — Carrier</option>
+        <option value="2">2 — AEMAC</option>
+        <option value="3">3 — Q0 · B0 Main Breaker Building</option>
+        <option value="4">4 — Q4 · B0 Neu Reality</option>
+        <option value="5">5 — Q0 · PB Main Parking</option>
+        <option value="6">6 — Q0 · PB1 AC Charges</option>
+      </select>
+    </div>
+    <div class="ctrl-group">
+      <label>From</label>
+      <input type="date" id="sel-from" value="2026-02-23">
+    </div>
+    <div class="ctrl-group">
+      <label>To</label>
+      <input type="date" id="sel-to" value="2026-02-24">
+    </div>
+    <div class="ctrl-group">
+      <label>View</label>
+      <div class="view-toggle">
+        <label><input type="radio" name="view" value="hourly" checked><span class="vt-btn">Hourly</span></label>
+        <label><input type="radio" name="view" value="daily"><span class="vt-btn">Daily</span></label>
+      </div>
+    </div>
+    <button class="btn-generate" onclick="generateReport()">
+      Generate <span class="arrow">→</span>
+    </button>
+  </div>
+</div>
+
+<div class="status-bar">
+  <div class="status-dot" id="status-dot"></div>
+  <span id="status-text">Select a breaker and date range to generate a report.</span>
+</div>
+
+<div class="report-area">
+  <div class="placeholder" id="placeholder">
+    <div class="big">ABB</div>
+    <div class="sm">Awaiting selection</div>
+  </div>
+  <div class="no-data" id="no-data">
+    <div class="nd-icon">⚡</div>
+    <div class="nd-text">No consumption data for this breaker in the selected period.</div>
+  </div>
+  <div class="report-card" id="report-card"></div>
+</div>
+
+<script>
+const API_BASE = "";
+
+const BREAKERS = {
+  1: { name: 'Carrier',                    id: 'B01'   },
+  2: { name: 'AEMAC',                      id: 'AEMAC' },
+  3: { name: 'Q0 — B0 Main Breaker Bldg',  id: 'Q0-B0' },
+  4: { name: 'Q4 — B0 Neu Reality',        id: 'Q4-B0' },
+  5: { name: 'Q0 — PB Main Parking',       id: 'Q0-PB' },
+  6: { name: 'Q0 — PB1 AC Charges',        id: 'Q0-PB1'},
+};
+
+let chartInstance = null;
+
+function setStatus(type, text) {
+  document.getElementById('status-dot').className = 'status-dot' + (type ? ' '+type : '');
+  document.getElementById('status-text').textContent = text;
+}
+
+function fmtMoney(n) {
+  const x = Number(n || 0);
+  return x.toFixed(2);
+}
+function fmtRate(n) {
+  if (n === "-" || n == null) return "-";
+  const x = Number(n);
+  if (!Number.isFinite(x)) return "-";
+  return x.toFixed(4);
+}
+function fmtKwh(n) {
+  const x = Number(n || 0);
+  return Number.isInteger(x) ? String(x) : x.toFixed(3).replace(/0+$/,'').replace(/\.$/,'');
+}
+function seasonLabel(s) {
+  if (s === "winter") return "Winter";
+  if (s === "summer") return "Summer";
+  if (s === "shoulder") return "Transition";
+  return s || "-";
+}
+
+function gbStamp(iso) {
+  // "YYYY-MM-DD HH:00" -> "DD/MM HH:00"
+  if (!iso) return "";
+  const s = String(iso);
+  if (!s.includes(" ")) return s;
+  const [d,t] = s.split(" ");
+  const [Y,M,D] = d.split("-");
+  return `${D}/${M} ${t}`;
+}
+function gbDate(isoDate) {
+  // "YYYY-MM-DD" -> "DD/MM/YYYY"
+  const [Y,M,D] = String(isoDate).split("-");
+  return `${D}/${M}/${Y}`;
+}
+function shortDay(isoDate) {
+  const [Y,M,D] = String(isoDate).split("-");
+  return `${D}/${M}`;
+}
+function hhFromStamp(stamp) {
+  const s = String(stamp || "");
+  if (s.includes(" ")) return s.split(" ")[1];
+  return s;
+}
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+async function ensureChart() {
+  if (window.Chart) return;
+  await loadScript("/vendor/chart.umd.min.js");
+  if (!window.Chart) throw new Error("Chart.js failed to load (CDN + local fallback)");
+}
+
+// ✅ Hourly: show ONLY hours returned by API (no full-day axis)
+function sortByTimestampAsc(rows) {
+  return [...rows].sort((a,b) => String(a.timestamp).localeCompare(String(b.timestamp)));
+}
+
+async function generateReport() {
+  const breakerId = parseInt(document.getElementById('sel-breaker').value, 10);
+  const from = document.getElementById('sel-from').value;
+  const to   = document.getElementById('sel-to').value;
+  const view = document.querySelector('input[name="view"]:checked').value;
+
+  const placeholder = document.getElementById('placeholder');
+  const noData = document.getElementById('no-data');
+  const card   = document.getElementById('report-card');
+
+  if (!breakerId) { setStatus('', 'Please select a breaker.'); return; }
+  if (!from || !to) { setStatus('', 'Please select a date range.'); return; }
+
+  placeholder.style.display = 'none';
+  noData.classList.remove('visible');
+  card.classList.remove('visible');
+  card.innerHTML = "";
+  if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+
+  setStatus('loading', 'Fetching data...');
+
+  try {
+    const url = `${API_BASE}/api/consumption?breaker_id=${breakerId}&from_date=${encodeURIComponent(from)}&to_date=${encodeURIComponent(to)}&view=${encodeURIComponent(view)}`;
+    const resp = await fetch(url, { cache: "no-store" });
+    if (!resp.ok) {
+      const t = await resp.text().catch(()=> "");
+      throw new Error(`API error (${resp.status}): ${t || resp.statusText}`);
+    }
+
+    const d = await resp.json();
+
+    const totalKwh = Number(d.total_kwh || 0);
+    let rows = Array.isArray(d.rows) ? d.rows : [];
+
+    // ✅ Sort rows so table is chronological
+    rows = sortByTimestampAsc(rows);
+
+    if (!rows.length || totalKwh <= 0) {
+      setStatus('', `No data for breaker ${breakerId} in selected period.`);
+      noData.classList.add('visible');
+      return;
+    }
+
+    noData.classList.remove('visible');
+
+    const breaker = BREAKERS[breakerId] || { name: `Breaker ${breakerId}`, id: String(breakerId) };
+    const invoiceNo = d.invoice_no || `INV-${new Date().toISOString().slice(0,10)}`;
+    const today = (d.generated_at || new Date().toLocaleString("en-GB")).toString();
+
+    const seasons = new Set(rows.map(r => r.season).filter(Boolean));
+    const tariffText = seasons.size === 1
+      ? `ToU — ${seasonLabel([...seasons][0])} (Before VAT)`
+      : `ToU — Seasonal (Before VAT)`;
+
+    const peakKwh = Number(d.peak_kwh || 0);
+    const offKwh  = Number(d.offpeak_kwh || 0);
+    const peakAmt = Number(d.peak_amount || 0);
+    const offAmt  = Number(d.offpeak_amount || 0);
+    const grand   = Number(d.total_amount || 0);
+
+    const pd = d.peak_definition || {};
+    const peakLine = `Peak — ${pd.days || "Sun–Thu only"} | Winter/Transition ${pd.winter_shoulder_hours || "17:00–22:00"} | Summer ${pd.summer_hours || "17:00–23:00"}`;
+    const offLine = `Off-Peak — All other hours + Fri/Sat`;
+
+    let tableRows = "";
+    const chartLabels = [];
+    const chartPeak = [];
+    const chartOff = [];
+
+    if (view === "daily") {
+      rows.forEach(r => {
+        const dPk  = Number(r.peak_kwh || 0);
+        const dOff = Number(r.off_kwh || 0);
+        const dTot = Number(r.kwh || 0);
+        const dAmt = Number(r.amount || 0);
+
+        tableRows += `<tr>
+          <td>${gbDate(r.timestamp)}</td>
+          <td>
+            <span class="tag pk" style="margin-right:3px">Pk: ${fmtKwh(dPk)}</span>
+            <span class="tag op">Off: ${fmtKwh(dOff)}</span>
+          </td>
+          <td class="n">${fmtKwh(dTot)}</td>
+          <td class="n">Mixed</td>
+          <td class="n">${fmtMoney(dAmt)}</td>
+        </tr>`;
+
+        chartLabels.push(shortDay(r.timestamp));
+        chartPeak.push(dPk);
+        chartOff.push(dOff);
+      });
+    } else {
+      // ✅ hourly: ONLY existing rows from API
+      rows.forEach(r => {
+        const type = r.type || "Off-Peak";
+        const pk = (type === "Peak");
+        const kwh = Number(r.kwh || 0);
+
+        tableRows += `<tr class="${pk ? 'pk-row' : ''}">
+          <td>${gbStamp(r.timestamp)}</td>
+          <td><span class="tag ${pk?'pk':'op'}">${pk?'Peak':'Off-Peak'}</span></td>
+          <td class="n">${fmtKwh(kwh)}</td>
+          <td class="n">${fmtRate(r.rate)}</td>
+          <td class="n">${fmtMoney(r.amount)}</td>
+        </tr>`;
+
+        chartLabels.push(hhFromStamp(r.timestamp));
+        chartPeak.push(pk ? kwh : 0);
+        chartOff.push(pk ? 0 : kwh);
+      });
+    }
+
+    card.innerHTML = `
+      <div class="rpt-header">
+        <div class="rpt-logo">ABB</div>
+        <div class="rpt-header-right">
+          <div class="rpt-type">Energy Report — ${view === 'hourly' ? 'Hourly' : 'Daily'} View</div>
+          <div class="rpt-name">${breaker.name}</div>
+        </div>
+      </div>
+
+      <div class="rpt-subbar">
+        <span class="sl">Breaker Energy Invoice</span>
+        <span class="sr">#${invoiceNo} &nbsp;|&nbsp; ${today}</span>
+      </div>
+
+      <div class="rpt-meta">
+        <div class="rpt-meta-cell"><div class="ml">Breaker ID</div><div class="mv">${breaker.id}</div></div>
+        <div class="rpt-meta-cell"><div class="ml">From</div><div class="mv">${from}</div></div>
+        <div class="rpt-meta-cell"><div class="ml">To</div><div class="mv">${to}</div></div>
+        <div class="rpt-meta-cell"><div class="ml">Tariff</div><div class="mv">${tariffText}</div></div>
+        <div class="rpt-meta-cell"><div class="ml">Total</div><div class="mv">${fmtKwh(totalKwh)} kWh</div></div>
+      </div>
+
+      <div class="rpt-legend">
+        <div class="rpt-legend-item"><div class="sw pk"></div><span><strong>${peakLine}</strong></span></div>
+        <div class="rpt-legend-item"><div class="sw op"></div><span><strong>${offLine}</strong></span></div>
+      </div>
+
+      <div class="rpt-body">
+        <div class="rpt-chart-panel">
+          <div class="rpt-chart-title">&#9650; Consumption — ${view === 'hourly' ? 'Hourly Breakdown' : 'Daily Summary'}</div>
+          <div class="chart-container"><canvas id="rpt-chart"></canvas></div>
+
+          <div class="chart-pills">
+            <div class="pill pk">
+              <div class="pl">Peak Hours</div>
+              <div class="pv">${fmtKwh(peakKwh)} kWh</div>
+              <div class="ps">${fmtMoney(peakAmt)} ILS</div>
+            </div>
+            <div class="pill op">
+              <div class="pl">Off-Peak Hours</div>
+              <div class="pv">${fmtKwh(offKwh)} kWh</div>
+              <div class="ps">${fmtMoney(offAmt)} ILS</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rpt-table-panel">
+          <div class="rpt-table-wrap" style="padding-top:16px;">
+            <table class="rpt-table">
+              <thead><tr>
+                <th>${view==='hourly'?'Time':'Date'}</th>
+                <th>Type</th><th>kWh</th><th>Rate</th><th>ILS</th>
+              </tr></thead>
+              <tbody>${tableRows}</tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="rpt-totals">
+        <div>
+          <div class="rpt-totals-lines">
+            <div class="rpt-tot-line"><span>&#9632; Peak — ${fmtKwh(peakKwh)} kWh</span><span class="tv">${fmtMoney(peakAmt)} ILS</span></div>
+            <div class="rpt-tot-line"><span>&#9632; Off-Peak — ${fmtKwh(offKwh)} kWh</span><span class="tv">${fmtMoney(offAmt)} ILS</span></div>
+          </div>
+          <div class="rpt-note">Tariffs are BEFORE VAT — seasonal ToU pricing (IEC)</div>
+        </div>
+
+        <div class="rpt-total-box">
+          <div class="tbl">Total Due</div>
+          <div class="tba">${fmtMoney(grand)}</div>
+          <div class="tbc">ILS</div>
+        </div>
+      </div>
+
+      <div class="rpt-export-bar">
+        <button class="btn-print" onclick="window.print()">
+          <svg viewBox="0 0 24 24"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
+          Export to PDF
+        </button>
+      </div>
+
+      <div class="rpt-footer">
+        <span><span class="fa">ABB</span>Energy Monitoring System | Breaker Report v1.0</span>
+        <span>energyData.csv | ${today}</span>
+      </div>
+    `;
+
+    card.classList.add('visible');
+
+    // Chart
+    await ensureChart();
+    const ctx = document.getElementById('rpt-chart').getContext('2d');
+    if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+
+    chartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: chartLabels,
+        datasets: [
+          { label: 'Peak', data: chartPeak, backgroundColor: 'rgba(255,0,15,0.85)', borderRadius: 2, borderSkipped: false },
+          { label: 'Off-Peak', data: chartOff, backgroundColor: 'rgba(26,26,26,0.72)', borderRadius: 2, borderSkipped: false },
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { position: 'top', labels: { font: { family: 'DM Sans', size: 12, weight: '600' }, boxWidth: 12, boxHeight: 12, padding: 16 } },
+          tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y} kWh` } }
+        },
+        scales: {
+          x: { stacked: true, ticks: { font: { family: 'DM Mono', size: 9 }, maxRotation: 55, color: '#888' }, grid: { display: false } },
+          y: { stacked: true, title: { display: true, text: 'kWh', font: { family: 'DM Sans', size: 11 }, color: '#aaa' }, ticks: { font: { family: 'DM Mono', size: 11 }, color: '#888' }, grid: { color: '#f0f0f0' } }
+        }
+      }
+    });
+
+    setStatus('active', `Report ready — ${breaker.name} | ${view} view | ${from} → ${to} | Total: ${fmtMoney(grand)} ILS`);
+    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  } catch (e) {
+    console.error(e);
+    setStatus('', `Error: ${e.message || e}`);
+    noData.classList.add('visible');
+  }
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Enter') generateReport(); });
+</script>
+</body>
+</html>
