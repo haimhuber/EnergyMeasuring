@@ -356,14 +356,8 @@
     <div class="ctrl-group">
       <label>Breaker</label>
       <select id="sel-breaker">
-        <option value="">— Select breaker —</option>
-        <option value="1">1 — Carrier</option>
-        <option value="2">2 — AEMAC</option>
-        <option value="3">3 — Q0 · B0 Main Breaker Building</option>
-        <option value="4">4 — Q4 · B0 Neu Reality</option>
-        <option value="5">5 — Q0 · PB Main Parking</option>
-        <option value="6">6 — Q0 · PB1 AC Charges</option>
-      </select>
+  <option value="">— Select breaker —</option>
+</select>
     </div>
     <div class="ctrl-group">
       <label>From</label>
@@ -409,14 +403,12 @@
 <script>
 const API_BASE = "";
 
-const BREAKERS = {
-  1: { name: 'Carrier',                    id: 'B01'   },
-  2: { name: 'AEMAC',                      id: 'AEMAC' },
-  3: { name: 'Q0 — B0 Main Breaker Bldg',  id: 'Q0-B0' },
-  4: { name: 'Q4 — B0 Neu Reality',        id: 'Q4-B0' },
-  5: { name: 'Q0 — PB Main Parking',       id: 'Q0-PB' },
-  6: { name: 'Q0 — PB1 AC Charges',        id: 'Q0-PB1'},
-};
+/**
+ * ✅ BREAKERS is a real object (not a Promise)
+ * Format we keep everywhere:
+ * BREAKERS["1"] = { id:"1", name:"..." }
+ */
+let BREAKERS = {};
 
 let chartInstance = null;
 
@@ -519,6 +511,58 @@ function aggregateHourlyToDaily(rows) {
   return [...map.values()].sort((a,b) => String(a.timestamp).localeCompare(String(b.timestamp)));
 }
 
+/** ✅ Load breakers from API and fill the select */
+async function loadBreakersAndFillSelect() {
+  const select = document.getElementById("sel-breaker");
+
+  try {
+    setStatus("loading", "Loading breakers...");
+
+    const res = await fetch(`${API_BASE}/api/breakers`, { cache: "no-store" });
+    if (!res.ok) {
+      const t = await res.text().catch(()=> "");
+      throw new Error(`Breakers API error (${res.status}): ${t || res.statusText}`);
+    }
+
+    const data = await res.json();
+    console.log("Breakers from API:", data);
+
+    // ✅ data is ARRAY: [{id,name},...]
+    const list = Array.isArray(data) ? data : (data.breakers || []);
+
+    // ✅ Build BREAKERS as object map: BREAKERS["1"] = {id:"1", name:"..."}
+    BREAKERS = Object.fromEntries(
+      list
+        .filter(b => b && b.id != null)
+        .map(b => {
+          const id = String(b.id).trim();
+          const name = String(b.name || `Breaker ${id}`).trim();
+          return [id, { id, name }];
+        })
+    );
+
+    // ✅ clear existing options (keep placeholder)
+    select.length = 1;
+
+    Object.entries(BREAKERS)
+      .sort((a,b) => Number(a[0]) - Number(b[0]))
+      .forEach(([key, breaker]) => {
+        const option = document.createElement("option");
+        option.value = key; // value = breakerId
+        option.textContent = `${key} — ${breaker.name}`;
+        select.appendChild(option);
+      });
+
+    setStatus("", "Ready.");
+
+  } catch (err) {
+    console.error("Failed to load breakers:", err);
+    BREAKERS = {};
+    select.length = 1;
+    setStatus("", `Failed to load breakers: ${err.message || err}`);
+  }
+}
+
 async function generateReport() {
   const breakerId = parseInt(document.getElementById('sel-breaker').value, 10);
   const from = document.getElementById('sel-from').value;
@@ -563,7 +607,9 @@ async function generateReport() {
       return;
     }
 
-    const breaker = BREAKERS[breakerId] || { name: `Breaker ${breakerId}`, id: String(breakerId) };
+    // ✅ IMPORTANT: keys in BREAKERS are strings
+    const breaker = BREAKERS[String(breakerId)] || { name: `Breaker ${breakerId}`, id: String(breakerId) };
+
     const invoiceNo = d.invoice_no || `INV-${new Date().toISOString().slice(0,10)}`;
     const today = (d.generated_at || new Date().toLocaleString("en-GB")).toString();
 
@@ -853,6 +899,9 @@ async function generateReport() {
 }
 
 document.addEventListener('keydown', e => { if (e.key === 'Enter') generateReport(); });
+
+// ✅ init
+loadBreakersAndFillSelect();
 </script>
 </body>
 </html>

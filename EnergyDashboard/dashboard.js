@@ -8,6 +8,9 @@ import cors from "cors";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
+import breakersConfig from "../energyComsamption/breakerConfig.json" with { type: "json" };
+
+
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -24,14 +27,21 @@ const CSV_PATH = path.join(CSV_DIR, CSV_FILE);
 const PUBLIC_DIR = path.join(process.cwd(), "public");
 
 // ---- Breakers ----
-const BREAKERS = {
-  1: "1 — Carrier",
-  2: "2 — AEMAC",
-  3: "3 — Q0 · B0 Main Breaker Building",
-  4: "4 — Q4 · B0 Neu Reality",
-  5: "5 — Q0 · PB Main Parking",
-  6: "6 — Q0 · PB1 AC Charges",
-};
+// Load breakers from config and build a map: { id: { id, name } }
+const BREAKERS = Object.fromEntries(
+  breakersConfig.breakers.map(item => {
+    const [id, name] = item.split(" - ");
+    return [
+      id.trim(),
+      {
+        id: id.trim(),
+        name: name.trim()
+      }
+    ];
+  })
+);
+// ****************************************
+
 
 // ---- IEC TOU tariffs (before VAT), NIS/kWh ----
 const TARIFFS = {
@@ -213,6 +223,14 @@ app.get("/api/available-dates", (req, res) => {
     res.status(500).json({ detail: err?.message || "Server error" });
   }
 });
+
+
+app.get("/api/breakers", (req, res) => {
+  const list = Object.values(BREAKERS).map((b) => ({ id: b.id, name: b.name }));
+  res.json(list);
+} );
+
+
 
 app.get("/api/consumption", (req, res) => {
   try {
