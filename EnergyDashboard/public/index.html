@@ -10,7 +10,6 @@
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 
 <style>
-  /* (same CSS you had) */
   :root { --red:#FF000F; --red-dk:#CC000C; --black:#0F0F0F; --dark:#1A1A1A; --mid:#555; --light:#F4F4F4; --border:#E2E2E2; --peak-bg:#FFF3F3; }
   * { box-sizing:border-box; margin:0; padding:0; }
   body { font-family:'DM Sans',sans-serif; background:#111; color:var(--black); min-height:100vh; }
@@ -82,8 +81,6 @@
   .pill .pl { font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:#888; margin-bottom:4px; }
   .pill .pv { font-size:20px; font-weight:700; color:var(--dark); }
   .pill .ps { font-size:12px; color:#888; margin-top:2px; font-family:'DM Mono',monospace; }
-
-  /* Make the table area scrollable so it doesn't take the whole screen height */
   .rpt-table-panel { overflow: visible; }
   .rpt-table-wrap { padding:0 24px; max-height:55vh; overflow-y:auto; -webkit-overflow-scrolling:touch; }
   .rpt-table { width:100%; border-collapse:collapse; font-size:13px; }
@@ -98,7 +95,6 @@
   .tag { display:inline-block; font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; padding:2px 7px; border-radius:2px; color:#fff; }
   .tag.pk { background:var(--red); }
   .tag.op { background:var(--dark); }
-
   .rpt-totals { margin:0 40px; border-top:2px solid var(--red); padding:20px 0 28px; display:grid; grid-template-columns:1fr auto; gap:20px; align-items:center; }
   .rpt-totals-lines { display:flex; flex-direction:column; gap:8px; }
   .rpt-tot-line { display:flex; justify-content:space-between; font-size:15px; color:#555; padding-bottom:8px; border-bottom:1px solid #f0f0f0; }
@@ -120,14 +116,229 @@
   .no-data .nd-icon { font-size:48px; margin-bottom:16px; opacity:0.4; }
   .no-data .nd-text { font-size:14px; }
 
+  /* =========================
+     PRINT PDF: ABB header + CLEAR ROW LIST (no table)
+     ========================= */
+  .print-only-records { display:none; }
+
+  #print-records { font-family:'DM Sans',sans-serif; }
+  #print-records .pdf-page { width:100%; color:#111; }
+
+  #print-records .pdf-header {
+    background: var(--red);
+    color:#fff;
+    padding:18px 18px 14px;
+    border-radius:12px;
+    position:relative;
+    overflow:hidden;
+  }
+  #print-records .pdf-header::after{
+    content:"ABB";
+    position:absolute;
+    right:-16px;
+    top:-46px;
+    font-size:140px;
+    font-weight:900;
+    letter-spacing:10px;
+    color:rgba(0,0,0,0.12);
+    pointer-events:none;
+    user-select:none;
+  }
+  #print-records .pdf-head-row{
+    position:relative; z-index:1;
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+  }
+  #print-records .pdf-logo{
+    font-size:32px;
+    font-weight:900;
+    letter-spacing:6px;
+    line-height:1;
+  }
+  #print-records .pdf-title{
+    text-align:right;
+  }
+  #print-records .pdf-title .t1{
+    font-size:11px;
+    letter-spacing:3px;
+    text-transform:uppercase;
+    opacity:.75;
+    margin-bottom:6px;
+  }
+  #print-records .pdf-title .t2{
+    font-size:18px;
+    font-weight:800;
+    line-height:1.15;
+  }
+  #print-records .pdf-chips{
+    position:relative; z-index:1;
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:10px;
+  }
+  #print-records .chip{
+    background: rgba(0,0,0,0.22);
+    border:1px solid rgba(255,255,255,0.25);
+    color:#fff;
+    padding:6px 10px;
+    border-radius:999px;
+    font-size:11px;
+  }
+
+  #print-records .pdf-summary{
+    margin-top:12px;
+    display:grid;
+    grid-template-columns: 1.2fr 1fr 1fr;
+    gap:10px;
+  }
+  #print-records .sum-total{
+    background:#111;
+    color:#fff;
+    border-radius:12px;
+    padding:12px 12px;
+  }
+  #print-records .sum-total .k{
+    font-size:10px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    opacity:.7;
+    margin-bottom:6px;
+    font-weight:800;
+  }
+  #print-records .sum-total .v{
+    font-size:24px;
+    font-weight:900;
+    line-height:1;
+  }
+  #print-records .sum-box{
+    background:#fff;
+    border:1px solid #eee;
+    border-radius:12px;
+    padding:12px 12px;
+  }
+  #print-records .sum-box.pk{ border-left:5px solid var(--red); }
+  #print-records .sum-box.op{ border-left:5px solid var(--dark); }
+  #print-records .sum-box .k{
+    font-size:10px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:#999;
+    font-weight:900;
+    margin-bottom:6px;
+  }
+  #print-records .sum-box .v{
+    font-size:18px;
+    font-weight:900;
+    color:#111;
+  }
+  #print-records .sum-box .s{
+    font-family:'DM Mono',monospace;
+    font-size:12px;
+    color:#666;
+    margin-top:4px;
+  }
+
+  /* clear row list */
+  #print-records .pdf-section-title{
+    margin-top:12px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    padding:8px 2px;
+  }
+  #print-records .pdf-section-title .l{
+    font-size:11px;
+    letter-spacing:3px;
+    text-transform:uppercase;
+    font-weight:900;
+    color:#111;
+  }
+  #print-records .pdf-section-title .r{
+    font-family:'DM Mono',monospace;
+    font-size:12px;
+    color:#666;
+  }
+
+  #print-records .rowlist{
+    margin-top:6px;
+    border:1px solid #eee;
+    border-radius:12px;
+    overflow:hidden;
+    background:#fff;
+  }
+  #print-records .row{
+    display:grid;
+    grid-template-columns: 120px 1fr 1fr 1fr 1fr;
+    gap:8px;
+    padding:10px 12px;
+    border-bottom:1px solid #eee;
+    align-items:center;
+  }
+  #print-records .row:last-child{ border-bottom:none; }
+  #print-records .row:nth-child(even){ background:#fafafa; }
+
+  #print-records .row .d{
+    font-family:'DM Mono',monospace;
+    font-size:12px;
+    font-weight:700;
+    color:#111;
+  }
+  #print-records .cell .k{
+    font-size:9px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:#999;
+    font-weight:900;
+    margin-bottom:3px;
+  }
+  #print-records .cell .v{
+    font-family:'DM Mono',monospace;
+    font-size:12px;
+    color:#111;
+    font-weight:700;
+  }
+  #print-records .cell .v strong{ font-weight:900; }
+
+  #print-records .pdf-footer{
+    margin-top:12px;
+    padding-top:10px;
+    border-top:1px solid #eee;
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    font-family:'DM Mono',monospace;
+    font-size:11px;
+    color:#777;
+  }
+  #print-records .pdf-footer .abb{
+    color:var(--red);
+    font-weight:900;
+    letter-spacing:2px;
+  }
+
+  /* avoid breaking a row */
+  #print-records .row{ break-inside: avoid; page-break-inside: avoid; }
+
   @media print {
     body { background:#fff; }
-    .nav, .selector-section, .status-bar, .placeholder, .no-data, .rpt-export-bar { display:none !important; }
-    .report-area { background:#fff; padding:0; }
-    .report-card { box-shadow:none; }
-    .rpt-body { grid-template-columns:1fr; }
-    .rpt-chart-panel { border-right:none; }
-    .rpt-table-panel { max-height:none; overflow:visible; }
+    body * { visibility:hidden !important; }
+
+    #print-records, #print-records * { visibility: visible !important; }
+
+    #print-records {
+      display:block !important;
+      position:absolute;
+      left:0; top:0;
+      width:100%;
+      padding:18px;
+      background:#fff;
+    }
+
+    table, .rpt-table-panel, .rpt-table-wrap { display:none !important; }
   }
 </style>
 </head>
@@ -165,8 +376,8 @@
     <div class="ctrl-group">
       <label>View</label>
       <div class="view-toggle">
-        <label><input type="radio" name="view" value="hourly" checked><span class="vt-btn">Hourly</span></label>
-        <label><input type="radio" name="view" value="daily"><span class="vt-btn">Daily</span></label>
+        <label><input type="radio" name="view" value="hourly"><span class="vt-btn">Hourly</span></label>
+        <label><input type="radio" name="view" value="daily" checked><span class="vt-btn">Daily</span></label>
       </div>
     </div>
     <button class="btn-generate" onclick="generateReport()">
@@ -192,6 +403,9 @@
   <div class="report-card" id="report-card"></div>
 </div>
 
+<!-- ✅ Printable "records only" container -->
+<div id="print-records" class="print-only-records"></div>
+
 <script>
 const API_BASE = "";
 
@@ -211,10 +425,7 @@ function setStatus(type, text) {
   document.getElementById('status-text').textContent = text;
 }
 
-function fmtMoney(n) {
-  const x = Number(n || 0);
-  return x.toFixed(2);
-}
+function fmtMoney(n) { return Number(n || 0).toFixed(2); }
 function fmtRate(n) {
   if (n === "-" || n == null) return "-";
   const x = Number(n);
@@ -233,7 +444,6 @@ function seasonLabel(s) {
 }
 
 function gbStamp(iso) {
-  // "YYYY-MM-DD HH:00" -> "DD/MM HH:00"
   if (!iso) return "";
   const s = String(iso);
   if (!s.includes(" ")) return s;
@@ -242,7 +452,6 @@ function gbStamp(iso) {
   return `${D}/${M} ${t}`;
 }
 function gbDate(isoDate) {
-  // "YYYY-MM-DD" -> "DD/MM/YYYY"
   const [Y,M,D] = String(isoDate).split("-");
   return `${D}/${M}/${Y}`;
 }
@@ -271,9 +480,43 @@ async function ensureChart() {
   if (!window.Chart) throw new Error("Chart.js failed to load (CDN + local fallback)");
 }
 
-// ✅ Hourly: show ONLY hours returned by API (no full-day axis)
 function sortByTimestampAsc(rows) {
   return [...rows].sort((a,b) => String(a.timestamp).localeCompare(String(b.timestamp)));
+}
+
+/* ✅ Print only the "records" list (no table) */
+function printRecordsOnly() {
+  const pr = document.getElementById("print-records");
+  pr.style.display = "block";
+  window.print();
+  pr.style.display = "none";
+}
+
+/* ✅ If user selected hourly - aggregate to DAILY for PDF list */
+function aggregateHourlyToDaily(rows) {
+  const map = new Map(); // date -> {timestamp, peak_kwh, off_kwh, kwh, amount}
+  rows.forEach(r => {
+    const ts = String(r.timestamp || "");
+    const date = ts.includes(" ") ? ts.split(" ")[0] : ts.slice(0,10);
+    if (!date) return;
+
+    const type = r.type || "Off-Peak";
+    const pk = (type === "Peak");
+
+    const kwh = Number(r.kwh || 0);
+    const amount = Number(r.amount || 0);
+
+    if (!map.has(date)) {
+      map.set(date, { timestamp: date, peak_kwh: 0, off_kwh: 0, kwh: 0, amount: 0 });
+    }
+    const agg = map.get(date);
+    agg.kwh += kwh;
+    agg.amount += amount;
+    if (pk) agg.peak_kwh += kwh;
+    else agg.off_kwh += kwh;
+  });
+
+  return [...map.values()].sort((a,b) => String(a.timestamp).localeCompare(String(b.timestamp)));
 }
 
 async function generateReport() {
@@ -295,6 +538,9 @@ async function generateReport() {
   card.innerHTML = "";
   if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
 
+  // clear print container
+  document.getElementById("print-records").innerHTML = "";
+
   setStatus('loading', 'Fetching data...');
 
   try {
@@ -309,8 +555,6 @@ async function generateReport() {
 
     const totalKwh = Number(d.total_kwh || 0);
     let rows = Array.isArray(d.rows) ? d.rows : [];
-
-    // ✅ Sort rows so table is chronological
     rows = sortByTimestampAsc(rows);
 
     if (!rows.length || totalKwh <= 0) {
@@ -318,8 +562,6 @@ async function generateReport() {
       noData.classList.add('visible');
       return;
     }
-
-    noData.classList.remove('visible');
 
     const breaker = BREAKERS[breakerId] || { name: `Breaker ${breakerId}`, id: String(breakerId) };
     const invoiceNo = d.invoice_no || `INV-${new Date().toISOString().slice(0,10)}`;
@@ -340,6 +582,7 @@ async function generateReport() {
     const peakLine = `Peak — ${pd.days || "Sun–Thu only"} | Winter/Transition ${pd.winter_shoulder_hours || "17:00–22:00"} | Summer ${pd.summer_hours || "17:00–23:00"}`;
     const offLine = `Off-Peak — All other hours + Fri/Sat`;
 
+    // ===== Screen table + chart (same as before) =====
     let tableRows = "";
     const chartLabels = [];
     const chartPeak = [];
@@ -368,7 +611,6 @@ async function generateReport() {
         chartOff.push(dOff);
       });
     } else {
-      // ✅ hourly: ONLY existing rows from API
       rows.forEach(r => {
         const type = r.type || "Off-Peak";
         const pk = (type === "Peak");
@@ -388,6 +630,99 @@ async function generateReport() {
       });
     }
 
+    // ===== PDF rows = ALWAYS DAILY =====
+    const dailyRowsForPrint = (view === "daily") ? rows : aggregateHourlyToDaily(rows);
+
+    // Build clear "row list" for PDF
+    let pdfRows = "";
+    dailyRowsForPrint.forEach(r => {
+      const dPk  = Number(r.peak_kwh || 0);
+      const dOff = Number(r.off_kwh || 0);
+      const dTot = Number(r.kwh || 0);
+      const dAmt = Number(r.amount || 0);
+
+      pdfRows += `
+        <div class="row">
+          <div class="d">${gbDate(r.timestamp)}</div>
+
+          <div class="cell">
+            <div class="k">Peak</div>
+            <div class="v"><strong>${fmtKwh(dPk)}</strong> kWh</div>
+          </div>
+
+          <div class="cell">
+            <div class="k">Off-peak</div>
+            <div class="v"><strong>${fmtKwh(dOff)}</strong> kWh</div>
+          </div>
+
+          <div class="cell">
+            <div class="k">Total</div>
+            <div class="v"><strong>${fmtKwh(dTot)}</strong> kWh</div>
+          </div>
+
+          <div class="cell">
+            <div class="k">ILS</div>
+            <div class="v"><strong>${fmtMoney(dAmt)}</strong></div>
+          </div>
+        </div>
+      `;
+    });
+
+    document.getElementById("print-records").innerHTML = `
+      <div class="pdf-page">
+        <div class="pdf-header">
+          <div class="pdf-head-row">
+            <div class="pdf-logo">ABB</div>
+            <div class="pdf-title">
+              <div class="t1">Energy Monitoring System</div>
+              <div class="t2">Daily Consumption Invoice</div>
+            </div>
+          </div>
+
+          <div class="pdf-chips">
+            <div class="chip"><strong>Breaker:</strong> ${breaker.name}</div>
+            <div class="chip"><strong>ID:</strong> ${breaker.id}</div>
+            <div class="chip"><strong>Period:</strong> ${from} → ${to}</div>
+            <div class="chip"><strong>Invoice:</strong> ${invoiceNo}</div>
+          </div>
+        </div>
+
+        <div class="pdf-summary">
+          <div class="sum-total">
+            <div class="k">Total due</div>
+            <div class="v">${fmtMoney(grand)} <span style="font-size:13px;font-weight:800;opacity:.75">ILS</span></div>
+          </div>
+
+          <div class="sum-box pk">
+            <div class="k">Peak summary</div>
+            <div class="v">${fmtKwh(peakKwh)} kWh</div>
+            <div class="s">${fmtMoney(peakAmt)} ILS</div>
+          </div>
+
+          <div class="sum-box op">
+            <div class="k">Off-peak summary</div>
+            <div class="v">${fmtKwh(offKwh)} kWh</div>
+            <div class="s">${fmtMoney(offAmt)} ILS</div>
+          </div>
+        </div>
+
+        <div class="pdf-section-title">
+          <div class="l">Daily records</div>
+          <div class="r">${dailyRowsForPrint.length} days • ${tariffText}</div>
+        </div>
+
+        <div class="rowlist">
+          ${pdfRows}
+        </div>
+
+        <div class="pdf-footer">
+          <div><span class="abb">ABB</span> | Energy Report v1.0</div>
+          <div>Before VAT • IEC ToU • Generated: ${today}</div>
+        </div>
+      </div>
+    `;
+
+    // ===== Render app card =====
     card.innerHTML = `
       <div class="rpt-header">
         <div class="rpt-logo">ABB</div>
@@ -464,9 +799,9 @@ async function generateReport() {
       </div>
 
       <div class="rpt-export-bar">
-        <button class="btn-print" onclick="window.print()">
+        <button class="btn-print" onclick="printRecordsOnly()">
           <svg viewBox="0 0 24 24"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
-          Export to PDF
+          Export to PDF (Rows)
         </button>
       </div>
 
@@ -507,7 +842,7 @@ async function generateReport() {
       }
     });
 
-    setStatus('active', `Report ready — ${breaker.name} | ${view} view | ${from} → ${to} | Total: ${fmtMoney(grand)} ILS`);
+    setStatus('active', `Report ready — ${breaker.name} | ${view} view | ${from} → ${to} | PDF = clear daily rows`);
     card.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   } catch (e) {
