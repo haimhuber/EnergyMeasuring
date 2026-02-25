@@ -83,9 +83,9 @@
   .pill .pv { font-size:20px; font-weight:700; color:var(--dark); }
   .pill .ps { font-size:12px; color:#888; margin-top:2px; font-family:'DM Mono',monospace; }
 
-  /* ✅ Important: show full table (no clipping) */
-  .rpt-table-panel { overflow: visible; max-height: none; }
-  .rpt-table-wrap { padding:0 24px; }
+  /* Make the table area scrollable so it doesn't take the whole screen height */
+  .rpt-table-panel { overflow: visible; }
+  .rpt-table-wrap { padding:0 24px; max-height:55vh; overflow-y:auto; -webkit-overflow-scrolling:touch; }
   .rpt-table { width:100%; border-collapse:collapse; font-size:13px; }
   .rpt-table thead { position:sticky; top:0; z-index:2; }
   .rpt-table thead tr { border-bottom:2px solid var(--red); }
