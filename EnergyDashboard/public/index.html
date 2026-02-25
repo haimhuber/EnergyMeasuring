@@ -56,11 +56,11 @@
   .rpt-header { background:var(--red); padding:28px 40px; display:flex; align-items:center; justify-content:space-between; }
   .rpt-logo { font-size:40px; font-weight:700; letter-spacing:5px; color:#fff; }
   .rpt-header-right { text-align:right; }
-  .rpt-header-right .rpt-type { font-size:12px; letter-spacing:3px; text-transform:uppercase; color:rgba(255,255,255,0.6); margin-bottom:4px; }
-  .rpt-header-right .rpt-name { font-size:24px; font-weight:600; color:#fff; }
+  .rpt-header-right .rpt-type { font-size:12px; letter-spacing:3px; text-transform:uppercase; color:rgba(255,255,255,0.95); margin-bottom:4px; font-weight:700; }
+  .rpt-header-right .rpt-name { font-size:24px; font-weight:800; color:#fff; }
   .rpt-subbar { background:var(--dark); padding:9px 40px; display:flex; justify-content:space-between; align-items:center; }
   .rpt-subbar .sl { font-size:13px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:#fff; }
-  .rpt-subbar .sr { font-size:13px; color:#666; font-family:'DM Mono',monospace; }
+  .rpt-subbar .sr { font-size:13px; color:#fff; font-family:'DM Mono',monospace; font-weight:700; }
   .rpt-meta { display:grid; grid-template-columns:repeat(5,1fr); border-bottom:1px solid var(--border); }
   .rpt-meta-cell { padding:14px 20px; border-right:1px solid var(--border); text-align:center; }
   .rpt-meta-cell:last-child { border-right:none; }
@@ -83,9 +83,9 @@
   .pill .pv { font-size:20px; font-weight:700; color:var(--dark); }
   .pill .ps { font-size:12px; color:#888; margin-top:2px; font-family:'DM Mono',monospace; }
 
-  /* Make the table area scrollable so it doesn't take the whole screen height */
-  .rpt-table-panel { overflow: visible; }
-  .rpt-table-wrap { padding:0 24px; max-height:55vh; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  /* ✅ Important: show full table (no clipping) */
+  .rpt-table-panel { overflow: visible; max-height: none; }
+  .rpt-table-wrap { padding:0 24px; }
   .rpt-table { width:100%; border-collapse:collapse; font-size:13px; }
   .rpt-table thead { position:sticky; top:0; z-index:2; }
   .rpt-table thead tr { border-bottom:2px solid var(--red); }
@@ -104,7 +104,7 @@
   .rpt-tot-line { display:flex; justify-content:space-between; font-size:15px; color:#555; padding-bottom:8px; border-bottom:1px solid #f0f0f0; }
   .rpt-tot-line:last-child { border-bottom:none; }
   .rpt-tot-line .tv { font-family:'DM Mono',monospace; font-weight:500; color:var(--dark); }
-  .rpt-note { font-size:12px; color:#ccc; margin-top:8px; }
+  .rpt-note { font-size:12px; color:#0e0d0d; margin-top:8px; }
   .rpt-total-box { background:var(--red); color:#fff; padding:22px 32px; text-align:center; min-width:170px; }
   .rpt-total-box .tbl { font-size:12px; letter-spacing:2px; text-transform:uppercase; opacity:0.75; margin-bottom:8px; }
   .rpt-total-box .tba { font-size:40px; font-weight:700; line-height:1; }
@@ -233,19 +233,51 @@ function seasonLabel(s) {
 }
 
 function gbStamp(iso) {
-  // "YYYY-MM-DD HH:00" -> "DD/MM HH:00"
-  if (!iso) return "";
-  const s = String(iso);
-  if (!s.includes(" ")) return s;
-  const [d,t] = s.split(" ");
-  const [Y,M,D] = d.split("-");
-  return `${D}/${M} ${t}`;
+  // kept for backward compatibility — use formatShortDateTime for unified formatting
+  return formatShortDateTime(iso);
+}
+
+// Format timestamp to: D/M - H:MM  (e.g. 25/2 - 9:00) — year removed per user request
+function formatShortDateTime(ts) {
+  if (!ts) return "";
+  const s = String(ts).trim();
+  // ISO format: 2026-02-23T09:05:38.169Z
+  if (s.includes('T')) {
+    const [date, time] = s.split('T');
+    const [Y, M, D] = date.split('-');
+    const timePart = (time || '').replace('Z','');
+    const [hh, mm] = (timePart.split(':').slice(0,2));
+    const d = String(Number(D));
+    const m = String(Number(M));
+    const h = String(Number(hh || 0));
+    const minute = mm || '00';
+    return `${d}/${m} - ${h}:${minute}`;
+  }
+  // space separated: "YYYY-MM-DD HH:MM[:ss]"
+  if (s.includes(' ')) {
+    const [date, time] = s.split(' ');
+    const [Y, M, D] = date.split('-');
+    const [hh, mm] = (time || '').split(':');
+    const d = String(Number(D));
+    const m = String(Number(M));
+    const h = String(Number(hh || 0));
+    const minute = mm || '00';
+    return `${d}/${m} - ${h}:${minute}`;
+  }
+  // fallback for date-only strings like YYYY-MM-DD
+  if (s.includes('-')) {
+    const [Y, M, D] = s.split('-');
+    return `${String(Number(D))}/${String(Number(M))} - 0:00`;
+  }
+  return s;
 }
 function gbDate(isoDate) {
   // "YYYY-MM-DD" -> "DD/MM/YYYY"
   const [Y,M,D] = String(isoDate).split("-");
   return `${D}/${M}/${Y}`;
 }
+// Format YYYY-MM-DD -> D/M (no year)
+
 function shortDay(isoDate) {
   const [Y,M,D] = String(isoDate).split("-");
   return `${D}/${M}`;
@@ -375,18 +407,20 @@ async function generateReport() {
         const kwh = Number(r.kwh || 0);
 
         tableRows += `<tr class="${pk ? 'pk-row' : ''}">
-          <td>${gbStamp(r.timestamp)}</td>
+          <td>${formatShortDateTime(r.timestamp)}</td>
           <td><span class="tag ${pk?'pk':'op'}">${pk?'Peak':'Off-Peak'}</span></td>
           <td class="n">${fmtKwh(kwh)}</td>
           <td class="n">${fmtRate(r.rate)}</td>
           <td class="n">${fmtMoney(r.amount)}</td>
         </tr>`;
-
-        chartLabels.push(hhFromStamp(r.timestamp));
+        // show short date-time on the x-axis (e.g. "25/2/26 - 9:00")
+        chartLabels.push(formatShortDateTime(r.timestamp));
         chartPeak.push(pk ? kwh : 0);
         chartOff.push(pk ? 0 : kwh);
       });
     }
+
+      
 
     card.innerHTML = `
       <div class="rpt-header">
@@ -432,6 +466,7 @@ async function generateReport() {
               <div class="ps">${fmtMoney(offAmt)} ILS</div>
             </div>
           </div>
+          
         </div>
 
         <div class="rpt-table-panel">
@@ -464,7 +499,7 @@ async function generateReport() {
       </div>
 
       <div class="rpt-export-bar">
-        <button class="btn-print" onclick="window.print()">
+        <button class="btn-print" onclick="exportToPDF()">
           <svg viewBox="0 0 24 24"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
           Export to PDF
         </button>
@@ -501,8 +536,23 @@ async function generateReport() {
           tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y} kWh` } }
         },
         scales: {
-          x: { stacked: true, ticks: { font: { family: 'DM Mono', size: 9 }, maxRotation: 55, color: '#888' }, grid: { display: false } },
-          y: { stacked: true, title: { display: true, text: 'kWh', font: { family: 'DM Sans', size: 11 }, color: '#aaa' }, ticks: { font: { family: 'DM Mono', size: 11 }, color: '#888' }, grid: { color: '#f0f0f0' } }
+          x: {
+            stacked: true,
+            ticks: {
+              // make date+hour labels darker and bolder for readability
+              font: { family: 'DM Mono', size: 11, weight: '700' },
+              maxRotation: 55,
+              color: '#222',
+              padding: 6
+            },
+            grid: { display: false }
+          },
+          y: {
+            stacked: true,
+            title: { display: true, text: 'kWh', font: { family: 'DM Sans', size: 11 }, color: '#666' },
+            ticks: { font: { family: 'DM Mono', size: 11, weight: '700' }, color: '#222' },
+            grid: { color: '#f0f0f0' }
+          }
         }
       }
     });
@@ -518,6 +568,115 @@ async function generateReport() {
 }
 
 document.addEventListener('keydown', e => { if (e.key === 'Enter') generateReport(); });
+
+// Export the current report to a print-friendly PDF (includes chart image)
+async function exportToPDF() {
+  // Export daily report only — fetch daily aggregation from API and print that table
+  const breakerId = parseInt(document.getElementById('sel-breaker').value, 10);
+  const from = document.getElementById('sel-from').value;
+  const to = document.getElementById('sel-to').value;
+
+  if (!breakerId) { setStatus('', 'Please select a breaker before exporting.'); return; }
+  if (!from || !to) { setStatus('', 'Please select a date range before exporting.'); return; }
+
+  setStatus('loading', 'Preparing daily export...');
+
+  try {
+    const url = `${API_BASE}/api/consumption?breaker_id=${breakerId}&from_date=${encodeURIComponent(from)}&to_date=${encodeURIComponent(to)}&view=daily`;
+    const resp = await fetch(url, { cache: 'no-store' });
+    if (!resp.ok) {
+      const t = await resp.text().catch(()=>"");
+      throw new Error(`API error (${resp.status}): ${t || resp.statusText}`);
+    }
+    const d = await resp.json();
+
+    const rows = Array.isArray(d.rows) ? d.rows : [];
+    if (!rows.length) {
+      setStatus('', 'No daily data available for selected range.');
+      return;
+    }
+
+    // Helper: format date YYYY-MM-DD -> D/M (no year)
+    function fmtDayOnly(isoDate) {
+      if (!isoDate) return '';
+      const [Y,M,D] = String(isoDate).split('-');
+      return `${String(Number(D))}/${String(Number(M))}`;
+    }
+
+    const breaker = BREAKERS[breakerId] || { name: `Breaker ${breakerId}`, id: String(breakerId) };
+    const title = `Energy Report — ${breaker.name}`;
+    const today = d.generated_at || new Date().toLocaleString('en-GB');
+
+    // Build table rows (daily)
+    let tableRows = '';
+    rows.forEach(r => {
+      const dPk  = Number(r.peak_kwh || 0);
+      const dOff = Number(r.off_kwh || 0);
+      const dTot = Number(r.kwh || 0);
+      const dAmt = Number(r.amount || 0);
+      // Render Type as single left-aligned line, with a middle dot separator for clarity
+      tableRows += `<tr>
+        <td>${fmtDayOnly(r.timestamp)}</td>
+        <td style="text-align:left">Pk: ${fmtKwh(dPk)} &middot; Off: ${fmtKwh(dOff)}</td>
+        <td style="text-align:right">${fmtKwh(dTot)}</td>
+        <td style="text-align:right">${fmtMoney(dAmt)}</td>
+      </tr>`;
+    });
+
+    const peakKwh = Number(d.peak_kwh || 0);
+    const offKwh = Number(d.offpeak_kwh || 0);
+    const grand = Number(d.total_amount || 0);
+
+    // Grab page styles to include in the print window
+    const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]')).map(node => {
+      if (node.tagName.toLowerCase() === 'style') return `<style>${node.innerHTML}</style>`;
+      if (node.tagName.toLowerCase() === 'link') return node.outerHTML;
+      return '';
+    }).join('\n');
+
+    const printableHtml = `
+      <div class="rpt-header" style="background:#FF000F; padding:20px; color:#fff;">
+        <div style="font-size:26px; font-weight:700">ABB</div>
+        <div style="text-align:right; color:#fff">
+          <div style="font-size:18px; font-weight:700">${title}</div>
+          <div style="font-size:13px; opacity:0.95; margin-top:6px; font-weight:700">${from} → ${to}</div>
+        </div>
+      </div>
+      <div style="padding:12px 0; font-family: 'DM Sans', sans-serif;">
+        <table class="rpt-table" style="width:100%; border-collapse:collapse;">
+          <thead><tr><th style="text-align:left; padding:8px;">Date</th><th style="text-align:left; padding:8px;">Type</th><th style="text-align:right; padding:8px;">kWh</th><th style="text-align:right; padding:8px;">ILS</th></tr></thead>
+          <tbody>
+            ${tableRows}
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:12px; display:flex; justify-content:space-between;">
+        <div>Peak: ${fmtKwh(peakKwh)} kWh — Off-Peak: ${fmtKwh(offKwh)} kWh</div>
+        <div style="font-weight:700">Total Due: ${fmtMoney(grand)} ILS</div>
+      </div>
+      <div style="margin-top:8px; font-size:12px; color:#666;">Generated: ${today}</div>
+    `;
+
+    const win = window.open('', '_blank');
+    if (!win) { setStatus('', 'Popup blocked — allow popups to export PDF.'); return; }
+    win.document.open();
+    win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>${styles}
+      <style>
+        body { background:#fff; color:#111; font-family: 'DM Sans', sans-serif; padding:20px; }
+        .rpt-table th, .rpt-table td { border:1px solid #eee; padding:8px; color:#111; }
+        .rpt-table th { font-weight:700; background:#fafafa; }
+      </style>
+      </head><body>${printableHtml}</body></html>`);
+    win.document.close();
+    win.focus();
+    setTimeout(() => { try { win.print(); } catch (e) { console.error(e); } setTimeout(()=>{ try{ win.close(); }catch(e){} }, 2000); }, 600);
+    setStatus('active', 'Daily PDF prepared (print dialog opened).');
+
+  } catch (err) {
+    console.error(err);
+    setStatus('', `Export failed: ${err.message || err}`);
+  }
+}
 </script>
 </body>
 </html>
