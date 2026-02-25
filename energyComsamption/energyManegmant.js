@@ -3,3 +3,5 @@ const { DateTime } = require('luxon');
 const { scheduleNextRun } = require('./scheduleCycle');
 
 scheduleNextRun(readEnergyData.readOpcActiveEnergyTags);
+
+
