@@ -95,11 +95,20 @@ function parseCsvRows(csvText) {
         r.BreakerId ?? r.breakerId ?? r.breaker_id ?? r.breaker ?? r.id;
       const activeEnergy =
         r.ActiveEnergy ?? r.activeEnergy ?? r.active_energy ?? r.energy;
-      const ts = r.timestamp ?? r.time ?? r.date;
+  const tsRaw = r.timestamp ?? r.time ?? r.date;
 
-      if (breakerId == null || activeEnergy == null || !ts) return null;
+  if (breakerId == null || activeEnergy == null || !tsRaw) return null;
 
-      const t = dayjs(ts).tz(TZ);
+  // Some CSV writers include a trailing 'Z' (UTC) even though the measurement
+  // timestamps are intended to be local wall-clock times. If we parse a
+  // Z-suffixed string as UTC and then convert to Asia/Jerusalem we'll get a
+  // +2h shift (e.g. CSV shows 17:00 but parsed as 19:00). To preserve the
+  // hour shown in the CSV, strip a trailing 'Z' (when present) and parse the
+  // resulting string as local time in TZ.
+  let tsStr = String(tsRaw).trim();
+  if (tsStr.endsWith("Z")) tsStr = tsStr.replace(/Z$/, "");
+
+  const t = dayjs.tz(tsStr, TZ);
       if (!t.isValid()) return null;
 
       return {
