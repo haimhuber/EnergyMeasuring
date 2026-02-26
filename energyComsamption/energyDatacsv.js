@@ -37,7 +37,7 @@ function toCsvLine(record) {
 }
 
 /**
- * אם הקובץ חסר/ריק: יוצר header ומשחזר מה-DB
+  Creating CSV file from SQL data if it doesn't exist or is empty. This ensures we have a base file to append to later.
  */
 async function ensureCsvExists() {
   const missingOrEmpty =
@@ -54,11 +54,6 @@ async function ensureCsvExists() {
   fs.appendFileSync(fileName, body, "utf8");
 }
 
-/**
- * values צפוי להיות מערך של אובייקטים:
- * [{BreakerId: 1, ActiveEnergy: 12345}, ...]
- * (אם יש לך גם timestamp משלך אפשר לכלול timestamp בכל אובייקט)
- */
 const storeData = async function (values = []) {
   await ensureCsvExists();
 
