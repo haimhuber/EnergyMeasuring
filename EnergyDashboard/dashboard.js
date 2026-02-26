@@ -77,6 +77,7 @@ function safeReadCsvText() {
   return fs.readFileSync(CSV_PATH, "utf8");
 }
 
+// Parses CSV text into an array of rows with { breakerId, activeEnergy, timestamp }.
 function parseCsvRows(csvText) {
   const { data, errors } = Papa.parse(csvText, {
     header: true,
@@ -119,6 +120,7 @@ function parseCsvRows(csvText) {
     })
     .filter(Boolean);
 }
+// ****************************************
 
 // ---- Tariff helpers ----
 function getSeason(t) {
@@ -127,7 +129,9 @@ function getSeason(t) {
   if (m >= 6 && m <= 9) return "summer";
   return "shoulder";
 }
+// Peak hours: Sun–Thu only, 17:00–22:00 in winter/shoulder, 17:00–23:00 in summer
 
+// Determines if a given timestamp falls within peak hours based on the day of the week and season.
 function isPeak(t) {
   const d = t.day(); // Sun=0..Sat=6
   const isSunThu = d >= 0 && d <= 4;
@@ -138,7 +142,10 @@ function isPeak(t) {
   if (season === "summer") return hour >= 17 && hour < 23;
   return hour >= 17 && hour < 22;
 }
+// Returns the applicable tariff rate (NIS/kWh) for a given timestamp and whether it's peak or off-peak.
 
+
+// 
 function getRateNisPerKwh(t, peak) {
   const season = getSeason(t);
   return peak ? TARIFFS[season].peak : TARIFFS[season].off;
@@ -151,7 +158,9 @@ function rangeToBounds(fromDate, toDate) {
   if (from.isAfter(to)) throw new Error('"from_date" must be <= "to_date"');
   return { from, to };
 }
+// Given sorted rows of cumulative energy readings, compute the deltas (consumption) between consecutive readings, along with peak/off-peak classification and amounts.
 
+// The input is expected to be sorted by timestamp ascending. The output is an array of objects with { ts, kwh, peak, season, rate, amount } representing the consumption and cost for each interval between readings.
 function computeDeltas(sortedRows) {
   const out = [];
   let prev = null;
@@ -182,7 +191,8 @@ function computeDeltas(sortedRows) {
   }
   return out;
 }
-
+// **********************************************
+// Utility functions
 function round3(n) { return Math.round(n * 1000) / 1000; }
 function buildInvoiceNo() { return `INV-${dayjs().tz(TZ).format("YYYYMMDD-HHmmss")}`; }
 
@@ -199,7 +209,7 @@ app.get("/api/health", (req, res) => {
 });
 
 /**
- * ✅ NEW: available dates endpoint
+ * NEW: available dates endpoint
  * Returns dates (YYYY-MM-DD) that exist for the selected breaker in the CSV.
  * Use this in the UI to prevent choosing empty days.
  */
