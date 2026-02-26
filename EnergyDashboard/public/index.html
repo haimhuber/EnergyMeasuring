@@ -552,7 +552,7 @@ async function loadBreakersAndFillSelect() {
       .forEach(([key, breaker]) => {
         const option = document.createElement("option");
         option.value = key; // value = breakerId
-        option.textContent = `${key} — ${breaker.name}`;
+        option.textContent = `${key} - ${breaker.name}`;
         select.appendChild(option);
       });
 
