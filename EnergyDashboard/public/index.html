@@ -14,10 +14,11 @@
   * { box-sizing:border-box; margin:0; padding:0; }
   body { font-family:'DM Sans',sans-serif; background:#111; color:var(--black); min-height:100vh; }
   .nav { background:var(--black); padding:0 48px; display:flex; align-items:center; justify-content:space-between; height:56px; position:sticky; top:0; z-index:100; }
-  .nav-logo { font-size:28px; font-weight:700; letter-spacing:5px; color:#fff; }
+  .nav-logo { font-size:28px; font-weight:700; letter-spacing:5px; color:#fff; display:flex; align-items:center; gap:8px; }
   .nav-sub { font-size:13px; font-weight:500; letter-spacing:3px; text-transform:uppercase; color:#555; }
   .selector-section { background:var(--red); padding:48px; position:relative; overflow:hidden; }
-  .selector-section::before { content:'ABB'; position:absolute; right:-20px; top:-40px; font-size:220px; font-weight:700; letter-spacing:10px; color:rgba(0,0,0,0.08); pointer-events:none; user-select:none; }
+  /* watermark removed to use logo images instead */
+  .selector-section::before { content:''; }
   .selector-label { font-size:13px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:rgba(255,255,255,0.6); margin-bottom:10px; }
   .selector-title { font-size:38px; font-weight:700; color:#fff; margin-bottom:36px; }
   .controls { display:grid; grid-template-columns:1.4fr 1fr 1fr 0.8fr auto; gap:16px; align-items:end; max-width:1050px; }
@@ -343,12 +344,63 @@
 
     table, .rpt-table-panel, .rpt-table-wrap { display:none !important; }
   }
+
+    /* Print-specific high-contrast overrides: make header and chips darker/black-on-white for PDFs */
+    @media print {
+      #print-records .pdf-header {
+        background: #ffffff !important;
+        color: #111 !important;
+      }
+      /* remove oversized watermarked 'ABB' in print header */
+      #print-records .pdf-header::after { display:none !important; }
+
+      #print-records .pdf-title .t1,
+      #print-records .pdf-title .t2 {
+        color: #111 !important;
+        font-weight: 900 !important;
+      }
+
+      #print-records .pdf-chips { margin-top:8px; }
+      #print-records .chip {
+        background: #fff !important;
+        color: #111 !important;
+        border-color: rgba(0,0,0,0.08) !important;
+        font-weight:900 !important;
+      }
+    }
+
+    /* Emphasize Total Due block specifically for print */
+    @media print {
+      #print-records .sum-total {
+        background: #fff !important;
+        color: #111 !important;
+        border: 2px solid rgba(0,0,0,0.06) !important;
+        padding: 16px !important;
+      }
+      #print-records .sum-total .k {
+        color: #111 !important;
+        font-weight: 900 !important;
+        font-size: 12px !important;
+        letter-spacing: 2px !important;
+      }
+      #print-records .sum-total .v {
+        color: #111 !important;
+        font-weight: 900 !important;
+        font-size: 28px !important;
+      }
+      /* make currency tighter and bold */
+      #print-records .sum-total .v span { font-weight:900 !important; font-size:14px !important; color:#111 !important; }
+    }
 </style>
 </head>
 
 <body>
 <div class="nav">
-  <span class="nav-logo">ABB</span>
+  <span class="nav-logo">
+    <svg width="86" height="20" viewBox="0 0 86 28" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <text x="0" y="18" font-family="DM Sans, Arial, sans-serif" font-weight="900" font-size="18" fill="#FFFFFF">ABB</text>
+    </svg>
+  </span>
   <span class="nav-sub">Energy Monitoring System</span>
 </div>
 
@@ -390,7 +442,11 @@
 
 <div class="report-area">
   <div class="placeholder" id="placeholder">
-    <div class="big">ABB</div>
+    <div class="big">
+      <svg width="160" height="48" viewBox="0 0 160 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <text x="0" y="36" font-family="DM Sans, Arial, sans-serif" font-weight="900" font-size="36" fill="rgba(255,255,255,0.95)">ABB</text>
+      </svg>
+    </div>
     <div class="sm">Awaiting selection</div>
   </div>
   <div class="no-data" id="no-data">
@@ -710,7 +766,7 @@ async function generateReport() {
           </div>
 
           <div class="cell">
-            <div class="k">ILS</div>
+            <div class="k">ILS (VAT not included)</div>
             <div class="v"><strong>${fmtMoney(dAmt)}</strong></div>
           </div>
         </div>
@@ -774,7 +830,11 @@ async function generateReport() {
     // ===== Render app card =====
     card.innerHTML = `
       <div class="rpt-header">
-        <div class="rpt-logo">ABB</div>
+        <div class="rpt-logo">
+          <svg width="86" height="28" viewBox="0 0 86 28" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <text x="0" y="20" font-family="DM Sans, Arial, sans-serif" font-weight="900" font-size="20" fill="#FFFFFF">ABB</text>
+          </svg>
+        </div>
         <div class="rpt-header-right">
           <div class="rpt-type">Energy Report — ${view === 'hourly' ? 'Hourly' : 'Daily'} View</div>
           <div class="rpt-name">${breaker.name}</div>
@@ -856,7 +916,12 @@ async function generateReport() {
       </div>
 
       <div class="rpt-footer">
-        <span><span class="fa">ABB</span>Energy Monitoring System | Breaker Report v1.0</span>
+        <span>
+          <svg width="72" height="18" viewBox="0 0 86 28" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <text x="0" y="14" font-family="DM Sans, Arial, sans-serif" font-weight="900" font-size="14" fill="#FF000F">ABB</text>
+          </svg>
+          Energy Monitoring System | Breaker Report v1.0
+        </span>
         <span>energyData.csv | ${today}</span>
       </div>
     `;
