@@ -67,4 +67,8 @@ const storeData = async function (values = []) {
 
   fs.appendFileSync(fileName, rows, "utf8");
 };
+
+
+storeData();
+
 module.exports = { storeData, ensureCsvExists };
