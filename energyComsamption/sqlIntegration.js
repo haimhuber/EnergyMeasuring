@@ -30,7 +30,12 @@ async function saveDataToSQLServer(data, numberOfNodes) {
                     request.input('activeEnergy', sql.Float, data[i]);
                     await request.query(query);
                 }
-                await storeData(data);
+                await storeData(
+                    data.map((energy, idx) => ({
+                        BreakerId: idx + 1,
+                        ActiveEnergy: energy
+                    }))
+                    );
                 
                 console.log("End of SQL Server operations.", { timestamp: timestampFunction() });
                }
