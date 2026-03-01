@@ -129,17 +129,22 @@ function getSeason(t) {
   if (m >= 6 && m <= 9) return "summer";
   return "shoulder";
 }
-// Peak hours: Sun–Thu only, 17:00–22:00 in winter/shoulder, 17:00–23:00 in summer
-
+// Peak hours rules:
+// - Summer: every day 17:00–23:00
+// - Winter: every day 17:00–22:00 (apply on weekends too)
+// - Shoulder (transition): Sun–Thu only 17:00–22:00
 // Determines if a given timestamp falls within peak hours based on the day of the week and season.
 function isPeak(t) {
+  const hour = t.hour();
+  const season = getSeason(t);
+
+  if (season === "summer") return hour >= 17 && hour < 23;
+  if (season === "winter") return hour >= 17 && hour < 22; // daily in winter
+
+  // shoulder: Sun–Thu only
   const d = t.day(); // Sun=0..Sat=6
   const isSunThu = d >= 0 && d <= 4;
   if (!isSunThu) return false;
-
-  const hour = t.hour();
-  const season = getSeason(t);
-  if (season === "summer") return hour >= 17 && hour < 23;
   return hour >= 17 && hour < 22;
 }
 // Returns the applicable tariff rate (NIS/kWh) for a given timestamp and whether it's peak or off-peak.
@@ -345,7 +350,7 @@ app.get("/api/consumption", (req, res) => {
       to: to.format("YYYY-MM-DD"),
       tariffs_before_vat: TARIFFS,
       peak_definition: {
-        days: "Sun–Thu only",
+        days: "Winter: daily 17:00–22:00; Shoulder: Sun–Thu only",
         winter_shoulder_hours: "17:00–22:00",
         summer_hours: "17:00–23:00",
       },
