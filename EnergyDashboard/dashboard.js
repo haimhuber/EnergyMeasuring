@@ -49,6 +49,8 @@ const TARIFFS = {
   shoulder: { off: 0.3945, peak: 0.4293 },
   summer: { off: 0.4358, peak: 1.4597 },
 };
+// VAT rate used to compute displayed prices including VAT (e.g. 18% -> 0.18)
+const VAT_RATE = Number(process.env.VAT_RATE ?? 0.18);
 
 // ---- Network helpers ----
 function getAllLanIps() {
@@ -138,10 +140,18 @@ function isPeak(t) {
   const hour = t.hour();
   const season = getSeason(t);
 
-  if (season === "summer") return hour >= 17 && hour < 23;
-  if (season === "winter") return hour >= 17 && hour < 22; // daily in winter
+  // Summer: peak only Sun–Thu 17:00–23:00 (no peak on Fri, Sat or holiday eves)
+  if (season === "summer") {
+    const d = t.day(); // Sun=0..Sat=6
+    const isSunThu = d >= 0 && d <= 4;
+    if (!isSunThu) return false;
+    return hour >= 17 && hour < 23;
+  }
 
-  // shoulder: Sun–Thu only
+  // Winter: peak every day 17:00–22:00
+  if (season === "winter") return hour >= 17 && hour < 22;
+
+  // Shoulder (transition): Sun–Thu only 17:00–22:00
   const d = t.day(); // Sun=0..Sat=6
   const isSunThu = d >= 0 && d <= 4;
   if (!isSunThu) return false;
@@ -340,6 +350,14 @@ app.get("/api/consumption", (req, res) => {
     const offpeak_amount = round3(deltas.filter((x) => !x.peak).reduce((s, x) => s + x.amount, 0));
     const total_amount = round3(peak_amount + offpeak_amount);
 
+    // also expose tariffs including VAT for display/printing (computed from TARIFFS)
+    const tariffs_with_vat = Object.fromEntries(
+      Object.entries(TARIFFS).map(([season, vals]) => [season, {
+        off: Number((vals.off * (1 + VAT_RATE)).toFixed(4)),
+        peak: Number((vals.peak * (1 + VAT_RATE)).toFixed(4)),
+      }])
+    );
+
     res.json({
       invoice_no: buildInvoiceNo(),
       generated_at: dayjs().tz(TZ).format("YYYY-MM-DD HH:mm:ss"),
@@ -349,6 +367,7 @@ app.get("/api/consumption", (req, res) => {
       from: from.format("YYYY-MM-DD"),
       to: to.format("YYYY-MM-DD"),
       tariffs_before_vat: TARIFFS,
+      tariffs_with_vat: tariffs_with_vat,
       peak_definition: {
         days: "Winter: daily 17:00–22:00; Shoulder: Sun–Thu only",
         winter_shoulder_hours: "17:00–22:00",
