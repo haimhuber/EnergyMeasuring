@@ -497,6 +497,7 @@ function seasonLabel(s) {
   return s || "-";
 }
 
+
 function gbStamp(iso) {
   if (!iso) return "";
   const s = String(iso);
@@ -584,6 +585,68 @@ async function fetchConsumption(breakerId, from, to, view) {
   return await resp.json();
 }
 
+// Fetch last raw parsed CSV rows for a breaker (debug helper)
+async function getLastSamples(breakerId, limit = 10) {
+  const url = `${API_BASE}/api/debug-rows?breaker_id=${breakerId}&limit=${limit}`;
+  const resp = await fetch(url, { cache: 'no-store' });
+  if (!resp.ok) {
+    const t = await resp.text().catch(()=>"");
+    throw new Error(`Debug API error (${resp.status}): ${t || resp.statusText}`);
+  }
+  return await resp.json();
+}
+
+// Render last samples into the no-data panel for quick debugging
+async function showLastSamplesInNoData(breakerId, limit = 10) {
+  const noData = document.getElementById('no-data');
+  // remove previous debug area if exists
+  const prev = document.getElementById('no-data-debug');
+  if (prev) prev.remove();
+
+  const dbg = document.createElement('div');
+  dbg.id = 'no-data-debug';
+  dbg.style.marginTop = '12px';
+
+  const btn = document.createElement('button');
+  btn.className = 'btn-generate';
+  btn.style.background = '#222';
+  btn.style.padding = '8px 12px';
+  btn.textContent = `Show last ${limit} samples`;
+  dbg.appendChild(btn);
+
+  const pre = document.createElement('pre');
+  pre.id = 'no-data-debug-pre';
+  pre.style.display = 'none';
+  pre.style.marginTop = '10px';
+  pre.style.padding = '10px';
+  pre.style.maxHeight = '320px';
+  pre.style.overflow = 'auto';
+  pre.style.background = '#111';
+  pre.style.color = '#fff';
+  pre.style.borderRadius = '6px';
+  dbg.appendChild(pre);
+
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    const original = btn.textContent;
+    btn.textContent = 'Loading...';
+    try {
+      const json = await getLastSamples(breakerId, limit);
+      pre.textContent = JSON.stringify(json, null, 2);
+      pre.style.display = 'block';
+      btn.textContent = 'Refresh samples';
+    } catch (err) {
+      pre.textContent = `Error: ${err.message || err}`;
+      pre.style.display = 'block';
+      btn.textContent = original;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  noData.appendChild(dbg);
+}
+
 /* Render a table body string for rows (hourly or daily) */
 function buildTableRowsHtml(rows, view) {
   let tableRows = "";
@@ -593,6 +656,8 @@ function buildTableRowsHtml(rows, view) {
       const dOff = Number(r.off_kwh || 0);
       const dTot = Number(r.kwh || 0);
       const dAmt = Number(r.amount || 0);
+
+
 
       tableRows += `<tr>
         <td>${gbDate(r.timestamp)}</td>
@@ -836,9 +901,17 @@ async function generateReport() {
     let rows = Array.isArray(d.rows) ? d.rows : [];
     rows = sortByTimestampAsc(rows);
 
-    if (!rows.length || totalKwh <= 0) {
+    if (!rows.length || totalKwh <= 1) {
       setStatus('', `No data for breaker ${breakerId} in selected period.`);
+
       noData.classList.add('visible');
+      // Provide a debug button to fetch the last parsed CSV rows from the server
+      try {
+        showLastSamplesInNoData(breakerId, 10);
+      } catch (e) {
+        // ignore UI helper errors
+        console.warn('showLastSamplesInNoData failed', e);
+      }
       return;
     }
 

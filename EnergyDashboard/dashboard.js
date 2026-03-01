@@ -385,6 +385,28 @@ app.get("/api/consumption", (req, res) => {
   }
 });
 
+/**
+ * Debug endpoint: return raw parsed CSV rows (most recent first) for a breaker.
+ * Query params: breaker_id (required), limit (optional, default 10)
+ */
+app.get("/api/debug-rows", (req, res) => {
+  try {
+    const breakerId = Number(req.query.breaker_id);
+    const limit = Math.max(1, Math.min(100, Number(req.query.limit || 10)));
+    if (!breakerId || !BREAKERS[breakerId]) return res.status(400).json({ detail: "Invalid breaker_id" });
+
+    const rows = parseCsvRows(safeReadCsvText())
+      .filter(r => r.breakerId === breakerId) 
+      .sort((a,b) => b.timestamp.valueOf() - a.timestamp.valueOf())
+      .slice(0, limit)
+      .map(r => ({ breakerId: r.breakerId, activeEnergy: r.activeEnergy, timestamp: r.timestamp.tz(TZ).format('YYYY-MM-DD HH:mm:ss') }));
+
+    res.json({ breaker_id: breakerId, count: rows.length, rows: rows.map(r => r.activeEnergy) });
+  } catch (err) {
+    res.status(500).json({ detail: err?.message || "Server error" });
+  }
+});
+
 const preferred = pickPreferredIp();
 app.listen(PORT, "0.0.0.0", () => {
   console.log("✅ Energy API + UI running");
