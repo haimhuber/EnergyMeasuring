@@ -10,7 +10,6 @@ import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
 import breakersConfig from "../energyComsamption/breakerConfig.json" with { type: "json" };
 
-
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
@@ -28,19 +27,13 @@ const PUBLIC_DIR = path.join(process.cwd(), "public");
 // ---- Breakers ----
 // Load breakers from config and build a map: { id: { id, name } }
 const BREAKERS = Object.fromEntries(
-  breakersConfig.breakers.map(item => {
-    const [id, name] = item.split(" - ");
-    return [
-      id.trim(),
-      {
-        id: id.trim(),
-        name: name.trim()
-      }
-    ];
+  (breakersConfig?.breakers || []).map((item) => {
+    const [id, name] = String(item).split(" - ");
+    const sid = String(id || "").trim();
+    const sname = String(name || "").trim();
+    return [sid, { id: sid, name: sname || `Breaker ${sid}` }];
   })
 );
-// ****************************************
-
 
 // ---- IEC TOU tariffs (before VAT), NIS/kWh ----
 const TARIFFS = {
@@ -48,7 +41,6 @@ const TARIFFS = {
   shoulder: { off: 0.3945, peak: 0.4293 },
   summer: { off: 0.4358, peak: 1.4597 },
 };
-// VAT rate used to compute displayed prices including VAT (e.g. 18% -> 0.18)
 const VAT_RATE = Number(process.env.VAT_RATE ?? 0.18);
 
 // ---- Network helpers ----
@@ -74,117 +66,135 @@ function pickPreferredIp() {
 
 // ---- CSV helpers ----
 function safeReadCsvText() {
-  if (!fs.existsSync(CSV_PATH)) throw new Error(`CSV not found: ${CSV_PATH}`);
-  return fs.readFileSync(CSV_PATH, "utf8");
+  if (!fs.existsSync(CSV_PATH)) {
+    throw new Error(`CSV not found: ${CSV_PATH}`);
+  }
+  let txt = fs.readFileSync(CSV_PATH, "utf8");
+
+  // Remove UTF-8 BOM if exists
+  if (txt && txt.charCodeAt(0) === 0xfeff) txt = txt.slice(1);
+
+  return txt;
 }
 
-// Preprocess raw CSV text into logical rows by balancing double-quotes.
-// This handles cases where a quoted field contains embedded newlines or an
-// unclosed quote caused PapaParse to consume many physical lines into one
-// logical record (leading to "Too many fields" errors).
-function preprocessCsvText(raw) {
-  if (!raw) return raw;
-  const lines = raw.split(/\r?\n/);
-  const out = [];
-  let buf = '';
-  let inQuotes = false;
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    // Append line to buffer
-    buf = buf ? (buf + '\n' + line) : line;
-
-    // Scan the newly appended line for quote toggles, accounting for escaped quotes "".
-    let j = 0;
-    while (j < line.length) {
-      if (line[j] === '"') {
-        // If next char is also a quote, it's an escaped quote -> skip both
-        if (line[j + 1] === '"') { j += 2; continue; }
-        inQuotes = !inQuotes;
-        j++;
-      } else {
-        j++;
-      }
-    }
-
-    // If we're not inside a quoted field anymore, the buffer contains one logical row
-    if (!inQuotes) {
-      out.push(buf);
-      buf = '';
-    }
-  }
-
-  // If there is leftover buffer (unbalanced quotes at end), push it as-is so parser can try
-  if (buf) out.push(buf);
-  return out.join('\n');
-}
-
-// Parses CSV text into an array of rows with { breakerId, activeEnergy, timestamp }.
-function parseCsvRows(csvText) {
-  // Try parsing directly first
-  let parsed = Papa.parse(csvText, {
-    header: true,
-    skipEmptyLines: true,
-    dynamicTyping: true,
-  });
-
-  // If PapaParse reported errors that look like "Too many fields", try a tolerant
-  // preprocessor that joins physical lines into logical CSV rows by balancing
-  // double-quotes (handles unclosed-quote cases). This is a safe fallback and
-  // prevents transient/malformed input from crashing the API.
-  if (parsed.errors && parsed.errors.length) {
-    const errMsg = parsed.errors.slice(0, 3).map((e) => e.message).join(" | ");
-    const tooMany = parsed.errors.some(e => String(e.message).toLowerCase().includes('too many fields'));
-    if (tooMany) {
-      // Preprocess and retry
-      const pre = preprocessCsvText(csvText);
-      parsed = Papa.parse(pre, { header: true, skipEmptyLines: true, dynamicTyping: true });
-      // If still errors, build a concise message including first error messages
-      if (parsed.errors && parsed.errors.length) {
-        const msg = parsed.errors.slice(0, 3).map((e) => e.message).join(' | ');
-        // In dev mode include a small snippet to aid debugging
-        const snippet = (process.env.NODE_ENV === 'production') ? '' : ` -- snippet-start: ${csvText.slice(0, 2000).replace(/\n/g,'\\n').slice(0,1200)}`;
-        throw new Error(`CSV parse errors after preprocessing: ${msg}${snippet}`);
-      }
-    } else {
-      const msg = parsed.errors.slice(0, 3).map((e) => e.message).join(' | ');
-      throw new Error(`CSV parse errors: ${msg}`);
-    }
-  }
-
-  const data = parsed.data || [];
-
-  return (data || [])
-    .map((r) => {
-      const breakerId =
-        r.BreakerId ?? r.breakerId ?? r.breaker_id ?? r.breaker ?? r.id;
-      const activeEnergy =
-        r.ActiveEnergy ?? r.activeEnergy ?? r.active_energy ?? r.energy;
-  const tsRaw = r.timestamp ?? r.time ?? r.date;
+function normalizeRowFields(r) {
+  const breakerId = r?.BreakerId ?? r?.breakerId ?? r?.breaker_id ?? r?.breaker ?? r?.id;
+  const activeEnergy = r?.ActiveEnergy ?? r?.activeEnergy ?? r?.active_energy ?? r?.energy;
+  const tsRaw = r?.timestamp ?? r?.time ?? r?.date;
 
   if (breakerId == null || activeEnergy == null || !tsRaw) return null;
 
-  // Some CSV writers include a trailing 'Z' (UTC) even though the measurement
-  // timestamps are intended to be local wall-clock times. If we parse a
-  // Z-suffixed string as UTC and then convert to Asia/Jerusalem we'll get a
-  // +2h shift (e.g. CSV shows 17:00 but parsed as 19:00). To preserve the
-  // hour shown in the CSV, strip a trailing 'Z' (when present) and parse the
-  // resulting string as local time in TZ.
+  // NOTE: אם אתה יודע בוודאות שה-CSV כתוב ISO עם Z (UTC) ורוצה להמיר לישראל:
+  // תחליף את הלוגיקה כאן. כרגע אני משמר "שעת קיר" ומסיר Z אם קיים כדי לא להזיז שעתיים.
   let tsStr = String(tsRaw).trim();
   if (tsStr.endsWith("Z")) tsStr = tsStr.replace(/Z$/, "");
 
   const t = dayjs.tz(tsStr, TZ);
-      if (!t.isValid()) return null;
+  if (!t.isValid()) return null;
 
-      return {
-        breakerId: Number(breakerId),
-        activeEnergy: Number(activeEnergy),
-        timestamp: t,
-      };
-    })
-    .filter(Boolean);
+  const bid = Number(breakerId);
+  const ae = Number(String(activeEnergy).trim().replace(/,/g, "")); // סניטציה ל-1,234
+
+  if (!Number.isFinite(bid) || bid <= 0) return null;
+  if (!Number.isFinite(ae)) return null;
+
+  return { breakerId: bid, activeEnergy: ae, timestamp: t };
 }
-// ****************************************
+
+// ✅ FALLBACK: פרסור ידני ל-3 עמודות במקרה של "Too many fields"
+function parseCsvRowsFallback3cols(csvText) {
+  const lines = String(csvText || "").split(/\r?\n/);
+  const out = [];
+  const bad = [];
+
+  if (!lines.length) return { rows: [], bad };
+
+  // header exists?
+  const header = (lines[0] || "").trim().toLowerCase();
+  if (!header.startsWith("breakerid")) {
+    throw new Error(`CSV header invalid. First line: "${lines[0] || ""}"`);
+  }
+
+  for (let i = 1; i < lines.length; i++) {
+    const raw = lines[i];
+    if (!raw || !raw.trim()) continue;
+
+    const commas = (raw.match(/,/g) || []).length;
+    if (commas !== 2) {
+      bad.push({ lineNo: i + 1, reason: `commas=${commas}`, raw });
+      continue; // דלג
+    }
+
+    const [bidStr, aeStr, tsStr] = raw.split(",");
+
+    const norm = normalizeRowFields({
+      BreakerId: bidStr?.trim(),
+      ActiveEnergy: aeStr?.trim(),
+      timestamp: tsStr?.trim(),
+    });
+
+    if (!norm) {
+      bad.push({ lineNo: i + 1, reason: "invalid fields", raw });
+      continue;
+    }
+
+    out.push(norm);
+  }
+
+  return { rows: out, bad };
+}
+
+// ✅ PapaParse + fallback קשיח
+function parseCsvRows(csvText) {
+  const parsed = Papa.parse(csvText, {
+    header: true,
+    skipEmptyLines: true,
+    dynamicTyping: false, // נשאיר strings וננרמל לבד
+  });
+
+  const errors = parsed.errors || [];
+  const hasTooManyFields = errors.some((e) =>
+    String(e?.message || "").toLowerCase().includes("too many fields")
+  );
+
+  // אם יש "Too many fields" -> fallback ל-3 עמודות (מדלג על שורות בעייתיות)
+  if (hasTooManyFields) {
+    const { rows, bad } = parseCsvRowsFallback3cols(csvText);
+
+    if (bad.length) {
+      console.warn(
+        `[CSV WARN] TooManyFields -> used fallback3cols. Skipped ${bad.length} bad line(s). First bad:`,
+        bad[0]
+      );
+    }
+    return rows;
+  }
+
+  // אם יש שגיאות אחרות -> נחזיר שגיאה עם דגימה
+  if (errors.length) {
+    const msg = errors.slice(0, 5).map((e) => e.message).join(" | ");
+    throw new Error(`CSV parse errors: ${msg}`);
+  }
+
+  const data = parsed.data || [];
+  const out = [];
+  let skipped = 0;
+
+  for (const r of data) {
+    const norm = normalizeRowFields(r);
+    if (!norm) {
+      skipped++;
+      continue;
+    }
+    out.push(norm);
+  }
+
+  if (skipped) {
+    console.warn(`[CSV WARN] skipped ${skipped} row(s) after normalization (missing/invalid fields).`);
+  }
+
+  return out;
+}
 
 // ---- Tariff helpers ----
 function getSeason(t) {
@@ -193,16 +203,12 @@ function getSeason(t) {
   if (m >= 6 && m <= 9) return "summer";
   return "shoulder";
 }
-// Peak hours rules:
-// - Summer: every day 17:00–23:00
-// - Winter: every day 17:00–22:00 (apply on weekends too)
-// - Shoulder (transition): Sun–Thu only 17:00–22:00
-// Determines if a given timestamp falls within peak hours based on the day of the week and season.
+
 function isPeak(t) {
   const hour = t.hour();
   const season = getSeason(t);
 
-  // Summer: peak only Sun–Thu 17:00–23:00 (no peak on Fri, Sat or holiday eves)
+  // Summer: peak only Sun–Thu 17:00–23:00
   if (season === "summer") {
     const d = t.day(); // Sun=0..Sat=6
     const isSunThu = d >= 0 && d <= 4;
@@ -213,16 +219,13 @@ function isPeak(t) {
   // Winter: peak every day 17:00–22:00
   if (season === "winter") return hour >= 17 && hour < 22;
 
-  // Shoulder (transition): Sun–Thu only 17:00–22:00
-  const d = t.day(); // Sun=0..Sat=6
+  // Shoulder: Sun–Thu only 17:00–22:00
+  const d = t.day();
   const isSunThu = d >= 0 && d <= 4;
   if (!isSunThu) return false;
   return hour >= 17 && hour < 22;
 }
-// Returns the applicable tariff rate (NIS/kWh) for a given timestamp and whether it's peak or off-peak.
 
-
-// 
 function getRateNisPerKwh(t, peak) {
   const season = getSeason(t);
   return peak ? TARIFFS[season].peak : TARIFFS[season].off;
@@ -235,22 +238,18 @@ function rangeToBounds(fromDate, toDate) {
   if (from.isAfter(to)) throw new Error('"from_date" must be <= "to_date"');
   return { from, to };
 }
-// Given sorted rows of cumulative energy readings, compute the deltas (consumption) between consecutive readings, along with peak/off-peak classification and amounts.
 
-// The input is expected to be sorted by timestamp ascending. The output is an array of objects with { ts, kwh, peak, season, rate, amount } representing the consumption and cost for each interval between readings.
 function computeDeltas(sortedRows) {
   const out = [];
   let prev = null;
 
   for (const row of sortedRows) {
     if (!prev) { prev = row; continue; }
+
     const delta = row.activeEnergy - prev.activeEnergy;
 
-    // ignore invalid / reset / negative
     if (!Number.isFinite(delta) || delta < 0) { prev = row; continue; }
-
-    // ✅ If it's exactly 0 - ignore (prevents empty hours)
-    if (delta === 0) { prev = row; continue; }
+    if (delta === 0) { prev = row; continue; } // ignore 0
 
     const peak = isPeak(row.timestamp);
     const rate = getRateNisPerKwh(row.timestamp, peak);
@@ -268,8 +267,7 @@ function computeDeltas(sortedRows) {
   }
   return out;
 }
-// **********************************************
-// Utility functions
+
 function round3(n) { return Math.round(n * 1000) / 1000; }
 function buildInvoiceNo() { return `INV-${dayjs().tz(TZ).format("YYYYMMDD-HHmmss")}`; }
 
@@ -278,27 +276,26 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Serve UI (and vendor files if you add them)
 app.use("/", express.static(PUBLIC_DIR));
 
 app.get("/api/health", (req, res) => {
   res.json({ ok: true, tz: TZ, csv_path: CSV_PATH, now: dayjs().tz(TZ).format() });
 });
 
-/**
- * NEW: available dates endpoint
- * Returns dates (YYYY-MM-DD) that exist for the selected breaker in the CSV.
- * Use this in the UI to prevent choosing empty days.
- */
+app.get("/api/breakers", (req, res) => {
+  const list = Object.values(BREAKERS).map((b) => ({ id: b.id, name: b.name }));
+  res.json(list);
+});
+
 app.get("/api/available-dates", (req, res) => {
   try {
-    const breakerId = Number(req.query.breaker_id);
+    const breakerId = String(req.query.breaker_id || "").trim();
     if (!breakerId || !BREAKERS[breakerId]) {
       return res.status(400).json({ detail: "Invalid breaker_id" });
     }
 
     const rows = parseCsvRows(safeReadCsvText())
-      .filter((r) => r.breakerId === breakerId)
+      .filter((r) => String(r.breakerId) === breakerId)
       .sort((a, b) => a.timestamp.valueOf() - b.timestamp.valueOf());
 
     if (!rows.length) {
@@ -316,34 +313,27 @@ app.get("/api/available-dates", (req, res) => {
       max: dates[dates.length - 1],
     });
   } catch (err) {
-    res.status(500).json({ detail: err?.message || "Server error" });
+    res.status(500).json({ detail: err?.message || "Server error", csv_path: CSV_PATH });
   }
 });
 
-
-app.get("/api/breakers", (req, res) => {
-  const list = Object.values(BREAKERS).map((b) => ({ id: b.id, name: b.name }));
-  res.json(list);
-} );
-
-
-
 app.get("/api/consumption", (req, res) => {
   try {
-    const breakerId = Number(req.query.breaker_id);
-    const fromDate = String(req.query.from_date || "");
-    const toDate = String(req.query.to_date || "");
-    const view = String(req.query.view || "hourly");
+    const breakerId = String(req.query.breaker_id || "").trim();
+    const fromDate = String(req.query.from_date || "").trim();
+    const toDate = String(req.query.to_date || "").trim();
+    const view = String(req.query.view || "hourly").trim();
 
     if (!breakerId || !BREAKERS[breakerId]) return res.status(400).json({ detail: "Invalid breaker_id" });
     if (!fromDate || !toDate) return res.status(400).json({ detail: "from_date and to_date are required (YYYY-MM-DD)" });
     if (view !== "hourly" && view !== "daily") return res.status(400).json({ detail: 'view must be "hourly" or "daily"' });
 
     const { from, to } = rangeToBounds(fromDate, toDate);
+
     const rows = parseCsvRows(safeReadCsvText());
 
     const breakerRows = rows
-      .filter((r) => r.breakerId === breakerId)
+      .filter((r) => String(r.breakerId) === breakerId)
       .sort((a, b) => a.timestamp.valueOf() - b.timestamp.valueOf());
 
     const deltas = computeDeltas(breakerRows).filter(
@@ -367,7 +357,6 @@ app.get("/api/consumption", (req, res) => {
 
     const keys = Array.from(buckets.keys()).sort();
 
-    // ✅ if somehow a bucket got to 0 (edge cases) - filter it out
     const outRows = keys
       .map((k) => {
         const b = buckets.get(k);
@@ -402,7 +391,7 @@ app.get("/api/consumption", (req, res) => {
 
         return { timestamp: k, season, type, kwh, rate, peak_kwh, off_kwh, amount };
       })
-      .filter((r) => Number(r.kwh || 0) > 0); // ✅ final guard
+      .filter((r) => Number(r.kwh || 0) > 0);
 
     const peak_kwh = round3(deltas.filter((x) => x.peak).reduce((s, x) => s + x.kwh, 0));
     const offpeak_kwh = round3(deltas.filter((x) => !x.peak).reduce((s, x) => s + x.kwh, 0));
@@ -412,7 +401,6 @@ app.get("/api/consumption", (req, res) => {
     const offpeak_amount = round3(deltas.filter((x) => !x.peak).reduce((s, x) => s + x.amount, 0));
     const total_amount = round3(peak_amount + offpeak_amount);
 
-    // also expose tariffs including VAT for display/printing (computed from TARIFFS)
     const tariffs_with_vat = Object.fromEntries(
       Object.entries(TARIFFS).map(([season, vals]) => [season, {
         off: Number((vals.off * (1 + VAT_RATE)).toFixed(4)),
@@ -429,7 +417,7 @@ app.get("/api/consumption", (req, res) => {
       from: from.format("YYYY-MM-DD"),
       to: to.format("YYYY-MM-DD"),
       tariffs_before_vat: TARIFFS,
-      tariffs_with_vat: tariffs_with_vat,
+      tariffs_with_vat,
       peak_definition: {
         days: "Winter: daily 17:00–22:00; Shoulder: Sun–Thu only",
         winter_shoulder_hours: "17:00–22:00",
@@ -444,29 +432,31 @@ app.get("/api/consumption", (req, res) => {
       rows: outRows
     });
   } catch (err) {
-    res.status(500).json({ detail: err?.message || "Server error" });
+    res.status(500).json({ detail: err?.message || "Server error", csv_path: CSV_PATH });
   }
 });
 
-/**
- * Debug endpoint: return raw parsed CSV rows (most recent first) for a breaker.
- * Query params: breaker_id (required), limit (optional, default 10)
- */
+// ✅ Debug endpoint: returns last parsed rows for breaker (full rows)
 app.get("/api/debug-rows", (req, res) => {
   try {
-    const breakerId = Number(req.query.breaker_id);
+    const breakerId = String(req.query.breaker_id || "").trim();
     const limit = Math.max(1, Math.min(100, Number(req.query.limit || 10)));
+
     if (!breakerId || !BREAKERS[breakerId]) return res.status(400).json({ detail: "Invalid breaker_id" });
 
     const rows = parseCsvRows(safeReadCsvText())
-      .filter(r => r.breakerId === breakerId) 
-      .sort((a,b) => b.timestamp.valueOf() - a.timestamp.valueOf())
+      .filter((r) => String(r.breakerId) === breakerId)
+      .sort((a, b) => b.timestamp.valueOf() - a.timestamp.valueOf())
       .slice(0, limit)
-      .map(r => ({ breakerId: r.breakerId, activeEnergy: r.activeEnergy, timestamp: r.timestamp.tz(TZ).format('YYYY-MM-DD HH:mm:ss') }));
+      .map((r) => ({
+        breakerId: r.breakerId,
+        activeEnergy: r.activeEnergy,
+        timestamp: r.timestamp.tz(TZ).format("YYYY-MM-DD HH:mm:ss"),
+      }));
 
-    res.json({ breaker_id: breakerId, count: rows.length, rows: rows.map(r => r.activeEnergy) });
+    res.json({ breaker_id: breakerId, count: rows.length, rows });
   } catch (err) {
-    res.status(500).json({ detail: err?.message || "Server error" });
+    res.status(500).json({ detail: err?.message || "Server error", csv_path: CSV_PATH });
   }
 });
 
@@ -475,5 +465,5 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log("✅ Energy API + UI running");
   console.log(`- URL: http://${preferred}:${PORT}/`);
   console.log(`- CSV: ${CSV_PATH}`);
-  console.log("✅ New endpoint: /api/available-dates?breaker_id=1");
+  console.log("✅ Endpoints: /api/health /api/breakers /api/consumption /api/debug-rows /api/available-dates");
 });
