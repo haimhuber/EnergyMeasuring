@@ -78,18 +78,81 @@ function safeReadCsvText() {
   return fs.readFileSync(CSV_PATH, "utf8");
 }
 
+// Preprocess raw CSV text into logical rows by balancing double-quotes.
+// This handles cases where a quoted field contains embedded newlines or an
+// unclosed quote caused PapaParse to consume many physical lines into one
+// logical record (leading to "Too many fields" errors).
+function preprocessCsvText(raw) {
+  if (!raw) return raw;
+  const lines = raw.split(/\r?\n/);
+  const out = [];
+  let buf = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    // Append line to buffer
+    buf = buf ? (buf + '\n' + line) : line;
+
+    // Scan the newly appended line for quote toggles, accounting for escaped quotes "".
+    let j = 0;
+    while (j < line.length) {
+      if (line[j] === '"') {
+        // If next char is also a quote, it's an escaped quote -> skip both
+        if (line[j + 1] === '"') { j += 2; continue; }
+        inQuotes = !inQuotes;
+        j++;
+      } else {
+        j++;
+      }
+    }
+
+    // If we're not inside a quoted field anymore, the buffer contains one logical row
+    if (!inQuotes) {
+      out.push(buf);
+      buf = '';
+    }
+  }
+
+  // If there is leftover buffer (unbalanced quotes at end), push it as-is so parser can try
+  if (buf) out.push(buf);
+  return out.join('\n');
+}
+
 // Parses CSV text into an array of rows with { breakerId, activeEnergy, timestamp }.
 function parseCsvRows(csvText) {
-  const { data, errors } = Papa.parse(csvText, {
+  // Try parsing directly first
+  let parsed = Papa.parse(csvText, {
     header: true,
     skipEmptyLines: true,
     dynamicTyping: true,
   });
 
-  if (errors?.length) {
-    const msg = errors.slice(0, 3).map((e) => e.message).join(" | ");
-    throw new Error(`CSV parse errors: ${msg}`);
+  // If PapaParse reported errors that look like "Too many fields", try a tolerant
+  // preprocessor that joins physical lines into logical CSV rows by balancing
+  // double-quotes (handles unclosed-quote cases). This is a safe fallback and
+  // prevents transient/malformed input from crashing the API.
+  if (parsed.errors && parsed.errors.length) {
+    const errMsg = parsed.errors.slice(0, 3).map((e) => e.message).join(" | ");
+    const tooMany = parsed.errors.some(e => String(e.message).toLowerCase().includes('too many fields'));
+    if (tooMany) {
+      // Preprocess and retry
+      const pre = preprocessCsvText(csvText);
+      parsed = Papa.parse(pre, { header: true, skipEmptyLines: true, dynamicTyping: true });
+      // If still errors, build a concise message including first error messages
+      if (parsed.errors && parsed.errors.length) {
+        const msg = parsed.errors.slice(0, 3).map((e) => e.message).join(' | ');
+        // In dev mode include a small snippet to aid debugging
+        const snippet = (process.env.NODE_ENV === 'production') ? '' : ` -- snippet-start: ${csvText.slice(0, 2000).replace(/\n/g,'\\n').slice(0,1200)}`;
+        throw new Error(`CSV parse errors after preprocessing: ${msg}${snippet}`);
+      }
+    } else {
+      const msg = parsed.errors.slice(0, 3).map((e) => e.message).join(' | ');
+      throw new Error(`CSV parse errors: ${msg}`);
+    }
   }
+
+  const data = parsed.data || [];
 
   return (data || [])
     .map((r) => {
