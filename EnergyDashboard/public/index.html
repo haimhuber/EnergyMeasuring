@@ -16,6 +16,8 @@
   .nav { background:var(--black); padding:0 48px; display:flex; align-items:center; justify-content:space-between; height:56px; position:sticky; top:0; z-index:100; }
   .nav-logo { font-size:28px; font-weight:700; letter-spacing:5px; color:#fff; display:flex; align-items:center; gap:8px; }
   .nav-sub { font-size:13px; font-weight:500; letter-spacing:3px; text-transform:uppercase; color:#555; }
+  .nav-right { display:flex; align-items:center; gap:12px; }
+  .btn-logout { background:#222;color:#fff;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-weight:700 }
   .selector-section { background:var(--red); padding:48px; position:relative; overflow:hidden; }
   /* watermark removed to use logo images instead */
   .selector-section::before { content:''; }
@@ -455,6 +457,10 @@
       /* make currency tighter and bold */
       #print-records .sum-total .v span { font-weight:900 !important; font-size:14px !important; color:#111 !important; }
     }
+    .nav-user{
+  font-size:14px;
+  color:#fff;
+    }
 </style>
 </head>
 
@@ -466,6 +472,10 @@
     </svg>
   </span>
   <span class="nav-sub">Energy Monitoring System</span>
+  <div class="nav-right">
+    <span class="nav-user">Welcome, <span id="nav-username"></span></span>
+    <button id="btn-logout" class="btn-logout" style="display:none;">Logout</button>
+  </div>
 </div>
 
 <div class="selector-section">
@@ -528,6 +538,16 @@
 <div id="print-records" class="print-only-records"></div>
 
 <script>
+  console.log(localStorage.getItem('Username'));
+  function currentUsername() {
+    const username = document.querySelector('.nav-user span');
+    const storedName = localStorage.getItem('Username');
+    if (username && storedName) {
+      username.textContent = storedName;
+    }
+  }
+  currentUsername();
+  
 const API_BASE = "";
 
 /**
@@ -659,9 +679,10 @@ function aggregateHourlyToDaily(rows) {
 /* Fetch consumption JSON helper */
 async function fetchConsumption(breakerId, from, to, view) {
   const url = `${API_BASE}/api/consumption?breaker_id=${breakerId}&from_date=${encodeURIComponent(from)}&to_date=${encodeURIComponent(to)}&view=${encodeURIComponent(view)}`;
-  const resp = await fetch(url, { cache: 'no-store' });
+  const resp = await fetch(url, { cache: 'no-store', credentials: 'include' });
   if (!resp.ok) {
     const t = await resp.text().catch(()=>"");
+    window.alert(`API error (${resp.status}): ${t || resp.statusText}`);
     throw new Error(`API error (${resp.status}): ${t || resp.statusText}`);
   }
   return await resp.json();
@@ -670,7 +691,7 @@ async function fetchConsumption(breakerId, from, to, view) {
 // Fetch last raw parsed CSV rows for a breaker (debug helper)
 async function getLastSamples(breakerId, limit = 10) {
   const url = `${API_BASE}/api/debug-rows?breaker_id=${breakerId}&limit=${limit}`;
-  const resp = await fetch(url, { cache: 'no-store' });
+  const resp = await fetch(url, { cache: 'no-store', credentials: 'include' });
   if (!resp.ok) {
     const t = await resp.text().catch(()=>"");
     throw new Error(`Debug API error (${resp.status}): ${t || resp.statusText}`);
@@ -924,7 +945,7 @@ async function loadBreakersAndFillSelect() {
   try {
     setStatus("loading", "Loading breakers...");
 
-    const res = await fetch(`${API_BASE}/api/breakers`, { cache: "no-store" });
+  const res = await fetch(`${API_BASE}/api/breakers`, { cache: "no-store", credentials: 'include' });
     if (!res.ok) {
       const t = await res.text().catch(()=> "");
       throw new Error(`Breakers API error (${res.status}): ${t || res.statusText}`);
@@ -1004,10 +1025,13 @@ async function generateReport() {
 
   try {
     const url = `${API_BASE}/api/consumption?breaker_id=${breakerId}&from_date=${encodeURIComponent(from)}&to_date=${encodeURIComponent(to)}&view=${encodeURIComponent(view)}`;
-    const resp = await fetch(url, { cache: "no-store" });
+  const resp = await fetch(url, { cache: "no-store", credentials: 'include' });
     if (!resp.ok) {
       const t = await resp.text().catch(()=> "");
+      window.alert(`Failed to fetch consumption data: ${resp.status} ${resp.statusText} - Please login again`);
+      window.location.href = "/login.html";
       throw new Error(`API error (${resp.status}): ${t || resp.statusText}`);
+      
     }
 
     const d = await resp.json();
@@ -1379,6 +1403,34 @@ function setDefaultDates() {
 // ✅ init
 setDefaultDates();
 loadBreakersAndFillSelect();
+// Show logout button when user is authenticated
+async function updateAuthUi() {
+  try {
+    const resp = await fetch('/api/me', { cache: 'no-store', credentials: 'include' });
+    const data = await resp.json().catch(()=>({}));
+    const btn = document.getElementById('btn-logout');
+    if (resp.ok) {
+      if (btn) btn.style.display = 'inline-flex';
+    } else {
+      if (btn) btn.style.display = 'none';
+    }
+  } catch (e) {
+    const btn = document.getElementById('btn-logout'); if (btn) btn.style.display = 'none';
+  }
+}
+
+updateAuthUi();
+
+// Logout helper
+document.getElementById('btn-logout').addEventListener('click', async () => {
+  try {
+    await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+  } catch (e) {
+    // ignore
+  }
+  // Reload so server serves login page
+  window.location.href = '/';
+});
 </script>
 </body>
 </html>
