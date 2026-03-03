@@ -64,7 +64,10 @@ const VAT_RATE = Number(process.env.VAT_RATE ?? 0.18);
 // 4) AUTH: JWT + Cookie
 // =========================
 const COOKIE_NAME = "token";
-const JWT_SECRET = process.env.JWT_SECRET || "CHANGE_ME_TO_A_LONG_RANDOM_SECRET";
+if (!process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET is not defined");
+}
+const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES = "30m";
 
 /**
@@ -686,8 +689,4 @@ app.get("/api/debug-rows", authRequired, (req, res) => {
 const preferred = pickPreferredIp();
 app.listen(PORT, "0.0.0.0", () => {
   console.log("✅ Energy API + UI running");
-  console.log(`- URL: http://${preferred}:${PORT}/`);
-  console.log(`- CSV: ${CSV_PATH}`);
-  console.log("✅ Auth: /api/login /api/logout /api/me");
-  console.log("✅ Endpoints: /api/health /api/breakers /api/consumption /api/debug-rows /api/available-dates");
 });
