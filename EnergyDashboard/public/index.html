@@ -22,20 +22,80 @@
   .selector-label { font-size:13px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:rgba(255,255,255,0.6); margin-bottom:10px; }
   .selector-title { font-size:38px; font-weight:700; color:#fff; margin-bottom:36px; }
   .controls { display:grid; grid-template-columns:1.4fr 1fr 1fr 0.8fr auto; gap:16px; align-items:end; max-width:1050px; }
-  .ctrl-group label { display:block; font-size:13px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.65); margin-bottom:10px; }
+  .ctrl-group label { display:block; font-size:13px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:rgba(20, 20, 20, 0.65); margin-bottom:10px; }
   .ctrl-group select, .ctrl-group input[type="date"] {
     width:100%; background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.25);
     color:#fff; padding:15px 18px; font-family:'DM Sans',sans-serif; font-size:17px; font-weight:600;
     appearance:none; -webkit-appearance:none; cursor:pointer; outline:none; transition:background 0.15s, border-color 0.15s;
   }
   .ctrl-group select:hover, .ctrl-group input[type="date"]:hover { background:rgba(255,255,255,0.2); border-color:rgba(255,255,255,0.5); }
-  .ctrl-group select option { background:#1a1a1a; color:#fff; }
+  .ctrl-group select option { background:#1a1a1a; color:#0f0f0f; }
   input[type="date"]::-webkit-calendar-picker-indicator { filter:invert(1); opacity:0.6; cursor:pointer; }
   .view-toggle { display:flex; border:1px solid rgba(255,255,255,0.25); overflow:hidden; }
+  /* 3D style container: give perspective so children can appear raised */
+  .view-toggle { display:flex; border:1px solid rgba(255,255,255,0.25); overflow:hidden; perspective:900px; -webkit-perspective:900px; transform-style:preserve-3d; }
   .view-toggle input[type="radio"] { display:none; }
-  .view-toggle .vt-btn { display:block; padding:15px 22px; font-family:'DM Sans',sans-serif; font-size:15px; font-weight:600; color:rgba(255,255,255,0.5); background:rgba(255,255,255,0.08); transition:all 0.15s; white-space:nowrap; border-right:1px solid rgba(255,255,255,0.15); cursor:pointer; }
-  .view-toggle label:last-child .vt-btn { border-right:none; }
-  .view-toggle input[type="radio"]:checked + .vt-btn { background:rgba(0,0,0,0.35); color:#fff; }
+
+  /* 3D raised button style */
+  .view-toggle .vt-btn {
+    display:block;
+    padding:12.5px 22px;
+    font-family:'DM Sans',sans-serif;
+    font-size:15px;
+    font-weight:600;
+    color:rgba(8, 8, 8, 0.6);
+    background:linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(19,19,19,0.08) 100%);
+    transition:transform 220ms cubic-bezier(.2,.9,.2,1), box-shadow 220ms, color 160ms, background 160ms;
+    white-space:nowrap;
+    border-right:1px solid rgba(255,255,255,0.06);
+    cursor:pointer;
+    position:relative;
+    border-radius:6px 0 0 6px; /* left-most default radius, adjusted by sibling rules below */
+    /* create the illusion of depth by translating along Z axis */
+    transform: translateZ(8px);
+    box-shadow: 0 8px 18px rgba(241, 241, 241, 0.45), 0 2px 4px rgba(0,0,0,0.25) ;
+    overflow:visible;
+  }
+  /* remove right border on last button */
+  .view-toggle label:last-child .vt-btn { border-right:none; border-radius:0 6px 6px 0; }
+
+  /* thin bevel / edge to enhance thickness */
+  .view-toggle .vt-btn::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; bottom: -6px;
+    height: 6px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.22), rgba(0,0,0,0.45));
+    border-radius: 0 0 6px 6px;
+    z-index: -1;
+    opacity: 0.9;
+    transform: translateZ(-8px) scaleY(1);
+  }
+
+  /* Hover: slightly lift and brighten */
+  .view-toggle .vt-btn:hover {
+    transform: translateZ(14px) translateY(-2px);
+    box-shadow: 0 12px 30px rgba(3,3,3,0.55), 0 4px 8px rgba(0,0,0,0.32);
+    color: #fff;
+  }
+
+  /* Active (mouse down): press down */
+  .view-toggle .vt-btn:active {
+    transform: translateZ(2px) translateY(0px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.45);
+  }
+
+  /* Checked state: emphasise as the selected raised button */
+  .view-toggle input[type="radio"]:checked + .vt-btn {
+    background: linear-gradient(180deg, rgba(255,20,20,0.95), rgba(200,16,16,0.95));
+    color: #fff;
+    transform: translateZ(20px) translateY(-2px) rotateX(2deg);
+    box-shadow: 0 18px 36px rgba(255,0,15,0.16), 0 6px 12px rgba(0,0,0,0.32);
+  }
+
+  /* make sure adjacent buttons appear flush (remove double radius) */
+  .view-toggle label:first-child .vt-btn { border-radius:6px 0 0 6px; }
+  .view-toggle label:last-child .vt-btn { border-radius:0 6px 6px 0; }
   .btn-generate { background:var(--black); color:#fff; border:none; padding:15px 32px; font-family:'DM Sans',sans-serif; font-size:16px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; cursor:pointer; transition:background 0.15s, transform 0.1s; white-space:nowrap; display:flex; align-items:center; gap:8px; height:100%; }
   .btn-generate:hover { background:#333; }
   .btn-generate:active { transform:scale(0.97); }
@@ -427,6 +487,7 @@
       <div class="view-toggle">
         <label><input type="radio" name="view" value="hourly"><span class="vt-btn">Hourly</span></label>
         <label><input type="radio" name="view" value="daily" checked><span class="vt-btn">Daily</span></label>
+        <label><input type="radio" name="view" value="monthly"><span class="vt-btn">Monthly</span></label>
       </div>
     </div>
     <button class="btn-generate" onclick="generateReport()">
