@@ -447,7 +447,7 @@ app.post("/api/logout", (req, res) => {
 
 app.get("/api/me", (req, res) => {
   const user = getUserFromReq(req);
-  if (!user) return res.status(401).json({ detail: "Not logged in" });
+  if (!user) return res.status(401).json({ ok: false, detail: "Not logged in" });
   res.json({ ok: true, user });
 });
 

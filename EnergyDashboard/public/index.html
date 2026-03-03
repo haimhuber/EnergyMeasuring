@@ -468,7 +468,7 @@
 <div class="nav">
   <span class="nav-logo">
     <svg width="86" height="20" viewBox="0 0 86 28" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <text x="0" y="18" font-family="DM Sans, Arial, sans-serif" font-weight="900" font-size="18" fill="#FFFFFF">ABB</text>
+        <text x="-10" y="18" font-family="DM Sans, Arial, sans-serif" font-weight="900" font-size="26" fill="#FF000F">ABB</text>
     </svg>
   </span>
   <span class="nav-sub">Energy Monitoring System</span>
@@ -817,6 +817,12 @@ function buildTableRowsHtml(rows, view) {
 
 /* Generate combined report for breakers 1,4,7 and render three stacked tables */
 async function generateMultiBreakerReport() {
+  const checkCookie = await fetch (`${API_BASE}/api/me`);
+  if (!checkCookie.ok) {
+    window.alert("Session expired. Please log in again.");
+    window.location.href = '/login.html';
+    return;
+  }
   const ids = [1,4,7];
   const from = document.getElementById('sel-from').value;
   const to   = document.getElementById('sel-to').value;
@@ -1025,10 +1031,10 @@ async function generateReport() {
 
   try {
     const url = `${API_BASE}/api/consumption?breaker_id=${breakerId}&from_date=${encodeURIComponent(from)}&to_date=${encodeURIComponent(to)}&view=${encodeURIComponent(view)}`;
-  const resp = await fetch(url, { cache: "no-store", credentials: 'include' });
+    const resp = await fetch(url, { cache: "no-store", credentials: 'include' });
     if (!resp.ok) {
       const t = await resp.text().catch(()=> "");
-      window.alert(`Failed to fetch consumption data: ${resp.status} ${resp.statusText} - Please login again`);
+     window.alert("Session expired. Please login again.");
       window.location.href = "/login.html";
       throw new Error(`API error (${resp.status}): ${t || resp.statusText}`);
       
