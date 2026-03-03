@@ -22,14 +22,18 @@
   .selector-label { font-size:13px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:rgba(255,255,255,0.6); margin-bottom:10px; }
   .selector-title { font-size:38px; font-weight:700; color:#fff; margin-bottom:36px; }
   .controls { display:grid; grid-template-columns:1.4fr 1fr 1fr 0.8fr auto; gap:16px; align-items:end; max-width:1050px; }
-  .ctrl-group label { display:block; font-size:13px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:rgba(20, 20, 20, 0.65); margin-bottom:10px; }
+  .ctrl-group label { display:block; font-size:13px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:rgba(250, 250, 250, 0.65); margin-bottom:10px; }
   .ctrl-group select, .ctrl-group input[type="date"] {
-    width:100%; background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.25);
+    width:100%; background:rgba(226, 221, 221, 0.12); border:1px solid rgba(255, 250, 250, 0.25);
     color:#fff; padding:15px 18px; font-family:'DM Sans',sans-serif; font-size:17px; font-weight:600;
     appearance:none; -webkit-appearance:none; cursor:pointer; outline:none; transition:background 0.15s, border-color 0.15s;
   }
   .ctrl-group select:hover, .ctrl-group input[type="date"]:hover { background:rgba(255,255,255,0.2); border-color:rgba(255,255,255,0.5); }
-  .ctrl-group select option { background:#1a1a1a; color:#0f0f0f; }
+  /* Options in the dropdown: use dark background and white text so selected items are visible */
+  .ctrl-group select option { background:#111; color:#fff; }
+  /* Improve visibility when hovering/selecting options (browser support varies) */
+  .ctrl-group select option:hover { background: rgba(255,255,255,0.06); color: #fff; }
+  .ctrl-group select option:checked { background: rgba(255,255,255,0.08); color: #0c0c0c; }
   input[type="date"]::-webkit-calendar-picker-indicator { filter:invert(1); opacity:0.6; cursor:pointer; }
   .view-toggle { display:flex; border:1px solid rgba(255,255,255,0.25); overflow:hidden; }
   /* 3D style container: give perspective so children can appear raised */
@@ -568,7 +572,10 @@ function gbStamp(iso) {
   return `${D}/${M} ${t}`;
 }
 function gbDate(isoDate) {
-  const [Y,M,D] = String(isoDate).split("-");
+  const s = String(isoDate || "");
+  // monthly stamp (YYYY-MM)
+  if (/^\d{4}-\d{2}$/.test(s)) return gbMonth(s);
+  const [Y,M,D] = s.split("-");
   return `${D}/${M}/${Y}`;
 }
 function shortDay(isoDate) {
@@ -580,6 +587,20 @@ function hhFromStamp(stamp) {
   if (s.includes(" ")) return s.split(" ")[1];
   return s;
 }
+
+/* Format YYYY-MM into a short month label (e.g. Mar 2025) */
+function gbMonth(ym) {
+  const s = String(ym || "");
+  const mnames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const parts = s.split('-');
+  if (parts.length < 2) return s;
+  const Y = parts[0];
+  const M = Number(parts[1]);
+  if (!M || M < 1 || M > 12) return s;
+  return `${mnames[M-1]} ${Y}`;
+}
+
+function shortMonth(ym) { return gbMonth(ym); }
 
 function loadScript(src) {
   return new Promise((resolve, reject) => {
@@ -711,14 +732,35 @@ async function showLastSamplesInNoData(breakerId, limit = 10) {
 /* Render a table body string for rows (hourly or daily) */
 function buildTableRowsHtml(rows, view) {
   let tableRows = "";
-  if (view === 'daily') {
+
+  if (view === 'monthly') {
+    // monthly summaries already grouped server-side
     rows.forEach(r => {
       const dPk  = Number(r.peak_kwh || 0);
       const dOff = Number(r.off_kwh || 0);
       const dTot = Number(r.kwh || 0);
       const dAmt = Number(r.amount || 0);
 
+      tableRows += `<tr>
+        <td>${gbMonth(r.timestamp)}</td>
+        <td>
+          <span class="tag pk" style="margin-right:3px">Pk: ${fmtKwh(dPk)}</span>
+          <span class="tag op">Off: ${fmtKwh(dOff)}</span>
+        </td>
+        <td class="n">${fmtKwh(dTot)}</td>
+        <td class="n">Monthly</td>
+        <td class="n">${fmtMoney(dAmt)}</td>
+      </tr>`;
+    });
+    return tableRows;
+  }
 
+  if (view === 'daily') {
+    rows.forEach(r => {
+      const dPk  = Number(r.peak_kwh || 0);
+      const dOff = Number(r.off_kwh || 0);
+      const dTot = Number(r.kwh || 0);
+      const dAmt = Number(r.amount || 0);
 
       tableRows += `<tr>
         <td>${gbDate(r.timestamp)}</td>
@@ -731,21 +773,24 @@ function buildTableRowsHtml(rows, view) {
         <td class="n">${fmtMoney(dAmt)}</td>
       </tr>`;
     });
-  } else {
-    rows.forEach(r => {
-      const type = r.type || "Off-Peak";
-      const pk = (type === "Peak");
-      const kwh = Number(r.kwh || 0);
-
-      tableRows += `<tr class="${pk ? 'pk-row' : ''}">
-        <td>${gbStamp(r.timestamp)}</td>
-        <td><span class="tag ${pk?'pk':'op'}">${pk?'Peak':'Off-Peak'}</span></td>
-        <td class="n">${fmtKwh(kwh)}</td>
-        <td class="n">${fmtRate(r.rate)}</td>
-        <td class="n">${fmtMoney(r.amount)}</td>
-      </tr>`;
-    });
+    return tableRows;
   }
+
+  // default: hourly
+  rows.forEach(r => {
+    const type = r.type || "Off-Peak";
+    const pk = (type === "Peak");
+    const kwh = Number(r.kwh || 0);
+
+    tableRows += `<tr class="${pk ? 'pk-row' : ''}">
+      <td>${gbStamp(r.timestamp)}</td>
+      <td><span class="tag ${pk?'pk':'op'}">${pk?'Peak':'Off-Peak'}</span></td>
+      <td class="n">${fmtKwh(kwh)}</td>
+      <td class="n">${fmtRate(r.rate)}</td>
+      <td class="n">${fmtMoney(r.amount)}</td>
+    </tr>`;
+  });
+
   return tableRows;
 }
 
@@ -817,7 +862,7 @@ async function generateMultiBreakerReport() {
       parts.push(part);
 
       // For print: a compact summary + rows as on single report
-      const dailyRowsForPrint = (view === "daily") ? rows : aggregateHourlyToDaily(rows);
+  const dailyRowsForPrint = (view === "daily" || view === "monthly") ? rows : aggregateHourlyToDaily(rows);
       let pdfRows = "";
       dailyRowsForPrint.forEach(r => {
         const dPk  = Number(r.peak_kwh || 0);
@@ -849,7 +894,7 @@ async function generateMultiBreakerReport() {
             <div class="sum-box pk"><div class="k">Peak summary</div><div class="v">${fmtKwh(d.peak_kwh || 0)} kWh</div><div class="s">${fmtMoney(d.peak_amount || 0)} ILS</div></div>
             <div class="sum-box op"><div class="k">Off-peak summary</div><div class="v">${fmtKwh(d.offpeak_kwh || 0)} kWh</div><div class="s">${fmtMoney(d.offpeak_amount || 0)} ILS</div></div>
           </div>
-          <div class="pdf-section-title"><div class="l">Daily records</div><div class="r">${dailyRowsForPrint.length} days</div></div>
+          <div class="pdf-section-title"><div class="l">${view === 'monthly' ? 'Monthly records' : 'Daily records'}</div><div class="r">${dailyRowsForPrint.length} ${view === 'monthly' ? 'months' : 'days'}</div></div>
           <div class="rowlist">${pdfRows}</div>
         </div>
       `;
@@ -1003,7 +1048,29 @@ async function generateReport() {
     const chartPeak = [];
     const chartOff = [];
 
-    if (view === "daily") {
+    if (view === "monthly") {
+      rows.forEach(r => {
+        const dPk  = Number(r.peak_kwh || 0);
+        const dOff = Number(r.off_kwh || 0);
+        const dTot = Number(r.kwh || 0);
+        const dAmt = Number(r.amount || 0);
+
+        tableRows += `<tr>
+          <td>${gbMonth(r.timestamp)}</td>
+          <td>
+            <span class="tag pk" style="margin-right:3px">Pk: ${fmtKwh(dPk)}</span>
+            <span class="tag op">Off: ${fmtKwh(dOff)}</span>
+          </td>
+          <td class="n">${fmtKwh(dTot)}</td>
+          <td class="n">Monthly</td>
+          <td class="n">${fmtMoney(dAmt)}</td>
+        </tr>`;
+
+        chartLabels.push(shortMonth(r.timestamp));
+        chartPeak.push(dPk);
+        chartOff.push(dOff);
+      });
+    } else if (view === "daily") {
       rows.forEach(r => {
         const dPk  = Number(r.peak_kwh || 0);
         const dOff = Number(r.off_kwh || 0);
@@ -1026,6 +1093,7 @@ async function generateReport() {
         chartOff.push(dOff);
       });
     } else {
+      // hourly
       rows.forEach(r => {
         const type = r.type || "Off-Peak";
         const pk = (type === "Peak");
@@ -1046,7 +1114,7 @@ async function generateReport() {
     }
 
     // ===== PDF rows = ALWAYS DAILY =====
-    const dailyRowsForPrint = (view === "daily") ? rows : aggregateHourlyToDaily(rows);
+  const dailyRowsForPrint = (view === "daily" || view === "monthly") ? rows : aggregateHourlyToDaily(rows);
 
     // Build clear "row list" for PDF
     let pdfRows = "";
@@ -1083,6 +1151,8 @@ async function generateReport() {
       `;
     });
 
+    const pdfTitleText = view === 'monthly' ? 'Monthly Consumption Invoice' : (view === 'daily' ? 'Daily Consumption Invoice' : 'Consumption Records');
+
     document.getElementById("print-records").innerHTML = `
       <div class="pdf-page">
         <div class="pdf-header">
@@ -1090,7 +1160,7 @@ async function generateReport() {
             <div class="pdf-logo">ABB</div>
             <div class="pdf-title">
               <div class="t1">Energy Monitoring System</div>
-              <div class="t2">Daily Consumption Invoice</div>
+              <div class="t2">${pdfTitleText}</div>
             </div>
           </div>
 
@@ -1122,8 +1192,8 @@ async function generateReport() {
         </div>
 
         <div class="pdf-section-title">
-          <div class="l">Daily records</div>
-          <div class="r">${dailyRowsForPrint.length} days • ${tariffText}</div>
+          <div class="l">${view === 'monthly' ? 'Monthly records' : 'Daily records'}</div>
+          <div class="r">${dailyRowsForPrint.length} ${view === 'monthly' ? 'months' : 'days'} • ${tariffText}</div>
         </div>
 
         <div class="rowlist">
@@ -1146,7 +1216,7 @@ async function generateReport() {
           </svg>
         </div>
         <div class="rpt-header-right">
-          <div class="rpt-type">Energy Report — ${view === 'hourly' ? 'Hourly' : 'Daily'} View</div>
+          <div class="rpt-type">Energy Report — ${view === 'hourly' ? 'Hourly' : view === 'daily' ? 'Daily' : 'Monthly'} View</div>
           <div class="rpt-name">${breaker.name}</div>
         </div>
       </div>
@@ -1171,7 +1241,7 @@ async function generateReport() {
 
       <div class="rpt-body">
         <div class="rpt-chart-panel">
-          <div class="rpt-chart-title">&#9650; Consumption — ${view === 'hourly' ? 'Hourly Breakdown' : 'Daily Summary'}</div>
+          <div class="rpt-chart-title">&#9650; Consumption — ${view === 'hourly' ? 'Hourly Breakdown' : view === 'daily' ? 'Daily Summary' : 'Monthly Summary'}</div>
           <div class="chart-container"><canvas id="rpt-chart"></canvas></div>
 
           <div class="chart-pills">
@@ -1267,7 +1337,7 @@ async function generateReport() {
       }
     });
 
-    setStatus('active', `Report ready — ${breaker.name} | ${view} view | ${from} → ${to} | PDF = clear daily rows`);
+  setStatus('active', `Report ready — ${breaker.name} | ${view} view | ${from} → ${to} | PDF = clear rows`);
     card.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   } catch (e) {

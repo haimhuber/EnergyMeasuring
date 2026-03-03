@@ -326,7 +326,7 @@ app.get("/api/consumption", (req, res) => {
 
     if (!breakerId || !BREAKERS[breakerId]) return res.status(400).json({ detail: "Invalid breaker_id" });
     if (!fromDate || !toDate) return res.status(400).json({ detail: "from_date and to_date are required (YYYY-MM-DD)" });
-    if (view !== "hourly" && view !== "daily") return res.status(400).json({ detail: 'view must be "hourly" or "daily"' });
+  if (view !== "hourly" && view !== "daily" && view !== "monthly") return res.status(400).json({ detail: 'view must be "hourly", "daily" or "monthly"' });
 
     const { from, to } = rangeToBounds(fromDate, toDate);
 
@@ -345,7 +345,9 @@ app.get("/api/consumption", (req, res) => {
       const key =
         view === "daily"
           ? dlt.ts.format("YYYY-MM-DD")
-          : dlt.ts.startOf("hour").format("YYYY-MM-DD HH:00");
+          : view === "monthly"
+            ? dlt.ts.format("YYYY-MM")
+            : dlt.ts.startOf("hour").format("YYYY-MM-DD HH:00");
 
       const b = buckets.get(key) || { peak_kwh: 0, off_kwh: 0, peak_amount: 0, off_amount: 0 };
 
@@ -371,11 +373,14 @@ app.get("/api/consumption", (req, res) => {
         const repTime =
           view === "daily"
             ? dayjs.tz(k + " 12:00", TZ)
-            : dayjs.tz(k, "YYYY-MM-DD HH:00", TZ);
+            : view === "monthly"
+              ? dayjs.tz(k + "-15 12:00", TZ) // pick mid-month for season calculations
+              : dayjs.tz(k, "YYYY-MM-DD HH:00", TZ);
 
         const season = getSeason(repTime);
 
-        if (view === "daily") {
+        // For both daily and monthly views return the same summary shape (timestamp will be YYYY-MM-DD or YYYY-MM)
+        if (view === "daily" || view === "monthly") {
           return { timestamp: k, season, peak_kwh, off_kwh, kwh, peak_amount, off_amount, amount };
         }
 
