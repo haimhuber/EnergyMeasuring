@@ -480,11 +480,11 @@
     </div>
     <div class="ctrl-group">
       <label>From</label>
-      <input type="date" id="sel-from" value=new Date(new Date().setDate(new Date().getDate()-30)).toISOString().slice(0,10)>
+      <input type="date" id="sel-from">
     </div>
     <div class="ctrl-group">
       <label>To</label>
-      <input type="date" id="sel-to" value=new Date().toISOString().slice(0,10)>
+      <input type="date" id="sel-to">
     </div>
     <div class="ctrl-group">
       <label>View</label>
@@ -1349,7 +1349,26 @@ async function generateReport() {
 
 document.addEventListener('keydown', e => { if (e.key === 'Enter') generateReport(); });
 
+/* Set sensible default dates for the From/To inputs (YYYY-MM-DD) */
+function setDefaultDates() {
+  try {
+    const fromEl = document.getElementById('sel-from');
+    const toEl = document.getElementById('sel-to');
+    const now = new Date();
+    const toVal = now.toISOString().slice(0,10);
+    // set From = yesterday, To = today
+    const fromDt = new Date(now);
+    fromDt.setDate(fromDt.getDate() - 1);
+    const fromVal = fromDt.toISOString().slice(0,10);
+    if (fromEl && !fromEl.value) fromEl.value = fromVal;
+    if (toEl && !toEl.value) toEl.value = toVal;
+  } catch (e) {
+    // ignore
+  }
+}
+
 // ✅ init
+setDefaultDates();
 loadBreakersAndFillSelect();
 </script>
 </body>
