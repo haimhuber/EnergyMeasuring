@@ -979,9 +979,18 @@ async function generateReport() {
   const noData = document.getElementById('no-data');
   const card   = document.getElementById('report-card');
 
-  if (!breakerId) { setStatus('', 'Please select a breaker.'); return; }
-  if (!from || !to) { setStatus('', 'Please select a date range.'); return; }
-
+  if (!breakerId) { setStatus('', 'Please select a breaker.');
+    window.alert('Please select a breaker before generating the report.');
+    return;
+   }
+  if (!from || !to) { setStatus('', 'Please select a date range.'); 
+    window.alert('Please select a date range before generating the report.');
+    return;
+   }
+  if (from > to) { setStatus('', 'Invalid date range: "From" date is after "To" date.');
+    window.alert('Invalid date range: "From" date is after "To" date. Please correct the dates and try again.');
+    return;
+   }
   placeholder.style.display = 'none';
   noData.classList.remove('visible');
   card.classList.remove('visible');
