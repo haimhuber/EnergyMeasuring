@@ -30,7 +30,7 @@ const PORT = Number(process.env.PORT || 8000);
 
 // נתיבי CSV
 const CSV_DIR =
-  process.env.CSV_DIR || "C:\\Users\\User\\Downloads\\EnergyMeasuring\\energyComsamption";
+  process.env.CSV_DIR || "C:\\Energy";
 const CSV_FILE = process.env.CSV_FILE || "energyData.csv";
 const CSV_PATH = path.join(CSV_DIR, CSV_FILE);
 
@@ -78,6 +78,7 @@ const JWT_EXPIRES = "30m";
 const USERS = [
   { id: 1, username: process.env.ADMIN, passwordHash: bcrypt.hashSync(process.env.ADMIN_PASS, 10), role: "admin" },
   { id: 2, username: process.env.USER, passwordHash: bcrypt.hashSync(process.env.USER_PASS, 10), role: "viewer" },
+  { id: 3, username: process.env.NEUREALITY, passwordHash: bcrypt.hashSync(process.env.NEUREALITY_PASS, 10), role: "viewer" }
 ];
 
 function cookieOptions(req) {
@@ -132,6 +133,8 @@ function getAllLanIps() {
     }
   }
   return ips;
+
+
 }
 
 function pickPreferredIp() {
@@ -589,13 +592,13 @@ app.get("/api/consumption", authRequired, (req, res) => {
         // hourly — מוסיף type + rate
         const type =
           peak_kwh > 0 && off_kwh === 0 ? "Peak" :
-          off_kwh > 0 && peak_kwh === 0 ? "Off-Peak" :
-          "Mixed";
+            off_kwh > 0 && peak_kwh === 0 ? "Off-Peak" :
+              "Mixed";
 
         const rate =
           type === "Peak" ? TARIFFS[season].peak :
-          type === "Off-Peak" ? TARIFFS[season].off :
-          "-";
+            type === "Off-Peak" ? TARIFFS[season].off :
+              "-";
 
         return { timestamp: k, season, type, kwh, rate, peak_kwh, off_kwh, amount };
       })
