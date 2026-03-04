@@ -30,7 +30,7 @@ const PORT = Number(process.env.PORT || 8000);
 
 // נתיבי CSV
 const CSV_DIR =
-  process.env.CSV_DIR || "C:\\Energy";
+  process.env.CSV_DIR || "C:\\Users\\User\\Downloads\\EnergyMeasuring\\energyComsamption";
 const CSV_FILE = process.env.CSV_FILE || "energyData.csv";
 const CSV_PATH = path.join(CSV_DIR, CSV_FILE);
 
