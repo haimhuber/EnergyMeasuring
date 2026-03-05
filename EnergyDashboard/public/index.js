@@ -286,7 +286,100 @@ function buildTableRowsHtml(rows, view) {
   return tableRows;
 }
 
-/* Generate combined report for breakers 1,4,7 and render three stacked tables */
+
+// --- Modal for multi-breaker selection ---
+function showBreakerSelectionModal(onConfirm) {
+  // Remove existing modal if present
+  const oldModal = document.getElementById('breaker-modal');
+  if (oldModal) oldModal.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'breaker-modal';
+  modal.style.position = 'fixed';
+  modal.style.top = '0';
+  modal.style.left = '0';
+  modal.style.width = '100vw';
+  modal.style.height = '100vh';
+  modal.style.background = 'rgba(0,0,0,0.35)';
+  modal.style.display = 'flex';
+  modal.style.alignItems = 'center';
+  modal.style.justifyContent = 'center';
+  modal.style.zIndex = '9999';
+
+  const box = document.createElement('div');
+  box.style.background = '#fff';
+  box.style.padding = '32px 28px 24px 28px';
+  box.style.borderRadius = '12px';
+  box.style.boxShadow = '0 4px 32px rgba(0,0,0,0.18)';
+  box.style.minWidth = '320px';
+  box.style.maxWidth = '90vw';
+  box.style.maxHeight = '80vh';
+  box.style.overflowY = 'auto';
+
+  const title = document.createElement('div');
+  title.textContent = 'Select breakers for report';
+  title.style.fontWeight = 'bold';
+  title.style.fontSize = '20px';
+  title.style.marginBottom = '18px';
+  box.appendChild(title);
+
+  const list = document.createElement('div');
+  list.style.display = 'flex';
+  list.style.flexDirection = 'column';
+  list.style.gap = '10px';
+
+  // BREAKERS is a map: { id: {id, name} }
+  Object.values(BREAKERS).forEach(b => {
+    const label = document.createElement('label');
+    label.style.display = 'flex';
+    label.style.alignItems = 'center';
+    label.style.gap = '8px';
+    label.style.cursor = 'pointer';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.value = b.id;
+    cb.checked = false;
+    label.appendChild(cb);
+    label.appendChild(document.createTextNode(`${b.id} - ${b.name}`));
+    list.appendChild(label);
+  });
+  box.appendChild(list);
+
+  const btnRow = document.createElement('div');
+  btnRow.style.display = 'flex';
+  btnRow.style.justifyContent = 'flex-end';
+  btnRow.style.gap = '12px';
+  btnRow.style.marginTop = '24px';
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.className = 'btn-cancel';
+  cancelBtn.onclick = () => modal.remove();
+  btnRow.appendChild(cancelBtn);
+
+  const okBtn = document.createElement('button');
+  okBtn.textContent = 'Confirm';
+  okBtn.className = 'btn-confirm';
+  okBtn.style.background = '#1a7f37';
+  okBtn.style.color = '#fff';
+  okBtn.style.fontWeight = 'bold';
+  okBtn.onclick = () => {
+    const checked = Array.from(list.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+    if (checked.length === 0) {
+      alert('Please select at least one breaker to generate the report.');
+      return;
+    }
+    modal.remove();
+    onConfirm(checked);
+  };
+  btnRow.appendChild(okBtn);
+
+  box.appendChild(btnRow);
+  modal.appendChild(box);
+  document.body.appendChild(modal);
+}
+
+// Updated: Generate report for user-selected breakers
 async function generateMultiBreakerReport() {
   showBreakerSelectionModal(async (ids) => {
     const checkCookie = await fetch(`${API_BASE}/api/me`);
@@ -545,7 +638,7 @@ async function generateReport() {
     let rows = Array.isArray(d.rows) ? d.rows : [];
     rows = sortByTimestampAsc(rows);
 
-    if (!rows.length || totalKwh <= 1) {
+    if (!rows.length) {
       setStatus('', `No data for breaker ${breakerId} in selected period.`);
 
       noData.classList.add('visible');
