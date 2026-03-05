@@ -213,20 +213,25 @@ addComparisonBreakerToChart = async function (breakerId) {
     const map = Object.fromEntries(rows.map(r => [shortDay(r.timestamp), Number(r.kwh || 0)]));
     dataArr = mainLabels.map(lab => map[lab] ?? 0);
   } else {
-    // hourly
-    const map = Object.fromEntries(rows.map(r => [hhFromStamp(r.timestamp), Number(r.kwh || 0)]));
+    // hourly: sum all kWh per hour (Peak+Off-Peak)
+    const map = {};
+    rows.forEach(r => {
+      const hour = hhFromStamp(r.timestamp);
+      map[hour] = (map[hour] || 0) + Number(r.kwh || 0);
+    });
     dataArr = mainLabels.map(lab => map[lab] ?? 0);
   }
-  // Add dataset to chart as a grouped bar
   const colorIdx = comparisonBreakers.length - 1;
+  const color = comparisonColors[colorIdx % comparisonColors.length];
   chartInstance.data.datasets.push({
     label: BREAKERS[breakerId]?.name || ('Breaker ' + breakerId),
     data: dataArr,
-    backgroundColor: comparisonColors[colorIdx % comparisonColors.length],
+    backgroundColor: color,
+    borderColor: color,
+    borderWidth: 2,
     borderRadius: 2,
     borderSkipped: false
   });
-  // Make all datasets not stacked for grouped bars
   chartInstance.options.scales.x.stacked = false;
   chartInstance.options.scales.y.stacked = false;
   chartInstance.update();
@@ -302,8 +307,12 @@ async function addComparisonBreakerToChart(breakerId) {
     const map = Object.fromEntries(rows.map(r => [shortDay(r.timestamp), Number(r.kwh || 0)]));
     dataArr = mainLabels.map(lab => map[lab] ?? 0);
   } else {
-    // hourly
-    const map = Object.fromEntries(rows.map(r => [hhFromStamp(r.timestamp), Number(r.kwh || 0)]));
+    // hourly: sum all kWh per hour (Peak+Off-Peak)
+    const map = {};
+    rows.forEach(r => {
+      const hour = hhFromStamp(r.timestamp);
+      map[hour] = (map[hour] || 0) + Number(r.kwh || 0);
+    });
     dataArr = mainLabels.map(lab => map[lab] ?? 0);
   }
   // Render chart in this canvas
