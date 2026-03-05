@@ -1,3 +1,241 @@
+// --- Add Breaker for Comparison Button ---
+function addCompareBreakerButtonAfterReport() {
+  // Remove if already exists
+  const oldBtn = document.getElementById('add-breaker-compare-btn');
+  if (oldBtn) oldBtn.remove();
+  const card = document.getElementById('report-card');
+  if (!card) return;
+  const btn = document.createElement('button');
+  btn.id = 'add-breaker-compare-btn';
+  btn.className = 'btn-generate';
+  btn.textContent = 'Add breaker for comparison';
+  btn.style.background = '#1a7f37';
+  btn.style.margin = '18px auto 0 auto';
+  btn.style.display = 'block';
+  btn.onclick = showSmallBreakerCompareModal;
+  card.parentNode.insertBefore(btn, card.nextSibling);
+}
+
+// --- Small Modal for Breaker Selection ---
+function showSmallBreakerCompareModal() {
+  // Remove existing modal if present
+  const oldModal = document.getElementById('breaker-modal');
+  if (oldModal) oldModal.remove();
+  const modal = document.createElement('div');
+  modal.id = 'breaker-modal';
+  modal.style.position = 'fixed';
+  modal.style.top = '0';
+  modal.style.left = '0';
+  modal.style.width = '100vw';
+  modal.style.height = '100vh';
+  modal.style.background = 'rgba(0,0,0,0.35)';
+  modal.style.display = 'flex';
+  modal.style.alignItems = 'center';
+  modal.style.justifyContent = 'center';
+  modal.style.zIndex = '9999';
+  // Small box
+  const box = document.createElement('div');
+  box.style.background = '#fff';
+  box.style.padding = '18px 18px 14px 18px';
+  box.style.borderRadius = '10px';
+  box.style.boxShadow = '0 2px 16px rgba(0,0,0,0.13)';
+  box.style.minWidth = '220px';
+  box.style.maxWidth = '90vw';
+  box.style.maxHeight = '60vh';
+  box.style.overflowY = 'auto';
+  const title = document.createElement('div');
+  title.textContent = 'Select breaker for comparison';
+  title.style.fontWeight = 'bold';
+  title.style.marginBottom = '12px';
+  box.appendChild(title);
+  // Breaker select
+  const select = document.createElement('select');
+  select.style.width = '100%';
+  select.style.fontSize = '16px';
+  select.style.marginBottom = '16px';
+  const mainBreakerId = document.getElementById('sel-breaker').value;
+  for (const id in BREAKERS) {
+    if (id === mainBreakerId) continue;
+    if (comparisonBreakers.includes(id)) continue;
+    const opt = document.createElement('option');
+    opt.value = id;
+    opt.textContent = BREAKERS[id].name;
+    select.appendChild(opt);
+  }
+  box.appendChild(select);
+  // Buttons
+  const okBtn = document.createElement('button');
+  okBtn.textContent = 'Confirm';
+  okBtn.className = 'btn-confirm';
+  okBtn.style.marginLeft = '10px';
+  okBtn.onclick = async function () {
+    const selectedId = select.value;
+    if (!selectedId) return;
+    if (comparisonBreakers.length >= 2) {
+      alert('You can compare up to 3 breakers total.');
+      return;
+    }
+    comparisonBreakers.push(selectedId);
+    await addComparisonBreakerToChart(selectedId);
+    modal.remove();
+    // Hide button if max reached
+    if (comparisonBreakers.length >= 2) {
+      const btn = document.getElementById('add-breaker-compare-btn');
+      if (btn) btn.style.display = 'none';
+    }
+  };
+  const cancelBtn = document.createElement('button');
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.className = 'btn-cancel';
+  cancelBtn.onclick = function () { modal.remove(); };
+  box.appendChild(okBtn);
+  box.appendChild(cancelBtn);
+  modal.appendChild(box);
+  document.body.appendChild(modal);
+}
+
+// --- Comparison logic ---
+let comparisonBreakers = [];
+const comparisonColors = [
+  'rgba(26, 127, 55, 0.85)', // green
+  'rgba(0, 112, 192, 0.85)', // blue
+  'rgba(255, 140, 0, 0.85)'  // orange
+];
+
+// Patch addCompareBreakerButtonAfterReport to reset comparison state
+const _origAddCompareBreakerButtonAfterReport = addCompareBreakerButtonAfterReport;
+addCompareBreakerButtonAfterReport = function () {
+  comparisonBreakers = [];
+  _origAddCompareBreakerButtonAfterReport();
+};
+
+// Patch showSmallBreakerCompareModal to filter out already compared breakers
+const _origShowSmallBreakerCompareModal = showSmallBreakerCompareModal;
+showSmallBreakerCompareModal = function () {
+  // Remove existing modal if present
+  const oldModal = document.getElementById('breaker-modal');
+  if (oldModal) oldModal.remove();
+  const modal = document.createElement('div');
+  modal.id = 'breaker-modal';
+  modal.style.position = 'fixed';
+  modal.style.top = '0';
+  modal.style.left = '0';
+  modal.style.width = '100vw';
+  modal.style.height = '100vh';
+  modal.style.background = 'rgba(0,0,0,0.35)';
+  modal.style.display = 'flex';
+  modal.style.alignItems = 'center';
+  modal.style.justifyContent = 'center';
+  modal.style.zIndex = '9999';
+  // Small box
+  const box = document.createElement('div');
+  box.style.background = '#fff';
+  box.style.padding = '18px 18px 14px 18px';
+  box.style.borderRadius = '10px';
+  box.style.boxShadow = '0 2px 16px rgba(0,0,0,0.13)';
+  box.style.minWidth = '220px';
+  box.style.maxWidth = '90vw';
+  box.style.maxHeight = '60vh';
+  box.style.overflowY = 'auto';
+  const title = document.createElement('div');
+  title.textContent = 'Select breaker for comparison';
+  title.style.fontWeight = 'bold';
+  title.style.marginBottom = '12px';
+  box.appendChild(title);
+  // Breaker select
+  const select = document.createElement('select');
+  select.style.width = '100%';
+  select.style.fontSize = '16px';
+  select.style.marginBottom = '16px';
+  const mainBreakerId = document.getElementById('sel-breaker').value;
+  for (const id in BREAKERS) {
+    if (id === mainBreakerId) continue;
+    if (comparisonBreakers.includes(id)) continue;
+    const opt = document.createElement('option');
+    opt.value = id;
+    opt.textContent = BREAKERS[id].name;
+    select.appendChild(opt);
+  }
+  box.appendChild(select);
+  // Buttons
+  const okBtn = document.createElement('button');
+  okBtn.textContent = 'Confirm';
+  okBtn.className = 'btn-confirm';
+  okBtn.style.marginLeft = '10px';
+  okBtn.onclick = async function () {
+    const selectedId = select.value;
+    if (!selectedId) return;
+    if (comparisonBreakers.length >= 2) {
+      alert('You can compare up to 3 breakers total.');
+      return;
+    }
+    comparisonBreakers.push(selectedId);
+    await addComparisonBreakerToChart(selectedId);
+    modal.remove();
+    // Hide button if max reached
+    if (comparisonBreakers.length >= 2) {
+      const btn = document.getElementById('add-breaker-compare-btn');
+      if (btn) btn.style.display = 'none';
+    }
+  };
+  const cancelBtn = document.createElement('button');
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.className = 'btn-cancel';
+  cancelBtn.onclick = function () { modal.remove(); };
+  box.appendChild(okBtn);
+  box.appendChild(cancelBtn);
+  modal.appendChild(box);
+  document.body.appendChild(modal);
+};
+
+// Add a comparison breaker to the chart (same period/view)
+async function addComparisonBreakerToChart(breakerId) {
+  const from = document.getElementById('sel-from').value;
+  const to = document.getElementById('sel-to').value;
+  const view = document.querySelector('input[name="view"]:checked').value;
+  // Fetch data
+  let d;
+  try {
+    d = await fetchConsumption(breakerId, from, to, view);
+  } catch (e) {
+    alert('Failed to fetch data for comparison breaker.');
+    return;
+  }
+  let rows = Array.isArray(d.rows) ? d.rows : [];
+  rows = sortByTimestampAsc(rows);
+  // Build data series matching the main chart's labels
+  const mainLabels = chartInstance.data.labels;
+  let dataArr = [];
+  if (view === 'monthly') {
+    const map = Object.fromEntries(rows.map(r => [shortMonth(r.timestamp), Number(r.kwh || 0)]));
+    dataArr = mainLabels.map(lab => map[lab] ?? 0);
+  } else if (view === 'daily') {
+    const map = Object.fromEntries(rows.map(r => [shortDay(r.timestamp), Number(r.kwh || 0)]));
+    dataArr = mainLabels.map(lab => map[lab] ?? 0);
+  } else {
+    // hourly
+    const map = Object.fromEntries(rows.map(r => [hhFromStamp(r.timestamp), Number(r.kwh || 0)]));
+    dataArr = mainLabels.map(lab => map[lab] ?? 0);
+  }
+  // Add dataset to chart
+  const colorIdx = comparisonBreakers.length - 1;
+  chartInstance.data.datasets.push({
+    label: BREAKERS[breakerId]?.name || ('Breaker ' + breakerId),
+    data: dataArr,
+    backgroundColor: comparisonColors[colorIdx % comparisonColors.length],
+    borderRadius: 2,
+    borderSkipped: false
+  });
+  chartInstance.update();
+}
+
+// Patch generateReport to reset comparisonBreakers
+const _origGenerateReport = generateReport;
+generateReport = async function () {
+  comparisonBreakers = [];
+  await _origGenerateReport.apply(this, arguments);
+};
+
 function currentUsername() {
   const username = document.querySelector('.nav-user span');
   const storedName = localStorage.getItem('Username');
@@ -6,7 +244,6 @@ function currentUsername() {
   }
 }
 currentUsername();
-
 
 
 const API_BASE = "";
@@ -906,7 +1143,7 @@ async function generateReport() {
 
       <div class="rpt-totals">
         <div>
-          <div class="rpt-totals-lines">
+          <div class="rpt-tot-lines">
             <div class="rpt-tot-line-peak"><span>&#9632; Peak — ${fmtKwh(peakKwh)} kWh</span><span class="tv">${fmtMoney(peakAmt)} ILS</span></div>
             <div class="rpt-tot-line-off"><span>&#9632; Off-Peak — ${fmtKwh(offKwh)} kWh</span><span class="tv">${fmtMoney(offAmt)} ILS</span></div>
              <div class="rpt-tot-line-total"><span>&#9632; Total — ${fmtKwh(totalKwh)} kWh</span><span class="tv">${fmtMoney(grand)} ILS</span></div>
@@ -972,6 +1209,7 @@ async function generateReport() {
 
     setStatus('active', `Report ready — ${breaker.name} | ${view} view | ${from} → ${to} | PDF = clear rows`);
     card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    addCompareBreakerButtonAfterReport();
 
   } catch (e) {
     console.error(e);
