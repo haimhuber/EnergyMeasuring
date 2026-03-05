@@ -24,7 +24,7 @@ import breakersConfig from "../energyComsamption/breakerConfig.json" with { type
 // =========================
 dayjs.extend(utc);
 dayjs.extend(timezone);
-
+const test = 0;
 const TZ = "Asia/Jerusalem";
 const PORT = Number(process.env.PORT || 8000);
 
