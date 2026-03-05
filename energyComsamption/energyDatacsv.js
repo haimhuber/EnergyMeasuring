@@ -3,8 +3,8 @@ const path = require("path");
 const { localTime } = require("./timestamp");
 const csvSql = require("./db");
 
-// מומלץ לשמור את הקובץ ליד הקוד ולא תלוי ב-CWD
-const fileName = path.join(__dirname, "energyData.csv");
+// שמירת הקובץ בתיקייה קבועה C:\Energy
+const fileName = "C:\\Energy\\energyData.csv";
 
 /**
  * מביא את כל הנתונים מ-SQL לשחזור הקובץ
@@ -122,6 +122,6 @@ function ensureFileEndsWithNewline(fname) {
   } finally {
     try {
       if (fd) fs.closeSync(fd);
-    } catch (_) {}
+    } catch (_) { }
   }
 }
