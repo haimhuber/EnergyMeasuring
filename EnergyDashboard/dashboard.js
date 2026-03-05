@@ -564,45 +564,62 @@ app.get("/api/consumption", authRequired, (req, res) => {
 
     const keys = Array.from(buckets.keys()).sort();
 
-    const outRows = keys
-      .map((k) => {
-        const b = buckets.get(k);
-        const peak_kwh = round3(b.peak_kwh);
-        const off_kwh = round3(b.off_kwh);
-        const kwh = round3(peak_kwh + off_kwh);
+    // Build a complete list of all periods in the requested range
+    let allPeriods = [];
+    if (view === "daily") {
+      let cur = from.clone();
+      while (!cur.isAfter(to)) {
+        allPeriods.push(cur.format("YYYY-MM-DD"));
+        cur = cur.add(1, "day");
+      }
+    } else if (view === "monthly") {
+      let cur = from.clone().startOf("month");
+      while (!cur.isAfter(to)) {
+        allPeriods.push(cur.format("YYYY-MM"));
+        cur = cur.add(1, "month");
+      }
+    } else {
+      // hourly
+      let cur = from.clone().startOf("hour");
+      while (!cur.isAfter(to)) {
+        allPeriods.push(cur.format("YYYY-MM-DD HH:00"));
+        cur = cur.add(1, "hour");
+      }
+    }
 
-        const peak_amount = round3(b.peak_amount);
-        const off_amount = round3(b.off_amount);
-        const amount = round3(peak_amount + off_amount);
+    let outRows = allPeriods.map((period) => {
+      const b = buckets.get(period);
+      const peak_kwh = b ? round3(b.peak_kwh) : 0;
+      const off_kwh = b ? round3(b.off_kwh) : 0;
+      const kwh = b ? round3(peak_kwh + off_kwh) : 0;
+      const peak_amount = b ? round3(b.peak_amount) : 0;
+      const off_amount = b ? round3(b.off_amount) : 0;
+      const amount = b ? round3(peak_amount + off_amount) : 0;
 
-        const repTime =
-          view === "daily"
-            ? dayjs.tz(k + " 12:00", TZ)
-            : view === "monthly"
-              ? dayjs.tz(k + "-15 12:00", TZ)
-              : dayjs.tz(k, "YYYY-MM-DD HH:00", TZ);
+      let repTime;
+      if (view === "daily") {
+        repTime = dayjs.tz(period + " 12:00", TZ);
+      } else if (view === "monthly") {
+        repTime = dayjs.tz(period + "-15 12:00", TZ);
+      } else {
+        repTime = dayjs.tz(period, "YYYY-MM-DD HH:00", TZ);
+      }
+      const season = getSeason(repTime);
 
-        const season = getSeason(repTime);
-
-        // daily/monthly — אותו shape
-        if (view === "daily" || view === "monthly") {
-          return { timestamp: k, season, peak_kwh, off_kwh, kwh, peak_amount, off_amount, amount };
-        }
-
-        // hourly — מוסיף type + rate
-        const type =
-          peak_kwh > 0 && off_kwh === 0 ? "Peak" :
-            off_kwh > 0 && peak_kwh === 0 ? "Off-Peak" :
-              "Mixed";
-
-        const rate =
-          type === "Peak" ? TARIFFS[season].peak :
-            type === "Off-Peak" ? TARIFFS[season].off :
-              "-";
-
-        return { timestamp: k, season, type, kwh, rate, peak_kwh, off_kwh, amount };
-      })
-      .filter((r) => Number(r.kwh || 0) > 0);
+      if (view === "daily" || view === "monthly") {
+        return { timestamp: period, season, peak_kwh, off_kwh, kwh, peak_amount, off_amount, amount };
+      }
+      // hourly
+      const type =
+        peak_kwh > 0 && off_kwh === 0 ? "Peak" :
+          off_kwh > 0 && peak_kwh === 0 ? "Off-Peak" :
+            "Mixed";
+      const rate =
+        type === "Peak" ? TARIFFS[season].peak :
+          type === "Off-Peak" ? TARIFFS[season].off :
+            "-";
+      return { timestamp: period, season, type, kwh, rate, peak_kwh, off_kwh, amount };
+    });
 
     // totals
     const peak_kwh = round3(deltas.filter((x) => x.peak).reduce((s, x) => s + x.kwh, 0));

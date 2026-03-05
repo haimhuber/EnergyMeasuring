@@ -653,7 +653,9 @@ async function generateReport() {
     let rows = Array.isArray(d.rows) ? d.rows : [];
     rows = sortByTimestampAsc(rows);
 
-    if (!rows.length) {
+    if (!Array.isArray(rows) || rows.length === 0) {
+      console.log("Total", rows);
+
       setStatus('', `No data for breaker ${breakerId} in selected period.`);
 
       noData.classList.add('visible');
