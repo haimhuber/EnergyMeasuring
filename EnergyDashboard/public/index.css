@@ -1,3 +1,23 @@
+/* --- Modal Customization for Breaker Compare --- */
+#breaker-modal .modal-content,
+#breaker-modal .modal-content * {
+    text-align: left !important;
+}
+
+.btn-confirm {
+    background-color: #E30613 !important;
+    border-color: #E30613 !important;
+    color: #fff !important;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+
+.btn-confirm:hover,
+.btn-confirm:focus {
+    background-color: #b8000f !important;
+    border-color: #b8000f !important;
+}
+
 :root {
     --red: #FF000F;
     --red-dk: #CC000C;

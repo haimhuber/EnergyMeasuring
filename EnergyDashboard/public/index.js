@@ -15,6 +15,13 @@ function addCompareBreakerButtonAfterReport() {
   btn.onclick = showSmallBreakerCompareModal;
   card.parentNode.insertBefore(btn, card.nextSibling);
 }
+// --- Delete Comparison Button ---
+function deleteCompareBreakerButton() {
+  // Remove if already exists
+  const oldBtn = document.getElementById('add-breaker-compare-btn');
+  if (oldBtn) oldBtn.remove();
+}
+
 
 // --- Small Modal for Breaker Selection ---
 function showSmallBreakerCompareModal() {
@@ -47,6 +54,7 @@ function showSmallBreakerCompareModal() {
   title.textContent = 'Select breaker for comparison';
   title.style.fontWeight = 'bold';
   title.style.marginBottom = '12px';
+  title.style.textAlign = 'left';
   box.appendChild(title);
   // Breaker select
   const select = document.createElement('select');
@@ -67,7 +75,7 @@ function showSmallBreakerCompareModal() {
   const okBtn = document.createElement('button');
   okBtn.textContent = 'Confirm';
   okBtn.className = 'btn-confirm';
-  okBtn.style.marginLeft = '10px';
+  okBtn.style.marginLeft = '0';
   okBtn.onclick = async function () {
     const selectedId = select.value;
     if (!selectedId) return;
@@ -88,8 +96,19 @@ function showSmallBreakerCompareModal() {
   cancelBtn.textContent = 'Cancel';
   cancelBtn.className = 'btn-cancel';
   cancelBtn.onclick = function () { modal.remove(); };
-  box.appendChild(okBtn);
-  box.appendChild(cancelBtn);
+  // Button container for left alignment
+  const btnContainer = document.createElement('div');
+  btnContainer.style.display = 'flex';
+  btnContainer.style.justifyContent = 'flex-start';
+  btnContainer.style.alignItems = 'flex-start';
+  btnContainer.style.gap = '10px';
+  btnContainer.style.marginTop = '8px';
+  btnContainer.style.paddingLeft = '0';
+  btnContainer.style.width = '100%';
+  btnContainer.style.direction = 'ltr';
+  btnContainer.appendChild(okBtn);
+  btnContainer.appendChild(cancelBtn);
+  box.appendChild(btnContainer);
   modal.appendChild(box);
   document.body.appendChild(modal);
 }
@@ -137,10 +156,12 @@ showSmallBreakerCompareModal = function () {
   box.style.maxWidth = '90vw';
   box.style.maxHeight = '60vh';
   box.style.overflowY = 'auto';
+  box.style.alignContent = 'center';
   const title = document.createElement('div');
   title.textContent = 'Select breaker for comparison';
   title.style.fontWeight = 'bold';
   title.style.marginBottom = '12px';
+  title.style.textAlign = 'left';
   box.appendChild(title);
   // Restrict hourly comparison to max 1 day
   const from = document.getElementById('sel-from').value;
@@ -167,6 +188,7 @@ showSmallBreakerCompareModal = function () {
     const opt = document.createElement('option');
     opt.value = id;
     opt.textContent = BREAKERS[id].name;
+    opt.style.alignContent = 'center';
     select.appendChild(opt);
   }
   box.appendChild(select);
@@ -885,6 +907,7 @@ async function generateMultiBreakerReport() {
       document.getElementById('no-data').classList.add('visible');
     }
   });
+  deleteCompareBreakerButton();// delete compare button in multi-breaker mode
 }
 
 /** ✅ Load breakers from API and fill the select */
