@@ -188,8 +188,8 @@ showSmallBreakerCompareModal = function () {
   document.body.appendChild(modal);
 };
 
-// Add a comparison breaker to the chart (same period/view)
-async function addComparisonBreakerToChart(breakerId) {
+// --- Patch: Add comparison breaker as grouped bar dataset to main chart ---
+addComparisonBreakerToChart = async function (breakerId) {
   const from = document.getElementById('sel-from').value;
   const to = document.getElementById('sel-to').value;
   const view = document.querySelector('input[name="view"]:checked').value;
@@ -217,7 +217,7 @@ async function addComparisonBreakerToChart(breakerId) {
     const map = Object.fromEntries(rows.map(r => [hhFromStamp(r.timestamp), Number(r.kwh || 0)]));
     dataArr = mainLabels.map(lab => map[lab] ?? 0);
   }
-  // Add dataset to chart
+  // Add dataset to chart as a grouped bar
   const colorIdx = comparisonBreakers.length - 1;
   chartInstance.data.datasets.push({
     label: BREAKERS[breakerId]?.name || ('Breaker ' + breakerId),
@@ -226,7 +226,113 @@ async function addComparisonBreakerToChart(breakerId) {
     borderRadius: 2,
     borderSkipped: false
   });
+  // Make all datasets not stacked for grouped bars
+  chartInstance.options.scales.x.stacked = false;
+  chartInstance.options.scales.y.stacked = false;
   chartInstance.update();
+};
+
+// Patch: clear only datasets on new report
+generateReport = (function (orig) {
+  return async function () {
+    comparisonBreakers = [];
+    await orig.apply(this, arguments);
+  };
+})(generateReport);
+
+// Add a comparison breaker to the chart (same period/view)
+async function addComparisonBreakerToChart(breakerId) {
+  // Remove any previous comparison chart for this breaker
+  let cmpPanel = document.getElementById('comparison-charts-panel');
+  if (!cmpPanel) {
+    // Create panel if not exists
+    const chartPanel = document.querySelector('.rpt-chart-panel');
+    cmpPanel = document.createElement('div');
+    cmpPanel.id = 'comparison-charts-panel';
+    cmpPanel.style.display = 'flex';
+    cmpPanel.style.gap = '24px';
+    chartPanel.parentNode.insertBefore(cmpPanel, chartPanel.nextSibling);
+  }
+  // Create a new chart container
+  const cmpContainer = document.createElement('div');
+  cmpContainer.className = 'cmp-chart-container';
+  cmpContainer.style.width = '340px';
+  cmpContainer.style.minWidth = '240px';
+  cmpContainer.style.background = '#f8f8f8';
+  cmpContainer.style.borderRadius = '10px';
+  cmpContainer.style.padding = '12px 8px 8px 8px';
+  cmpContainer.style.boxShadow = '0 2px 8px rgba(0,0,0,0.07)';
+  cmpContainer.style.display = 'flex';
+  cmpContainer.style.flexDirection = 'column';
+  cmpContainer.style.alignItems = 'center';
+  // Title
+  const cmpTitle = document.createElement('div');
+  cmpTitle.textContent = BREAKERS[breakerId]?.name || ('Breaker ' + breakerId);
+  cmpTitle.style.fontWeight = 'bold';
+  cmpTitle.style.marginBottom = '6px';
+  cmpTitle.style.fontSize = '15px';
+  cmpContainer.appendChild(cmpTitle);
+  // Canvas
+  const cmpCanvas = document.createElement('canvas');
+  cmpCanvas.width = 320;
+  cmpCanvas.height = 180;
+  cmpContainer.appendChild(cmpCanvas);
+  cmpPanel.appendChild(cmpContainer);
+
+  // Fetch and render chart data (reuse logic from original)
+  const from = document.getElementById('sel-from').value;
+  const to = document.getElementById('sel-to').value;
+  const view = document.querySelector('input[name="view"]:checked').value;
+  let d;
+  try {
+    d = await fetchConsumption(breakerId, from, to, view);
+  } catch (e) {
+    cmpTitle.textContent += ' (No data)';
+    return;
+  }
+  let rows = Array.isArray(d.rows) ? d.rows : [];
+  rows = sortByTimestampAsc(rows);
+  // Build data series matching the main chart's labels
+  const mainLabels = chartInstance.data.labels;
+  let dataArr = [];
+  if (view === 'monthly') {
+    const map = Object.fromEntries(rows.map(r => [shortMonth(r.timestamp), Number(r.kwh || 0)]));
+    dataArr = mainLabels.map(lab => map[lab] ?? 0);
+  } else if (view === 'daily') {
+    const map = Object.fromEntries(rows.map(r => [shortDay(r.timestamp), Number(r.kwh || 0)]));
+    dataArr = mainLabels.map(lab => map[lab] ?? 0);
+  } else {
+    // hourly
+    const map = Object.fromEntries(rows.map(r => [hhFromStamp(r.timestamp), Number(r.kwh || 0)]));
+    dataArr = mainLabels.map(lab => map[lab] ?? 0);
+  }
+  // Render chart in this canvas
+  await ensureChart();
+  new Chart(cmpCanvas.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: mainLabels,
+      datasets: [{
+        label: 'kWh',
+        data: dataArr,
+        backgroundColor: comparisonColors[comparisonBreakers.length - 1],
+        borderRadius: 2,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: false,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y} kWh` } }
+      },
+      scales: {
+        x: { ticks: { font: { family: 'DM Mono', size: 9 }, color: '#888' }, grid: { display: false } },
+        y: { title: { display: true, text: 'kWh', font: { family: 'DM Sans', size: 13 }, color: '#aaa' }, ticks: { font: { family: 'DM Mono', size: 11 }, color: '#888' }, grid: { color: '#f0f0f0' } }
+      }
+    }
+  });
 }
 
 // Patch generateReport to reset comparisonBreakers
@@ -1063,7 +1169,7 @@ async function generateReport() {
 
         <div class="pdf-section-title">
           <div class="l">${view === 'monthly' ? 'Monthly records' : 'Daily records'}</div>
-          <div class="r">${dailyRowsForPrint.length} ${view === 'monthly' ? 'months' : 'days'} • ${tariffText}</div>
+          <div class="r">${dailyRowsForPrint.length} ${view === 'monthly' ? 'months' : 'days'}</div>
         </div>
 
         <div class="rowlist">
