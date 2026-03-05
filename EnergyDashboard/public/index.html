@@ -59,10 +59,41 @@
       <button class="btn-generate" onclick="generateReport()">
         Generate <span class="arrow">→</span>
       </button>
+
       <button class="btn-generate-total-cost" style="background:#222;margin-left:8px; display:inline-block;"
         onclick="generateMultiBreakerReport()">
         Generate Total Cost <span class="arrow">→</span>
       </button>
+
+      <style>
+        #breaker-modal * {
+          font-family: inherit;
+        }
+
+        #breaker-modal {
+          direction: rtl;
+        }
+
+        #breaker-modal .btn-cancel,
+        #breaker-modal .btn-confirm {
+          padding: 8px 18px;
+          border-radius: 6px;
+          border: none;
+          font-size: 16px;
+          cursor: pointer;
+        }
+
+        #breaker-modal .btn-cancel {
+          background: #eee;
+          color: #222;
+        }
+
+        #breaker-modal .btn-confirm {
+          background: #1a7f37;
+          color: #fff;
+        }
+      </style>
+
     </div>
   </div>
 
