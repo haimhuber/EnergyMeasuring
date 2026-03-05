@@ -315,6 +315,7 @@ function showBreakerSelectionModal(onConfirm) {
   box.style.maxWidth = '90vw';
   box.style.maxHeight = '80vh';
   box.style.overflowY = 'auto';
+  box.style.textAlign = 'left';
 
   const title = document.createElement('div');
   title.textContent = 'Select breakers for report';
@@ -327,20 +328,32 @@ function showBreakerSelectionModal(onConfirm) {
   list.style.display = 'flex';
   list.style.flexDirection = 'column';
   list.style.gap = '10px';
+  list.style.alignItems = 'flex-start';
+  list.style.textAlign = 'left';
 
   // BREAKERS is a map: { id: {id, name} }
   Object.values(BREAKERS).forEach(b => {
     const label = document.createElement('label');
     label.style.display = 'flex';
-    label.style.alignItems = 'center';
+    label.style.alignItems = 'flex-start';
     label.style.gap = '8px';
     label.style.cursor = 'pointer';
+    label.style.justifyContent = 'flex-start';
+    label.style.textAlign = 'left';
+    label.style.width = '100%';
     const cb = document.createElement('input');
     cb.type = 'checkbox';
     cb.value = b.id;
     cb.checked = false;
+
+    const textSpan = document.createElement('span');
+    textSpan.textContent = `${b.name} (${b.id})`;
+    textSpan.style.display = 'block';
+    textSpan.style.textAlign = 'left';
+    textSpan.style.width = '100%';
+
     label.appendChild(cb);
-    label.appendChild(document.createTextNode(`${b.id} - ${b.name}`));
+    label.appendChild(textSpan);
     list.appendChild(label);
   });
   box.appendChild(list);
@@ -350,6 +363,8 @@ function showBreakerSelectionModal(onConfirm) {
   btnRow.style.justifyContent = 'flex-end';
   btnRow.style.gap = '12px';
   btnRow.style.marginTop = '24px';
+  btnRow.style.alignItems = 'flex-start';
+  btnRow.style.textAlign = 'left';
 
   const cancelBtn = document.createElement('button');
   cancelBtn.textContent = 'Cancel';
@@ -638,7 +653,7 @@ async function generateReport() {
     let rows = Array.isArray(d.rows) ? d.rows : [];
     rows = sortByTimestampAsc(rows);
 
-    if (!rows.length || totalKwh <= 1) {
+    if (!rows.length) {
       setStatus('', `No data for breaker ${breakerId} in selected period.`);
 
       noData.classList.add('visible');
