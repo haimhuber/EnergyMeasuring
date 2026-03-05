@@ -1361,17 +1361,20 @@ async function generateReport() {
           y: { stacked: true, title: { display: true, text: 'kWh', font: { family: 'DM Sans', size: 13 }, color: '#aaa' }, ticks: { font: { family: 'DM Mono', size: 11 }, color: '#888' }, grid: { color: '#f0f0f0' } }
         }
       }
-    });
+    }
+    );
 
     setStatus('active', `Report ready — ${breaker.name} | ${view} view | ${from} → ${to} | PDF = clear rows`);
     card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    addCompareBreakerButtonAfterReport();
 
   } catch (e) {
     console.error(e);
     setStatus('', `Error: ${e.message || e}`);
     noData.classList.add('visible');
+  } finally {
+    addCompareBreakerButtonAfterReport();
   }
+
 }
 
 document.addEventListener('keydown', e => { if (e.key === 'Enter') generateReport(); });
