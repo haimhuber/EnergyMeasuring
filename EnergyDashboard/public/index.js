@@ -142,6 +142,19 @@ showSmallBreakerCompareModal = function () {
   title.style.fontWeight = 'bold';
   title.style.marginBottom = '12px';
   box.appendChild(title);
+  // Restrict hourly comparison to max 1 day
+  const from = document.getElementById('sel-from').value;
+  const to = document.getElementById('sel-to').value;
+  const view = document.querySelector('input[name="view"]:checked').value;
+  if (view === 'hourly' && from && to) {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+    const diffMs = toDate - fromDate;
+    if (diffMs > 0) {
+      alert('For hourly view, you can only compare breakers for a single day (24h). Please adjust the date range.');
+      return;
+    }
+  }
   // Breaker select
   const select = document.createElement('select');
   select.style.width = '100%';
@@ -193,6 +206,11 @@ addComparisonBreakerToChart = async function (breakerId) {
   const from = document.getElementById('sel-from').value;
   const to = document.getElementById('sel-to').value;
   const view = document.querySelector('input[name="view"]:checked').value;
+  if (view === 'hourly' && from > to + 15 * 60 * 60 * 1000) {
+    alert('Invalid date range for hourly view.');
+    return;
+  }
+
   // Fetch data
   let d;
   try {
