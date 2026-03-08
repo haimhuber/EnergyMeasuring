@@ -1348,7 +1348,11 @@ async function generateReport() {
     `;
 
     card.classList.add('visible');
-
+    const breakerName =  document.getElementById('status-text').innerText = `${breaker.name}`;
+    console.log(breakerName);
+    
+    
+   
     // Chart
     await ensureChart();
     const ctx = document.getElementById('rpt-chart').getContext('2d');
@@ -1359,8 +1363,8 @@ async function generateReport() {
       data: {
         labels: chartLabels,
         datasets: [
-          { label: 'Peak', data: chartPeak, backgroundColor: 'rgba(255,0,15,0.85)', borderRadius: 2, borderSkipped: false },
-          { label: 'Off-Peak', data: chartOff, backgroundColor: 'rgba(26,26,26,0.72)', borderRadius: 2, borderSkipped: false },
+          { label: `${breakerName} - Peak`, data: chartPeak, backgroundColor: 'rgba(255,0,15,0.85)', borderRadius: 2, borderSkipped: false },
+          { label: `${breakerName} - Off-Peak`, data: chartOff, backgroundColor: 'rgba(26,26,26,0.72)', borderRadius: 2, borderSkipped: false },
         ]
       },
       options: {
