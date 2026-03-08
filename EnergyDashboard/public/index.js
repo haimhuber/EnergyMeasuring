@@ -8,7 +8,7 @@ async function addCompareBreakerButtonAfterReport() {
       alert('Your session has expired. Please log in again to compare breakers.');
       window.location.href = '/login';
       return;
-    } else if (data?.user?.role !== "Admin") {
+    } else if (data?.user?.role !== "admin") {
       return;
     }
   } catch(e) {
