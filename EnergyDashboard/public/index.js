@@ -1,5 +1,20 @@
 // --- Add Breaker for Comparison Button ---
-function addCompareBreakerButtonAfterReport() {
+async function addCompareBreakerButtonAfterReport() {
+   // Check if session token exists before allowing comparison (prevents confusion if API calls would fail)
+  try{
+    const token = await fetch(`${API_BASE}/api/me`);
+    const data = await token.json();
+    if (data?.user?.role === "Expired") {
+      alert('Your session has expired. Please log in again to compare breakers.');
+      window.location.href = '/login';
+      return;
+    } else if (data?.user?.role !== "Admin") {
+      return;
+    }
+  } catch(e) {
+    setStatus('error', 'You must be logged in to compare breakers.');
+    return;
+  }
   // Remove if already exists
   const oldBtn = document.getElementById('add-breaker-compare-btn');
   if (oldBtn) oldBtn.remove();
@@ -533,7 +548,7 @@ function aggregateHourlyToDaily(rows) {
 async function adjustUIForUserRole() {
   const userRole = await fetch(`${API_BASE}/api/me`);
   const userData = await userRole.json();
-  return userData?.user?.role;
+  return userData?.user?.role || "Expired";
 }
 
 
