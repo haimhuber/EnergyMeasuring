@@ -15,11 +15,11 @@ import cookieParser from "cookie-parser";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
-dotenv.config();
+dotenv.config({ path: './.env.unified' });
 // JSON import (Node ESM)
 import breakersConfig from "../energyComsamption/breakerConfig.json" with { type: "json" };
+import db from "../energyComsamption/db.js";
 
-// =========================
 // 1) בסיס והגדרות כלליות
 // =========================
 dayjs.extend(utc);
@@ -53,11 +53,7 @@ const BREAKERS = Object.fromEntries(
 // =========================
 // 3) תעריפים (לפני מע"מ) + מע"מ
 // =========================
-const TARIFFS = {
-  winter: { off: 0.4022, peak: 0.9774 },
-  shoulder: { off: 0.3945, peak: 0.4293 },
-  summer: { off: 0.4358, peak: 1.4597 },
-};
+const TARIFFS = await db.getTariffs();
 const VAT_RATE = Number(process.env.VAT_RATE ?? 0.18);
 
 // =========================
@@ -70,16 +66,6 @@ if (!process.env.JWT_SECRET) {
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES = "30m";
 
-/**
- * משתמשים לדוגמה (Demo)
- * מומלץ להעביר ל-DB (Users table) ולהחזיק hash אמיתי.
- * כאן אנחנו יוצרים hash בזמן עלייה (פשוט, אבל לא אידאלי לפרודקשן).
- */
-const USERS = [
-  { id: 1, username: process.env.ADMIN, passwordHash: bcrypt.hashSync(process.env.ADMIN_PASS, 10), role: "admin" },
-  { id: 2, username: process.env.USER, passwordHash: bcrypt.hashSync(process.env.USER_PASS, 10), role: "viewer" },
-  { id: 3, username: process.env.NEUREALITY, passwordHash: bcrypt.hashSync(process.env.NEUREALITY_PASS, 10), role: "viewer" }
-];
 
 function cookieOptions(req) {
   // אם אתה מאחורי reverse proxy (Nginx / IIS / Load balancer) הפעל:
@@ -428,19 +414,30 @@ app.post("/api/login", async (req, res) => {
       return res.status(400).json({ detail: "username and password are required" });
     }
 
-    const user = USERS.find((u) => u.username.toLowerCase() === username);
-    if (!user) return res.status(401).json({ detail: "Invalid credentials" });
+    const user = await db.getUserByUsername(username);
+    if (!user) {
+      return res.status(401).json({ detail: "Invalid username" });
+    }
+    const passwordMatch = await bcrypt.compare(password, user.password_hash);
+    if (!passwordMatch) {
+      return res.status(401).json({ detail: "Invalid credentials" });
+    }
+    const token = signToken({
+      id: user.id,
+      username: user.username,
+      role: user.role
+    });
 
-    const ok = await bcrypt.compare(password, user.passwordHash);
-    if (!ok) return res.status(401).json({ detail: "Invalid credentials" });
-
-    const token = signToken(user);
     res.cookie(COOKIE_NAME, token, cookieOptions(req));
 
     return res.json({
       ok: true,
-      user: { id: user.id, username: user.username, role: user.role },
+      user: {
+        username: user.username,
+        role: user.role
+      }
     });
+
   } catch (err) {
     return res.status(500).json({ detail: err?.message || "Login failed" });
   }
@@ -700,6 +697,27 @@ app.get("/api/debug-rows", authRequired, (req, res) => {
     res.json({ breaker_id: breakerId, count: rows.length, rows });
   } catch (err) {
     res.status(500).json({ detail: err?.message || "Server error", csv_path: CSV_PATH });
+  }
+});
+
+app.post("/api/register", async (req, res) => {
+  try {
+    const { username, password, role } = req.body;
+    if (!username || !password || !role) {
+      return res.status(400).json({ detail: "All fields are required" });
+    }
+    // Check if user exists
+    const existing = await db.getUserByUsername(username);
+    if (existing && existing.username === username) {
+      return res.status(409).json({ detail: "Username already exists" });
+    }
+    // Hash password
+    const passwordHash = await bcrypt.hash(password, 10);
+    // Insert user
+    await db.createUser(username, passwordHash, role);
+    return res.json({ ok: true, username });
+  } catch (err) {
+    res.status(500).json({ detail: err?.message || "Registration failed" });
   }
 });
 
