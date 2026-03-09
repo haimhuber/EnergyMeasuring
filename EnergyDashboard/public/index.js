@@ -735,19 +735,18 @@ function showBreakerSelectionModal(onConfirm) {
   list.style.flexDirection = 'column';
   list.style.gap = '10px';
 
-  BREAKERS.forEach(text => {
-    const [id] = text.split(" - ");
+  Object.values(BREAKERS).forEach(breaker => {
 
     const label = document.createElement("label");
     label.className = "breaker-item";
 
     label.innerHTML = `
-    <input type="checkbox" value="${id}">
-    ${text}
+    <input type="checkbox" value="${breaker.id}">
+    ${breaker.displayName}
   `;
+
     list.appendChild(label);
   });
-
   console.log(BREAKERS);
 
 
