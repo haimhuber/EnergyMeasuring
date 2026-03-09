@@ -28,5 +28,6 @@ Thumbs.db
 dist/
 build/
 
-insertTestUsers.js
+testingFunctionAndDataFromSql.js
 auth.js
+breakerConfig.json

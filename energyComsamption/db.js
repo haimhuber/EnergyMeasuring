@@ -101,4 +101,22 @@ async function createUser(username, passwordHash, role) {
     return result.recordset[0];
 }
 
-export default { connectionToSqlDB, csvHandler, getTariffs, getUserByUsername, createUser };
+
+async function getBreakerNames() {
+    const pool = await connectionToSqlDB();
+    if (!pool) {
+        console.error('Unable to connect to the database.');
+        return;
+    }
+    try {
+        const result = await pool.request().execute('GetBreakersFormatted');
+        return result.recordset.map(row => row.displayName);
+
+
+    } catch (err) {
+        console.error('Error fetching breaker names:', err);
+    }
+}
+
+
+export default { connectionToSqlDB, csvHandler, getTariffs, getUserByUsername, createUser, getBreakerNames };

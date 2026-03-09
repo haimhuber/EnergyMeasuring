@@ -4,6 +4,13 @@
     text-align: left !important;
 }
 
+.breaker-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
 .btn-confirm {
     background-color: #E30613 !important;
     border-color: #E30613 !important;

@@ -735,21 +735,22 @@ function showBreakerSelectionModal(onConfirm) {
   list.style.flexDirection = 'column';
   list.style.gap = '10px';
 
-  // BREAKERS is a map: { id: {id, name} }
-  Object.values(BREAKERS).forEach(b => {
-    const label = document.createElement('label');
-    label.style.display = 'flex';
-    label.style.alignItems = 'center';
-    label.style.gap = '8px';
-    label.style.cursor = 'pointer';
-    const cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.value = b.id;
-    cb.checked = false;
-    label.appendChild(cb);
-    label.appendChild(document.createTextNode(`${b.id} - ${b.name}`));
+  BREAKERS.forEach(text => {
+    const [id] = text.split(" - ");
+
+    const label = document.createElement("label");
+    label.className = "breaker-item";
+
+    label.innerHTML = `
+    <input type="checkbox" value="${id}">
+    ${text}
+  `;
     list.appendChild(label);
   });
+
+  console.log(BREAKERS);
+
+
   box.appendChild(list);
 
   const btnRow = document.createElement('div');
@@ -932,7 +933,11 @@ async function loadBreakersAndFillSelect() {
   try {
     setStatus("loading", "Loading breakers...");
 
-    const res = await fetch(`${API_BASE}/api/breakers`, { cache: "no-store", credentials: 'include' });
+    const res = await fetch(`${API_BASE}/api/breakers`, {
+      cache: "no-store",
+      credentials: "include"
+    });
+
     if (!res.ok) {
       const t = await res.text().catch(() => "");
       throw new Error(`Breakers API error (${res.status}): ${t || res.statusText}`);
@@ -940,50 +945,52 @@ async function loadBreakersAndFillSelect() {
 
     const data = await res.json();
 
+    // ✅ data is ARRAY: ["1 - Q0 Roof", "2 - AEMAC", ...]
+    const list = Array.isArray(data) ? data : [];
 
-    // ✅ data is ARRAY: [{id,name},...]
-    const list = Array.isArray(data) ? data : (data.breakers || []);
-
-    // ✅ Build BREAKERS as object map: BREAKERS["1"] = {id:"1", name:"..."}
+    // ✅ Build BREAKERS as object map: BREAKERS["1"] = { id:"1", name:"Q0 Roof", displayName:"1 - Q0 Roof" }
     BREAKERS = Object.fromEntries(
-      list
-        .filter(b => b && b.id != null)
-        .map(b => {
-          const id = String(b.id).trim();
-          const name = String(b.name || `Breaker ${id}`).trim();
-          return [id, { id, name }];
-        })
+      list.map(text => {
+        const value = String(text || "").trim();
+        const [idPart, ...nameParts] = value.split(" - ");
+        const id = idPart?.trim();
+        const name = nameParts.join(" - ").trim() || `Breaker ${id}`;
+
+        return [id, { id, name, displayName: value }];
+      }).filter(([id]) => id)
     );
 
     // ✅ clear existing options (keep placeholder)
     select.length = 1;
+
     try {
       if (await adjustUIForUserRole() === "admin") {
         Object.entries(BREAKERS)
           .sort((a, b) => Number(a[0]) - Number(b[0]))
           .forEach(([key, breaker]) => {
             const option = document.createElement("option");
-            option.value = key; // value = breakerId
-            option.textContent = `${key} - ${breaker.name}`;
+            option.value = breaker.id;
+            option.textContent = breaker.displayName;
             select.appendChild(option);
           });
 
         setStatus("", "Ready.");
       } else {
-        const option = document.createElement("option");
-        option.value = BREAKERS[5].id; // value = breakerId
-        option.textContent = `${BREAKERS[5].id} - ${BREAKERS[5].name}`;
-        select.appendChild(option);
-        // Hide Generate total cost
-        document.querySelector('.btn-generate-total-cost').style.visibility = 'hidden';
+        const guestBreaker = BREAKERS["5"];
+
+        if (guestBreaker) {
+          const option = document.createElement("option");
+          option.value = guestBreaker.id;
+          option.textContent = guestBreaker.displayName;
+          select.appendChild(option);
+        }
+
+        document.querySelector(".btn-generate-total-cost").style.visibility = "hidden";
         setStatus("", "Ready. (Guest view: breakers list are limited for report generation)");
       }
-      // if not admin, hide the multi-breaker report option
     } catch (e) {
-      // if API call fails (e.g. session expired), still fill the breakers from localStorage or empty object
-      console.warn('Failed to verify session while loading breakers, filling from localStorage if available', e);
+      console.warn("Failed to verify session while loading breakers, filling from local data if available", e);
     }
-
 
   } catch (err) {
     console.error("Failed to load breakers:", err);

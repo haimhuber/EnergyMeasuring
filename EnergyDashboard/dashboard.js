@@ -469,9 +469,15 @@ app.get("/api/health", (req, res) => {
 });
 
 // Breakers – מוגן (רק למשתמש מחובר)
-app.get("/api/breakers", authRequired, (req, res) => {
-  const list = Object.values(BREAKERS).map((b) => ({ id: b.id, name: b.name }));
-  res.json(list);
+app.get("/api/breakers", authRequired, async (req, res) => {
+  try {
+    const breakerList = await db.getBreakerNames();
+    console.log(breakerList);
+    res.json(breakerList);
+  } catch (err) {
+    console.error("Error loading breakers:", err);
+    res.status(500).json({ detail: "Failed to load breakers" });
+  }
 });
 
 // תאריכים זמינים ל-breaker – מוגן
