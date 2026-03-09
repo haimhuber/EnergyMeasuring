@@ -472,7 +472,6 @@ app.get("/api/health", (req, res) => {
 app.get("/api/breakers", authRequired, async (req, res) => {
   try {
     const breakerList = await db.getBreakerNames();
-    console.log(breakerList);
     res.json(breakerList);
   } catch (err) {
     console.error("Error loading breakers:", err);
@@ -480,36 +479,7 @@ app.get("/api/breakers", authRequired, async (req, res) => {
   }
 });
 
-// תאריכים זמינים ל-breaker – מוגן
-app.get("/api/available-dates", authRequired, (req, res) => {
-  try {
-    const breakerId = String(req.query.breaker_id || "").trim();
-    if (!breakerId || !BREAKERS[breakerId]) {
-      return res.status(400).json({ detail: "Invalid breaker_id" });
-    }
 
-    const rows = parseCsvRows(safeReadCsvText())
-      .filter((r) => String(r.breakerId) === breakerId)
-      .sort((a, b) => a.timestamp.valueOf() - b.timestamp.valueOf());
-
-    if (!rows.length) {
-      return res.json({ breaker_id: breakerId, dates: [], min: null, max: null });
-    }
-
-    const set = new Set();
-    for (const r of rows) set.add(r.timestamp.format("YYYY-MM-DD"));
-
-    const dates = Array.from(set).sort();
-    res.json({
-      breaker_id: breakerId,
-      dates,
-      min: dates[0],
-      max: dates[dates.length - 1],
-    });
-  } catch (err) {
-    res.status(500).json({ detail: err?.message || "Server error", csv_path: CSV_PATH });
-  }
-});
 
 // Consumption – מוגן
 app.get("/api/consumption", authRequired, (req, res) => {
