@@ -4,13 +4,14 @@ dotenv.config({ path: './.env.unified' });
 
 async function connectionToSqlDB() {
     const config = {
-        server: process.env.DB_SERVER,
         user: process.env.DB_USER,
         password: process.env.DB_PASSWORD,
+        server: process.env.DB_SERVER,
         database: process.env.DB_NAME,
         options: {
             encrypt: false,
-            trustServerCertificate: true
+            trustServerCertificate: true,
+            useUTC: false
         }
     };
 
@@ -118,5 +119,18 @@ async function getBreakerNames() {
     }
 }
 
+async function getEnergyData(breakerId, fromDate, toDate) {
+    const pool = await connectionToSqlDB();
 
-export default { connectionToSqlDB, csvHandler, getTariffs, getUserByUsername, createUser, getBreakerNames };
+    const result = await pool
+        .request()
+        .input("BreakerId", sql.Int, breakerId)
+        .input("FromDate", sql.DateTime2, fromDate)
+        .input("ToDate", sql.DateTime2, toDate)
+        .execute("GetConsumption");
+
+    return result.recordset;
+}
+
+
+export default { connectionToSqlDB, csvHandler, getTariffs, getUserByUsername, createUser, getBreakerNames, getEnergyData };

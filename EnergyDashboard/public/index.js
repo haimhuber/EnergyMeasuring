@@ -1041,13 +1041,19 @@ async function generateReport() {
     const resp = await fetch(url, { cache: "no-store", credentials: 'include' });
     if (!resp.ok) {
       const t = await resp.text().catch(() => "");
-      window.alert("Session expired. Please login again.");
-      window.location.href = "/login.html";
-      throw new Error(`API error (${resp.status}): ${t || resp.statusText}`);
 
+      if (resp.status === 401) {
+        window.alert("Session expired. Please login again.");
+        window.location.href = "/login.html";
+        return;
+      }
+
+      throw new Error(`API error (${resp.status}): ${t || resp.statusText}`);
     }
 
     const d = await resp.json();
+    console.log(d);
+
 
     const totalKwh = Number(d.total_kwh || 0);
     let rows = Array.isArray(d.rows) ? d.rows : [];

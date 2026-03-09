@@ -480,40 +480,47 @@ app.get("/api/breakers", authRequired, async (req, res) => {
 });
 
 
-
 // Consumption – מוגן
-app.get("/api/consumption", authRequired, (req, res) => {
+app.get("/api/consumption", authRequired, async (req, res) => {
   try {
     const breakerId = String(req.query.breaker_id || "").trim();
     const fromDate = String(req.query.from_date || "").trim();
     const toDate = String(req.query.to_date || "").trim();
-    const view = String(req.query.view || "hourly").trim(); // hourly | daily | monthly
+    const view = String(req.query.view || "hourly").trim();
 
     if (!breakerId || !BREAKERS[breakerId]) {
       return res.status(400).json({ detail: "Invalid breaker_id" });
     }
+
     if (!fromDate || !toDate) {
       return res.status(400).json({ detail: "from_date and to_date are required (YYYY-MM-DD)" });
-    }
-    if (view !== "hourly" && view !== "daily" && view !== "monthly") {
-      return res.status(400).json({ detail: 'view must be "hourly", "daily" or "monthly"' });
     }
 
     const { from, to } = rangeToBounds(fromDate, toDate);
 
-    // קוראים CSV ומסננים breaker
-    const rows = parseCsvRows(safeReadCsvText());
-    const breakerRows = rows
-      .filter((r) => String(r.breakerId) === breakerId)
+    const rawRows = await db.getEnergyData(
+      Number(breakerId),
+      from.toDate(),
+      to.toDate()
+    );
+
+
+    const breakerRows = rawRows
+      .map((r) => ({
+        breakerId: String(r.breakerId ?? r.BreakerId),
+        activeEnergy: Number(r.activeEnergy ?? r.ActiveEnergy ?? 0),
+        timestamp: dayjs(r.timestamp ?? r.Timestamp),
+      }))
+      .filter((r) => r.breakerId === breakerId && r.timestamp.isValid())
       .sort((a, b) => a.timestamp.valueOf() - b.timestamp.valueOf());
 
-    // מחשבים דלתא ומסננים לפי טווח
+
     const deltas = computeDeltas(breakerRows).filter(
       (d) => !d.ts.isBefore(from) && !d.ts.isAfter(to)
     );
 
-    // קיבוץ לפי שעה/יום/חודש
     const buckets = new Map();
+
     for (const dlt of deltas) {
       const key =
         view === "daily"
@@ -522,7 +529,12 @@ app.get("/api/consumption", authRequired, (req, res) => {
             ? dlt.ts.format("YYYY-MM")
             : dlt.ts.startOf("hour").format("YYYY-MM-DD HH:00");
 
-      const b = buckets.get(key) || { peak_kwh: 0, off_kwh: 0, peak_amount: 0, off_amount: 0 };
+      const b = buckets.get(key) || {
+        peak_kwh: 0,
+        off_kwh: 0,
+        peak_amount: 0,
+        off_amount: 0,
+      };
 
       if (dlt.peak) {
         b.peak_kwh += dlt.kwh;
@@ -535,10 +547,7 @@ app.get("/api/consumption", authRequired, (req, res) => {
       buckets.set(key, b);
     }
 
-    const keys = Array.from(buckets.keys()).sort();
-
-    // Build a complete list of all periods in the requested range
-    let allPeriods = [];
+    const allPeriods = [];
     if (view === "daily") {
       let cur = from.clone();
       while (!cur.isAfter(to)) {
@@ -552,7 +561,6 @@ app.get("/api/consumption", authRequired, (req, res) => {
         cur = cur.add(1, "month");
       }
     } else {
-      // hourly
       let cur = from.clone().startOf("hour");
       while (!cur.isAfter(to)) {
         allPeriods.push(cur.format("YYYY-MM-DD HH:00"));
@@ -560,41 +568,44 @@ app.get("/api/consumption", authRequired, (req, res) => {
       }
     }
 
-    let outRows = allPeriods.map((period) => {
+    const outRows = allPeriods.map((period) => {
       const b = buckets.get(period);
+
       const peak_kwh = b ? round3(b.peak_kwh) : 0;
       const off_kwh = b ? round3(b.off_kwh) : 0;
-      const kwh = b ? round3(peak_kwh + off_kwh) : 0;
+      const kwh = round3(peak_kwh + off_kwh);
       const peak_amount = b ? round3(b.peak_amount) : 0;
       const off_amount = b ? round3(b.off_amount) : 0;
-      const amount = b ? round3(peak_amount + off_amount) : 0;
+      const amount = round3(peak_amount + off_amount);
 
       let repTime;
       if (view === "daily") {
-        repTime = dayjs.tz(period + " 12:00", TZ);
+        repTime = dayjs.tz(`${period} 12:00`, TZ);
       } else if (view === "monthly") {
-        repTime = dayjs.tz(period + "-15 12:00", TZ);
+        repTime = dayjs.tz(`${period}-15 12:00`, TZ);
       } else {
         repTime = dayjs.tz(period, "YYYY-MM-DD HH:00", TZ);
       }
+
       const season = getSeason(repTime);
 
       if (view === "daily" || view === "monthly") {
         return { timestamp: period, season, peak_kwh, off_kwh, kwh, peak_amount, off_amount, amount };
       }
-      // hourly
+
       const type =
         peak_kwh > 0 && off_kwh === 0 ? "Peak" :
           off_kwh > 0 && peak_kwh === 0 ? "Off-Peak" :
             "Mixed";
+
       const rate =
         type === "Peak" ? TARIFFS[season].peak :
           type === "Off-Peak" ? TARIFFS[season].off :
             "-";
+
       return { timestamp: period, season, type, kwh, rate, peak_kwh, off_kwh, amount };
     });
 
-    // totals
     const peak_kwh = round3(deltas.filter((x) => x.peak).reduce((s, x) => s + x.kwh, 0));
     const offpeak_kwh = round3(deltas.filter((x) => !x.peak).reduce((s, x) => s + x.kwh, 0));
     const total_kwh = round3(peak_kwh + offpeak_kwh);
@@ -603,50 +614,25 @@ app.get("/api/consumption", authRequired, (req, res) => {
     const offpeak_amount = round3(deltas.filter((x) => !x.peak).reduce((s, x) => s + x.amount, 0));
     const total_amount = round3(peak_amount + offpeak_amount);
 
-    const tariffs_with_vat = Object.fromEntries(
-      Object.entries(TARIFFS).map(([season, vals]) => [
-        season,
-        {
-          off: Number((vals.off * (1 + VAT_RATE)).toFixed(4)),
-          peak: Number((vals.peak * (1 + VAT_RATE)).toFixed(4)),
-        },
-      ])
-    );
-
-    res.json({
+    return res.json({
       invoice_no: buildInvoiceNo(),
       generated_at: dayjs().tz(TZ).format("YYYY-MM-DD HH:mm:ss"),
       tz: TZ,
-
-      // breaker info
       breaker_ref: breakerId,
       breaker_name: BREAKERS[breakerId]?.name || `Breaker ${breakerId}`,
-
       from: from.format("YYYY-MM-DD"),
       to: to.format("YYYY-MM-DD"),
-
-      tariffs_before_vat: TARIFFS,
-      tariffs_with_vat,
-
-      peak_definition: {
-        note: "Definition in code (season dependent).",
-        winter: "Daily 17:00–22:00",
-        shoulder: "Sun–Thu 17:00–22:00",
-        summer: "Sun–Thu 17:00–23:00",
-      },
-
       total_kwh,
       peak_kwh,
       offpeak_kwh,
-
       peak_amount,
       offpeak_amount,
       total_amount,
-
       rows: outRows,
     });
   } catch (err) {
-    res.status(500).json({ detail: err?.message || "Server error", csv_path: CSV_PATH });
+    console.error("Consumption API error:", err);
+    return res.status(500).json({ detail: err?.message || "Server error" });
   }
 });
 
