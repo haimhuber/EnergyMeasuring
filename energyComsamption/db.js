@@ -1,29 +1,43 @@
-import sql from 'mssql';
-import dotenv from 'dotenv';
-dotenv.config({ path: './.env.unified' });
+import sql from "mssql";
+import dotenv from "dotenv";
 
-async function connectionToSqlDB() {
-    const config = {
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        server: process.env.DB_SERVER,
-        database: process.env.DB_NAME,
-        options: {
-            encrypt: false,
-            trustServerCertificate: true,
-            useUTC: false
-        }
-    };
+dotenv.config({ path: "./.env.unified" });
 
-    try {
-        let pool = await sql.connect(config);
-        console.log('Connected to SQL Server');
-        return pool;
-    } catch (err) {
-        console.error('Database connection failed:', err);
+let poolPromise;
+
+function connectionToSqlDB() {
+    if (!poolPromise) {
+        const config = {
+            user: process.env.DB_USER,
+            password: process.env.DB_PASSWORD,
+            server: process.env.DB_SERVER,
+            database: process.env.DB_NAME,
+            options: {
+                encrypt: false,
+                trustServerCertificate: true,
+                useUTC: false,
+            },
+            pool: {
+                max: 10,
+                min: 0,
+                idleTimeoutMillis: 30000,
+            },
+        };
+
+        poolPromise = sql.connect(config)
+            .then((pool) => {
+                console.log("Connected to SQL Server");
+                return pool;
+            })
+            .catch((err) => {
+                poolPromise = null;
+                console.error("Database connection failed:", err);
+                throw err;
+            });
     }
-}
 
+    return poolPromise;
+}
 
 async function csvHandler() {
     const pool = await connectionToSqlDB();
