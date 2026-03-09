@@ -1,17 +1,17 @@
 // --- Add Breaker for Comparison Button ---
 async function addCompareBreakerButtonAfterReport() {
-   // Check if session token exists before allowing comparison (prevents confusion if API calls would fail)
-  try{
+  // Check if session token exists before allowing comparison (prevents confusion if API calls would fail)
+  try {
     const token = await fetch(`${API_BASE}/api/me`);
     const data = await token.json();
     if (data?.user?.role === "Expired") {
       alert('Your session has expired. Please log in again to compare breakers.');
       window.location.href = '/login';
       return;
-    } else if (data?.user?.role !== "Admin") {
+    } else if (data?.user?.role !== "admin") {
       return;
     }
-  } catch(e) {
+  } catch (e) {
     setStatus('error', 'You must be logged in to compare breakers.');
     return;
   }
@@ -1348,6 +1348,10 @@ async function generateReport() {
     `;
 
     card.classList.add('visible');
+    const breakerName = document.getElementById('status-text').innerText = `${breaker.name}`;
+    console.log(breakerName);
+
+
 
     // Chart
     await ensureChart();
@@ -1359,8 +1363,8 @@ async function generateReport() {
       data: {
         labels: chartLabels,
         datasets: [
-          { label: 'Peak', data: chartPeak, backgroundColor: 'rgba(255,0,15,0.85)', borderRadius: 2, borderSkipped: false },
-          { label: 'Off-Peak', data: chartOff, backgroundColor: 'rgba(26,26,26,0.72)', borderRadius: 2, borderSkipped: false },
+          { label: `${breakerName} - Peak`, data: chartPeak, backgroundColor: 'rgba(255,0,15,0.85)', borderRadius: 2, borderSkipped: false },
+          { label: `${breakerName} - Off-Peak`, data: chartOff, backgroundColor: 'rgba(26,26,26,0.72)', borderRadius: 2, borderSkipped: false },
         ]
       },
       options: {
