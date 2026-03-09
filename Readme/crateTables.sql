@@ -1,6 +1,17 @@
 -- create_tables.sql
 -- Database initialization script for the Energy Measuring System
 
+
+IF DB_ID('EnergyManagment') IS NULL
+BEGIN
+    CREATE DATABASE EnergyManagment;
+END;
+GO
+
+USE EnergyManagment;
+GO
+
+
 -- Create Tariffs table
 IF OBJECT_ID('dbo.Tariffs', 'U') IS NULL
 BEGIN
@@ -113,12 +124,12 @@ GO
 -- TRUNCATE TABLE dbo.EnergyData_Staging;
 -- TRUNCATE TABLE dbo.EnergyData;
 
--- BULK load raw CSV into staging table
+-- BULK load raw CSV into staging table - adjust file path as needed
 -- Replace the path with the real file location on the SQL Server machine
 BULK INSERT dbo.EnergyData_Staging
 FROM 'C:\Energy\energyData.csv'
 WITH (
-    FIRSTROW = 2,
+    FIRSTROW = 1,
     FIELDTERMINATOR = ',',
     ROWTERMINATOR = '0x0a',
     TABLOCK,
