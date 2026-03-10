@@ -118,6 +118,7 @@
     }
 
     input[type=text],
+    input[type=email],
     input[type=password],
     select {
       width: 100%;
@@ -132,6 +133,7 @@
     }
 
     input[type=text]:focus,
+    input[type=email]:focus,
     input[type=password]:focus,
     select:focus {
       outline: none;
@@ -190,6 +192,13 @@
       color: #f8f8f8
     }
 
+    #register-form {
+      display: none;
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
     @keyframes floaty {
       0% {
         transform: translateY(0)
@@ -222,11 +231,11 @@
 
     <p class="sub">Sign in to access the Energy Dashboard</p>
 
-    <label for="username">E-mail address</label>
-    <input id="username" type="text" autocomplete="username" placeholder="name@example.com" />
+    <label for="email">E-mail address</label>
+    <input id="email" type="email" autocomplete="email" placeholder="name@example.com" />
 
     <label for="password">Password</label>
-    <input id="password" type="password" autocomplete="current-password" />
+    <input id="password" type="password" autocomplete="current-password" placeholder="Enter your password" />
 
     <div class="actions">
       <button id="btnLogin" class="btn full" type="button">LOGIN</button>
@@ -240,16 +249,19 @@
 
     <div id="msg" class="msg" role="status" aria-live="polite"></div>
 
-    <form id="register-form" style="display:none; margin-top:18px">
+    <form id="register-form">
       <label for="reg-username">Username</label>
       <input type="text" id="reg-username" name="reg-username" required placeholder="Choose a username" />
+
+      <label for="reg-email">E-mail address</label>
+      <input type="email" id="reg-email" name="reg-email" required placeholder="name@example.com" />
 
       <label for="reg-password">Password</label>
       <input type="password" id="reg-password" name="reg-password" required placeholder="Choose a password" />
 
       <label for="reg-role">Role</label>
       <select id="reg-role" name="reg-role">
-        <option value="user">guest</option>
+        <option value="user">user</option>
         <option value="admin">admin</option>
       </select>
 
@@ -261,135 +273,67 @@
   </div>
 
   <script>
-    async function doLogin() {
-      const u = document.getElementById('username').value || '';
-      const p = document.getElementById('password').value || '';
-      const msg = document.getElementById('msg');
-      const btn = document.getElementById('btnLogin');
+  async function doLogin() {
+    const email = document.getElementById('email').value.trim().toLowerCase();
+    const password = document.getElementById('password').value || '';
+    const msg = document.getElementById('msg');
+    const btn = document.getElementById('btnLogin');
 
-      msg.textContent = '';
+    msg.textContent = '';
 
-      if (!u || !p) {
-        msg.textContent = 'Please enter username and password';
+    if (!email || !password) {
+      msg.textContent = 'Please enter email and password';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Signing in...';
+
+    try {
+      const resp = await fetch('/api/login', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await resp.json().catch(() => ({}));
+
+      if (!resp.ok) {
+        msg.textContent = data?.detail || 'Login failed';
+        btn.disabled = false;
+        btn.textContent = 'LOGIN';
         return;
       }
 
-      btn.disabled = true;
-      btn.textContent = 'Signing in...';
+      localStorage.setItem('UserEmail', email);
+      localStorage.setItem('Username', data?.user?.username || '');
+      msg.textContent = 'Login successful! Redirecting...';
 
-      try {
-        const resp = await fetch('/api/login', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: u, password: p }),
-        });
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 1000);
 
-        const data = await resp.json().catch(() => ({}));
-
-        if (!resp.ok) {
-          msg.textContent = data?.detail || 'Login failed';
-          btn.disabled = false;
-          btn.textContent = 'LOGIN';
-          return;
-        }
-
-        localStorage.setItem('Username', u);
-        msg.textContent = 'Login successful! Redirecting...';
-
-        setTimeout(() => {
-          window.location.href = '/';
-        }, 1000);
-
-      } catch (e) {
-        msg.textContent = e?.message || 'Network error';
-        btn.disabled = false;
-        btn.textContent = 'LOGIN';
-      }
+    } catch (e) {
+      msg.textContent = e?.message || 'Network error';
+      btn.disabled = false;
+      btn.textContent = 'LOGIN';
     }
+  }
 
-    document.getElementById('btnLogin').addEventListener('click', doLogin);
+  document.getElementById('btnLogin').addEventListener('click', doLogin);
 
-    [document.getElementById('username'), document.getElementById('password')].forEach(el => {
-      el.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') doLogin();
-      });
+  [document.getElementById('email'), document.getElementById('password')].forEach(el => {
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') doLogin();
     });
+  });
 
-    const showRegisterBtn = document.getElementById('show-register');
-    const cancelRegisterBtn = document.getElementById('cancel-register');
-    const registerForm = document.getElementById('register-form');
-
-    showRegisterBtn.addEventListener('click', () => {
-      window.location.href = 'register.html';
-    });
-
-    cancelRegisterBtn.addEventListener('click', () => {
-      registerForm.style.display = 'none';
-    });
-
-    registerForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const username = document.getElementById('reg-username').value.trim();
-      const password = document.getElementById('reg-password').value.trim();
-      const role = document.getElementById('reg-role').value;
-      const msg = document.getElementById('msg');
-
-      msg.textContent = '';
-
-      try {
-        const resp = await fetch('/api/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ username, password, role })
-        });
-
-        const data = await resp.json().catch(() => ({}));
-
-        if (!resp.ok) {
-          msg.textContent = data?.detail || 'Registration failed';
-          return;
-        }
-
-        msg.textContent = 'User created successfully';
-        registerForm.reset();
-        registerForm.style.display = 'none';
-      } catch (err) {
-        msg.textContent = err?.message || 'Network error';
-      }
-    });
-
-    (function () {
-      const card = document.querySelector('.card');
-      if (!card) return;
-
-      const wrap = document.createElement('div');
-      wrap.className = 'card-wrap';
-      card.parentNode.insertBefore(wrap, card);
-      wrap.appendChild(card);
-
-      let rect = null;
-
-      function onMove(e) {
-        if (!rect) rect = wrap.getBoundingClientRect();
-        const x = (e.clientX - rect.left) / rect.width - 0.5;
-        const y = (e.clientY - rect.top) / rect.height - 0.5;
-        const rx = (-y) * 6;
-        const ry = (x) * 8;
-        card.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg) translateZ(8px)`;
-      }
-
-      function onLeave() {
-        card.style.transform = '';
-        rect = null;
-      }
-
-      wrap.addEventListener('mousemove', onMove);
-      wrap.addEventListener('mouseleave', onLeave);
-    })();
-  </script>
+  const showRegisterBtn = document.getElementById('show-register');
+  showRegisterBtn.addEventListener('click', () => {
+    window.location.href = './register.html';
+  });
+</script>
 </body>
 
 </html>

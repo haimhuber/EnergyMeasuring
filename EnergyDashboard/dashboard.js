@@ -407,24 +407,27 @@ app.get("/", (req, res) => {
 // =========================
 app.post("/api/login", async (req, res) => {
   try {
-    const username = String(req.body?.username || "").trim().toLowerCase();
+    const email = String(req.body?.email || "").trim().toLowerCase();
     const password = String(req.body?.password || "");
 
-    if (!username || !password) {
-      return res.status(400).json({ detail: "username and password are required" });
+    if (!email || !password) {
+      return res.status(400).json({ detail: "email and password are required" });
     }
 
-    const user = await db.getUserByUsername(username);
+    const user = await db.getUserByEmail(email);
     if (!user) {
-      return res.status(401).json({ detail: "Invalid username" });
+      return res.status(401).json({ detail: "Invalid email" });
     }
+
     const passwordMatch = await bcrypt.compare(password, user.password_hash);
     if (!passwordMatch) {
       return res.status(401).json({ detail: "Invalid credentials" });
     }
+
     const token = signToken({
       id: user.id,
       username: user.username,
+      email: user.email,
       role: user.role
     });
 
@@ -433,7 +436,9 @@ app.post("/api/login", async (req, res) => {
     return res.json({
       ok: true,
       user: {
+        id: user.id,
         username: user.username,
+        email: user.email,
         role: user.role
       }
     });
@@ -664,22 +669,49 @@ app.get("/api/debug-rows", authRequired, (req, res) => {
 
 app.post("/api/register", async (req, res) => {
   try {
-    const { username, password, role } = req.body;
-    if (!username || !password || !role) {
+    const username = String(req.body?.username || "").trim();
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const password = String(req.body?.password || "");
+    const role = String(req.body?.role || "").trim().toLowerCase();
+
+    if (!username || !email || !password || !role) {
       return res.status(400).json({ detail: "All fields are required" });
     }
-    // Check if user exists
-    const existing = await db.getUserByUsername(username);
-    if (existing && existing.username === username) {
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ detail: "Invalid email format" });
+    }
+
+    const allowedRoles = ["admin", "user"];
+    if (!allowedRoles.includes(role)) {
+      return res.status(400).json({ detail: "Invalid role" });
+    }
+
+    const existingEmail = await db.getUserByEmail(email);
+    if (existingEmail) {
+      return res.status(409).json({ detail: "Email already exists" });
+    }
+
+    const existingUsername = await db.getUserByUsername(username);
+    if (existingUsername) {
       return res.status(409).json({ detail: "Username already exists" });
     }
-    // Hash password
+
     const passwordHash = await bcrypt.hash(password, 10);
-    // Insert user
-    await db.createUser(username, passwordHash, role);
-    return res.json({ ok: true, username });
+
+    await db.createUser(username, email, passwordHash, role);
+
+    return res.status(201).json({
+      ok: true,
+      user: {
+        username,
+        email,
+        role
+      }
+    });
   } catch (err) {
-    res.status(500).json({ detail: err?.message || "Registration failed" });
+    return res.status(500).json({ detail: err?.message || "Registration failed" });
   }
 });
 

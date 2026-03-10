@@ -83,19 +83,41 @@ async function getTariffs() {
     }
 }
 
-
 async function getUserByUsername(username) {
+    const pool = await connectionToSqlDB();
+
+    if (!pool) {
+        console.error('Unable to connect to the database.');
+        return null;
+    }
+
+    try {
+        const result = await pool
+            .request()
+            .input('username', sql.NVarChar(50), username)
+            .execute('GetUserByUsername');
+
+        return result.recordset?.[0] || null;
+    } catch (err) {
+        console.error('Error fetching user by username:', err);
+        return null;
+    }
+}
+
+
+async function getUserByEmail(email) {
     const pool = await connectionToSqlDB();
 
     if (!pool) {
         console.error('Unable to connect to the database.');
         return;
     }
+
     try {
         const result = await pool
             .request()
-            .input('username', sql.NVarChar(50), username)
-            .execute('GetUserByUsername');
+            .input('email', sql.NVarChar(255), email)
+            .execute('GetUserByEmail');
 
         return result.recordset[0];
     } catch (err) {
@@ -103,19 +125,30 @@ async function getUserByUsername(username) {
     }
 }
 
-async function createUser(username, passwordHash, role) {
+async function createUser(username, email, passwordHash, role) {
     const pool = await connectionToSqlDB();
 
-    const result = await pool
-        .request()
-        .input("username", sql.NVarChar(50), username)
-        .input("password_hash", sql.NVarChar(255), passwordHash)
-        .input("role", sql.NVarChar(50), role)
-        .execute("AddUser");
+    if (!pool) {
+        console.error("Database connection failed");
+        return null;
+    }
 
-    return result.recordset[0];
+    try {
+        const result = await pool
+            .request()
+            .input("username", sql.NVarChar(50), username)
+            .input("email", sql.NVarChar(255), email)
+            .input("password_hash", sql.NVarChar(255), passwordHash)
+            .input("role", sql.NVarChar(50), role)
+            .execute("AddUser");
+
+        return result.recordset[0] || null;
+
+    } catch (err) {
+        console.error("Error creating user:", err);
+        throw err;
+    }
 }
-
 
 async function getBreakerNames() {
     const pool = await connectionToSqlDB();
@@ -147,4 +180,4 @@ async function getEnergyData(breakerId, fromDate, toDate) {
 }
 
 
-export default { connectionToSqlDB, csvHandler, getTariffs, getUserByUsername, createUser, getBreakerNames, getEnergyData };
+export default { connectionToSqlDB, csvHandler, getTariffs, getUserByUsername,getUserByEmail, createUser, getBreakerNames, getEnergyData };

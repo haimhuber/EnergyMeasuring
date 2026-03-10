@@ -132,6 +132,22 @@
             box-sizing: border-box;
         }
 
+         input[type=text],
+        input[type=email],
+        input[type=password],
+        select {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            background: rgba(8, 8, 10, 0.45);
+            color: #fff;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6) inset;
+            transition: box-shadow 180ms, transform 180ms;
+            box-sizing: border-box;
+        }
+
+
         input[type=text]:focus,
         input[type=password]:focus,
         select:focus {
@@ -222,6 +238,8 @@
         </div>
         <p class="sub">Create a new user for ABB Energy Dashboard</p>
         <form id="register-form">
+            <label for="reg-email">E-mail address</label>
+            <input type="email" id="reg-email" name="reg-email" required placeholder="name@example.com" />
             <label for="reg-username">Username</label>
             <input type="text" id="reg-username" name="reg-username" required placeholder="Choose a username" />
             <label for="reg-password">Password</label>
@@ -240,40 +258,55 @@
         <div id="msg" class="msg" role="status" aria-live="polite"></div>
     </div>
     <script>
-        const registerForm = document.getElementById('register-form');
-        registerForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const username = document.getElementById('reg-username').value.trim();
-            const password = document.getElementById('reg-password').value.trim();
-            const role = document.getElementById('reg-role').value;
-            const msg = document.getElementById('msg');
-            msg.textContent = '';
-            try {
-                const resp = await fetch('/api/register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({ username, password, role })
-                });
-                const data = await resp.json().catch(() => ({}));
-                if (!resp.ok) {
-                    msg.textContent = data?.detail || 'Registration failed';
-                    return;
-                }
-                msg.textContent = 'User created successfully!';
+        
+  const registerForm = document.getElementById('register-form');
 
-                registerForm.reset();
-                msg.textContent = 'User created successfully! Redirecting...';
+  registerForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
 
-                setTimeout(() => {
-                    window.location.href = '/login.html';
-                }, 1000);
+    const username = document.getElementById('reg-username').value.trim();
+    const email = document.getElementById('reg-email').value.trim().toLowerCase();
+    const password = document.getElementById('reg-password').value.trim();
+    const role = document.getElementById('reg-role').value;
+    const msg = document.getElementById('msg');
 
-            } catch (err) {
-                msg.textContent = err?.message || 'Network error';
-            }
-        });
-    </script>
+    if (!username || !email || !password) {
+      msg.textContent = 'Please fill in all fields';
+      return;
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      msg.textContent = 'Please enter a valid email address';
+      return;
+    } else if (role === "admin" && !confirm('Are you sure you want to create an admin user?')) {
+      return;
+    }
+
+    msg.textContent = '';
+
+    try {
+      const resp = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ username, email, password, role })
+      });
+
+      const data = await resp.json().catch(() => ({}));
+
+      if (!resp.ok) {
+        msg.textContent = data?.detail || 'Registration failed';
+        return;
+      }
+
+      msg.textContent = 'User created successfully... Redirecting to login page...';
+      registerForm.reset();
+      window.setTimeout(() => {
+        window.location.href = 'login.html';
+      }, 1000);
+    } catch (err) {
+      msg.textContent = err?.message || 'Network error';
+    }
+  });
+</script>
 </body>
 
 </html>

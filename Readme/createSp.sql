@@ -56,6 +56,27 @@ GO
 
 
 /* =========================================================
+   GetUserByEmail
+   Returns a single user by email
+   ========================================================= */
+CREATE PROCEDURE GetUserByEmail
+    @email NVARCHAR(255)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT id,
+           username,
+           email,
+           password_hash,
+           role,
+           created_at
+    FROM Users
+    WHERE email = @email;
+END
+
+
+/* =========================================================
    GetBreakersFormatted
     Returns all breaker rows
     ========================================================= */
