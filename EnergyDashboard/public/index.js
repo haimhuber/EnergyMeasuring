@@ -1,3 +1,36 @@
+// Msg alarimgent: This file contains recent edits. Please review the changes carefully before suggesting code that has been deleted or significantly modified.
+const abbModalOverlay = document.getElementById("abb-modal-overlay");
+const abbModalTitle = document.getElementById("abb-modal-title");
+const abbModalMessage = document.getElementById("abb-modal-message");
+const abbModalOk = document.getElementById("abb-modal-ok");
+const abbModalClose = document.getElementById("abb-modal-close");
+
+function showAbbModal(title, message) {
+  abbModalTitle.textContent = title || "System message";
+  abbModalMessage.textContent = message || "";
+  abbModalOverlay.classList.remove("hidden");
+  abbModalOk.focus();
+}
+
+function hideAbbModal() {
+  abbModalOverlay.classList.add("hidden");
+}
+
+abbModalOk.addEventListener("click", hideAbbModal);
+abbModalClose.addEventListener("click", hideAbbModal);
+
+abbModalOverlay.addEventListener("click", (e) => {
+  if (e.target === abbModalOverlay) {
+    hideAbbModal();
+  }
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !abbModalOverlay.classList.contains("hidden")) {
+    hideAbbModal();
+  }
+});
+
 // --- Add Breaker for Comparison Button ---
 async function addCompareBreakerButtonAfterReport() {
   // Check if session token exists before allowing comparison (prevents confusion if API calls would fail)
@@ -5,7 +38,7 @@ async function addCompareBreakerButtonAfterReport() {
     const token = await fetch(`${API_BASE}/api/me`);
     const data = await token.json();
     if (data?.user?.role === "Expired") {
-      alert('Your session has expired. Please log in again to compare breakers.');
+      showAbbModal('Your session has expired. Please log in again to compare breakers.');
       window.location.href = '/login';
       return;
     } else if (data?.user?.role !== "admin") {
@@ -95,7 +128,7 @@ function showSmallBreakerCompareModal() {
     const selectedId = select.value;
     if (!selectedId) return;
     if (comparisonBreakers.length >= 2) {
-      alert('You can compare up to 3 breakers total.');
+      showAbbModal('Comparison Limit Reached', 'You can compare up to 3 breakers total.');
       return;
     }
     comparisonBreakers.push(selectedId);
@@ -187,7 +220,10 @@ showSmallBreakerCompareModal = function () {
     const toDate = new Date(to);
     const diffMs = toDate - fromDate;
     if (diffMs > 0) {
-      alert('For hourly view, you can only compare breakers for a single day (24h). Please adjust the date range.');
+      showAbbModal(
+  "Invalid report range",
+  "Hourly comparison is limited to a single 24-hour period. Please select one day only and run the report again."
+);
       return;
     }
   }
@@ -216,7 +252,7 @@ showSmallBreakerCompareModal = function () {
     const selectedId = select.value;
     if (!selectedId) return;
     if (comparisonBreakers.length >= 2) {
-      alert('You can compare up to 3 breakers total.');
+      showAbbModal('Comparison Limit Reached', 'You can compare up to 3 breakers total.');
       return;
     }
     comparisonBreakers.push(selectedId);
@@ -244,7 +280,7 @@ addComparisonBreakerToChart = async function (breakerId) {
   const to = document.getElementById('sel-to').value;
   const view = document.querySelector('input[name="view"]:checked').value;
   if (view === 'hourly' && from > to + 15 * 60 * 60 * 1000) {
-    alert('Invalid date range for hourly view.');
+    showAbbModal('Invalid date range for hourly view.');
     return;
   }
 
@@ -253,7 +289,7 @@ addComparisonBreakerToChart = async function (breakerId) {
   try {
     d = await fetchConsumption(breakerId, from, to, view);
   } catch (e) {
-    alert('Failed to fetch data for comparison breaker.');
+    showAbbModal('Data Fetch Error', 'Failed to fetch data for comparison breaker.');
     return;
   }
   let rows = Array.isArray(d.rows) ? d.rows : [];
@@ -558,7 +594,7 @@ async function fetchConsumption(breakerId, from, to, view) {
   const resp = await fetch(url, { cache: 'no-store', credentials: 'include' });
   if (!resp.ok) {
     const t = await resp.text().catch(() => "");
-    window.alert(`API error (${resp.status}): ${t || resp.statusText}`);
+    showAbbModal(`API error (${resp.status})`, t || resp.statusText);
     throw new Error(`API error (${resp.status}): ${t || resp.statusText}`);
   }
   return await resp.json();
@@ -773,7 +809,7 @@ function showBreakerSelectionModal(onConfirm) {
   okBtn.onclick = () => {
     const checked = Array.from(list.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
     if (checked.length === 0) {
-      alert('Please select at least one breaker to generate the report.');
+      showAbbModal('Selection Error', 'Please select at least one breaker to generate the report.');
       return;
     }
     modal.remove();
@@ -791,7 +827,7 @@ async function generateMultiBreakerReport() {
   showBreakerSelectionModal(async (ids) => {
     const checkCookie = await fetch(`${API_BASE}/api/me`);
     if (!checkCookie.ok) {
-      window.alert("Session expired. Please log in again.");
+      showAbbModal('Session Expired', 'Please log in again.');
       window.location.href = '/login.html';
       return;
     }
@@ -1011,17 +1047,17 @@ async function generateReport() {
 
   if (!breakerId) {
     setStatus('', 'Please select a breaker.');
-    window.alert('Please select a breaker before generating the report.');
+    showAbbModal('Selection Error', 'Please select a breaker before generating the report.');
     return;
   }
   if (!from || !to) {
     setStatus('', 'Please select a date range.');
-    window.alert('Please select a date range before generating the report.');
+    showAbbModal('Selection Error', 'Please select a date range before generating the report.');
     return;
   }
   if (from > to) {
     setStatus('', 'Invalid date range: "From" date is after "To" date.');
-    window.alert('Invalid date range: "From" date is after "To" date. Please correct the dates and try again.');
+    showAbbModal('Invalid Date Range', 'Invalid date range: "From" date is after "To" date. Please correct the dates and try again.');
     return;
   }
   placeholder.style.display = 'none';
@@ -1042,7 +1078,7 @@ async function generateReport() {
       const t = await resp.text().catch(() => "");
 
       if (resp.status === 401) {
-        window.alert("Session expired. Please login again.");
+        showAbbModal('Session Expired', 'Please login again.');
         window.location.href = "/login.html";
         return;
       }

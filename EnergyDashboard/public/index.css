@@ -1,3 +1,217 @@
+/* msg modal */
+.abb-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 10, 18, 0.72);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  padding: 24px;
+}
+
+.abb-modal-overlay.hidden {
+  display: none;
+}
+
+.abb-modal {
+  width: min(560px, 92vw);
+  background:
+    linear-gradient(180deg, rgba(32, 38, 48, 0.98) 0%, rgba(18, 22, 30, 0.98) 100%);
+  color: #f3f5f7;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+  border-radius: 14px;
+  overflow: hidden;
+  animation: abbModalIn 180ms ease-out;
+  font-family: "DM Sans", Arial, sans-serif;
+}
+
+@keyframes abbModalIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.abb-modal-topbar {
+  height: 6px;
+  background: linear-gradient(90deg, #ff000f 0%, #d5000c 45%, #8c0008 100%);
+}
+
+.abb-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.abb-modal-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.abb-modal-brand-text {
+  color: #ff1a1a;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.abb-modal-system-text {
+  color: #d8dde3;
+  font-size: 0.98rem;
+  font-weight: 500;
+  opacity: 0.92;
+}
+
+.abb-modal-close {
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: #e8ebef;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 1.5rem;
+  line-height: 1;
+  transition: all 0.18s ease;
+}
+
+.abb-modal-close:hover {
+  background: rgba(255, 0, 15, 0.12);
+  border-color: rgba(255, 0, 15, 0.28);
+  color: #ffffff;
+}
+
+.abb-modal-body {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 18px;
+  padding: 22px;
+}
+
+.abb-modal-icon-wrap {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.abb-modal-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ff1a1a 0%, #b3000c 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.45rem;
+  font-weight: 800;
+  box-shadow: 0 10px 24px rgba(255, 0, 15, 0.24);
+}
+
+.abb-modal-content {
+  min-width: 0;
+}
+
+.abb-modal-title {
+  margin: 0 0 10px;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.01em;
+}
+
+.abb-modal-message {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.7;
+  color: #d6dbe2;
+}
+
+.abb-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 0 22px 22px;
+}
+
+.abb-btn-primary {
+  min-width: 120px;
+  height: 44px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: "DM Sans", Arial, sans-serif;
+  font-size: 0.96rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #ffffff;
+  background: linear-gradient(180deg, #ff1a1a 0%, #cf000d 100%);
+  box-shadow:
+    0 10px 22px rgba(255, 0, 15, 0.22),
+    0 1px 0 rgba(255,255,255,0.08) inset;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+
+.abb-btn-primary:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.03);
+  box-shadow:
+    0 14px 28px rgba(255, 0, 15, 0.28),
+    0 1px 0 rgba(255,255,255,0.08) inset;
+}
+
+.abb-btn-primary:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 640px) {
+  .abb-modal {
+    width: 100%;
+  }
+
+  .abb-modal-body {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .abb-modal-icon-wrap {
+    justify-content: flex-start;
+  }
+
+  .abb-modal-title {
+    font-size: 1.15rem;
+  }
+
+  .abb-modal-message {
+    font-size: 0.95rem;
+  }
+
+  .abb-btn-primary {
+    width: 100%;
+  }
+
+  .abb-modal-footer {
+    justify-content: stretch;
+  }
+}
+
+
+
 /* --- Modal Customization for Breaker Compare --- */
 #breaker-modal .modal-content,
 #breaker-modal .modal-content * {
