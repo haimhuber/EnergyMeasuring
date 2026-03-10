@@ -6,7 +6,7 @@ const path = require("path");
 dotenv.config({
   path: path.join(__dirname, "../EnergyDashboard/.env.unified")
 });
-console.log("OPC URL:", process.env.OPC_UA_SERVER_URL);
+
 const config = require("./nodeIds.json");
 const { timestampFunction } = require("./timestamp");
 
@@ -19,8 +19,6 @@ async function readOpcActiveEnergyTags() {
     const nodeIds = config.nodeIds;
     let activeEnergy = [];
     let session = null;
-
-    console.log("Loaded OPC_UA_SERVER_URL:", endpointUrl);
 
     if (!endpointUrl) {
         console.error("Missing OPC_UA_SERVER_URL in .env.unified");

@@ -26,14 +26,6 @@ async function saveDataToSQLServer(data, numberOfNodes) {
       },
     };
 
-    console.log("SQL ENV CHECK:", {
-      DB_SERVER: dbConfig.server,
-      DB_USER: dbConfig.user,
-      DB_NAME: dbConfig.database,
-      TABLE: sqlTable,
-      DB_PASSWORD_LOADED: !!dbConfig.password,
-    });
-
     if (!dbConfig.server) throw new Error("Missing DB_SERVER in .env.unified");
     if (!dbConfig.user) throw new Error("Missing DB_USER in .env.unified");
     if (!dbConfig.password) throw new Error("Missing DB_PASSWORD in .env.unified");
