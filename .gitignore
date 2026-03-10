@@ -8,6 +8,7 @@ yarn-error.log*
 .env
 .env.*
 !.env.example
+env.txt
 
 # VSCode
 .vscode/
@@ -31,3 +32,4 @@ build/
 testingFunctionAndDataFromSql.js
 auth.js
 breakerConfig.json
+env.txt
