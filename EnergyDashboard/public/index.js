@@ -1413,10 +1413,10 @@ async function generateReport() {
         const off = Number(chartOff[i] || 0);
         return pk + off;
       });
-      datasets.push({ label: `${breakerName} — Supplier (total)`, data: chartSupplier, backgroundColor: 'rgba(97, 28, 28, 0.88)', borderRadius: 2, borderSkipped: false });
+      datasets.push({ label: `${breakerName} — Supplier (total)`, data: chartSupplier, backgroundColor: 'rgba(121, 40, 40, 0.88)', borderRadius: 2, borderSkipped: false });
     } else {
       datasets.push({ label: `${breakerName} - Peak`, data: chartPeak, backgroundColor: 'rgba(255,0,15,0.85)', borderRadius: 2, borderSkipped: false });
-      datasets.push({ label: `${breakerName} - Off-Peak`, data: chartOff, backgroundColor: 'rgba(129, 39, 39, 0.72)', borderRadius: 2, borderSkipped: false });
+      datasets.push({ label: `${breakerName} - Off-Peak`, data: chartOff, backgroundColor: 'rgba(0, 0, 0, 0.72)', borderRadius: 2, borderSkipped: false });
     }
 
     chartInstance = new Chart(ctx, {
