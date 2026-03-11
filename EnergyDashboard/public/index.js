@@ -13,7 +13,29 @@ function highlightCurrentSeasonInBar() {
   if (el) el.classList.add('current-season');
 }
 
-document.addEventListener('DOMContentLoaded', highlightCurrentSeasonInBar);
+// Run highlight on load unless the user disabled it (persisted in localStorage)
+document.addEventListener('DOMContentLoaded', () => {
+  try {
+    const auto = localStorage.getItem('autoHighlightSeason');
+    if (auto === 'false') return; // user opted out
+  } catch (e) {
+    // ignore localStorage errors
+  }
+  highlightCurrentSeasonInBar();
+});
+
+// Helpers exposed to the console so you can toggle the behaviour without editing code:
+window.setAutoHighlightSeason = function (enabled) {
+  try {
+    localStorage.setItem('autoHighlightSeason', enabled ? 'true' : 'false');
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
+window.getAutoHighlightSeason = function () {
+  try { return localStorage.getItem('autoHighlightSeason'); } catch (e) { return null; }
+};
 // --- Tariff Summary Bar Fill ---
 async function fillTariffSummaryBar() {
   try {
@@ -40,7 +62,6 @@ async function fillTariffSummaryBar() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', fillTariffSummaryBar);
 // --- Tariff Modal Logic ---
 document.addEventListener('DOMContentLoaded', function () {
   const btnSettings = document.getElementById('btn-settings');
@@ -1640,7 +1661,15 @@ function setDefaultDates() {
 
 // ✅ init
 setDefaultDates();
-loadBreakersAndFillSelect();
+
+// Loading overlay helpers
+function showLoadingOverlay() {
+  const o = document.getElementById('loading-overlay'); if (o) o.classList.remove('hidden');
+}
+function hideLoadingOverlay() {
+  const o = document.getElementById('loading-overlay'); if (o) o.classList.add('hidden');
+}
+
 // Show logout button when user is authenticated
 async function updateAuthUi() {
   try {
@@ -1657,7 +1686,25 @@ async function updateAuthUi() {
   }
 }
 
-updateAuthUi();
+// App initialization: load essential data and then hide the loading overlay
+async function appInit() {
+  showLoadingOverlay();
+  setStatus('loading', 'Initializing...');
+  try {
+    await Promise.allSettled([
+      loadBreakersAndFillSelect(),
+      fillTariffSummaryBar(),
+      updateAuthUi()
+    ]);
+  } finally {
+    hideLoadingOverlay();
+    setStatus('', 'Ready.');
+    // show settings button if allowed
+    try { showSettingButton(); } catch (e) { /* ignore */ }
+  }
+}
+
+appInit();
 
 // Logout helper
 document.getElementById('btn-logout').addEventListener('click', async () => {
@@ -1678,4 +1725,3 @@ async function showSettingButton() {
     settingsBtn.style.visibility = 'visible';
   }
 }
-showSettingButton();
