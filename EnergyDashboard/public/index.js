@@ -221,9 +221,9 @@ showSmallBreakerCompareModal = function () {
     const diffMs = toDate - fromDate;
     if (diffMs > 0) {
       showAbbModal(
-  "Invalid report range",
-  "Hourly comparison is limited to a single 24-hour period. Please select one day only and run the report again."
-);
+        "Invalid report range",
+        "Hourly comparison is limited to a single 24-hour period. Please select one day only and run the report again."
+      );
       return;
     }
   }
@@ -890,7 +890,7 @@ async function generateMultiBreakerReport() {
                 </div>
               </div>
               <div style="padding:12px 12px; border-top:1px solid #f2f2f2; display:flex; justify-content:flex-end; gap:20px;">
-        <div style="font-weight:700;">Total due: <span style="font-family:DM Mono,monospace;">${fmtMoney(d.total_amount || 0)} ILS</span></div>
+        <div style="font-weight:700;">Total due (not included VAT): <span style="font-family:DM Mono,monospace;">${fmtMoney(d.total_amount || 0)} ILS</span></div>
         </div>
         <hr style="margin:30px 0; height:6px; border: solid; background:#e6e6e6;" />
           `;
