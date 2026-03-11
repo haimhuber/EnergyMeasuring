@@ -7,6 +7,13 @@ document.addEventListener('DOMContentLoaded', function () {
   if (btnSettings) {
     btnSettings.style.visibility = 'visible';
     btnSettings.addEventListener('click', async function () {
+      // Check is user is admin before allowing access to tariff settings
+      const currentRole = await adjustUIForUserRole();
+      if (currentRole !== 'admin') {
+        showAbbModal('Session Expired', 'Your session has expired or you do not have permission to access tariff settings. Please log in again.');
+        window.location.href = '/login';
+        return;
+      }
       // Fetch tariffs from API and populate fields
       try {
         const resp = await fetch('/api/tariffs', { credentials: 'include' });
@@ -44,9 +51,8 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
   if (tariffForm) {
-    tariffForm.addEventListener('submit', function (e) {
+    tariffForm.addEventListener('submit', async function (e) {
       e.preventDefault();
-      // Save all season rates to localStorage (single VAT)
       const tariffData = {
         winter: {
           off: document.getElementById('winter-off').value,
@@ -62,9 +68,31 @@ document.addEventListener('DOMContentLoaded', function () {
         },
         vat: document.getElementById('tariff-vat').value
       };
+      // Save to localStorage for offline fallback
       localStorage.setItem('tariffData', JSON.stringify(tariffData));
-      tariffModalOverlay.classList.add('hidden');
-      alert('Tariff rates saved successfully!');
+      // Send to server
+      try {
+        const resp = await fetch('/api/change-tariffs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(tariffData)
+        });
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          tariffModalOverlay.classList.add('hidden');
+          showAbbModal('Failed to update tariffs', err.detail || 'Server error');
+          return;
+        }
+        tariffModalOverlay.classList.add('hidden');
+        showAbbModal('Tariff rates updated successfully!');
+
+      } catch (err) {
+        tariffModalOverlay.classList.add('hidden');
+        showAbbModal('Failed to update tariffs', err?.message || 'Network/server error');
+        console.log(err.message);
+
+      }
     });
   }
   // Load saved values if exist

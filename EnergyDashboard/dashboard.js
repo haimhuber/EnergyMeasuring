@@ -54,7 +54,7 @@ const BREAKERS = Object.fromEntries(
 // 3) תעריפים (לפני מע"מ) + מע"מ
 // =========================
 const TARIFFS = await db.getTariffs();
-const VAT_RATE = Number(process.env.VAT_RATE ?? 0.18);
+let vatRate = 0.18;
 
 // =========================
 // 4) AUTH: JWT + Cookie
@@ -462,7 +462,7 @@ app.get("/api/me", (req, res) => {
 app.get("/api/tariffs", authRequired, async (req, res) => {
   try {
     const tariffs = await db.getTariffs();
-    const vat = VAT_RATE || Number(process.env.VAT_RATE) || 0.18;
+    const vat = vatRate || 0.18;
     res.json({ tariffs, vat });
   } catch (err) {
     console.error("Error fetching tariffs:", err);
@@ -471,13 +471,14 @@ app.get("/api/tariffs", authRequired, async (req, res) => {
 });
 app.post("/api/change-tariffs", authRequired, async (req, res) => {
   try {
-    const { winter, shoulder, summer } = req.body;
+    const { winter, shoulder, summer, vat } = req.body;
 
     if (
       !winter || !shoulder || !summer ||
       winter.off == null || winter.peak == null ||
       shoulder.off == null || shoulder.peak == null ||
-      summer.off == null || summer.peak == null
+      summer.off == null || summer.peak == null ||
+      vat == null
     ) {
       return res.status(400).json({ detail: "Missing required tariff fields" });
     }
@@ -496,6 +497,8 @@ app.post("/api/change-tariffs", authRequired, async (req, res) => {
         peak: Number(summer.peak),
       },
     });
+    // Update the global TARIFFS and vatRate variables with the new values
+    vatRate = Number(vat);
 
     return res.status(200).json({ ok: true, tariffs: updatedTariffs });
   } catch (err) {
