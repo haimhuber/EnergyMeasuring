@@ -307,7 +307,10 @@ function isPeak(t) {
 
 function getRateNisPerKwh(t, peak) {
   const season = getSeason(t);
-  return peak ? TARIFFS[season].peak : TARIFFS[season].off;
+  // Accept tariffs as a third argument (object)
+  // If not provided, fallback to global TARIFFS (for legacy calls)
+  const tariffs = arguments.length > 2 ? arguments[2] : TARIFFS;
+  return peak ? tariffs[season].peak : tariffs[season].off;
 }
 
 function rangeToBounds(fromDate, toDate) {
@@ -326,7 +329,7 @@ function rangeToBounds(fromDate, toDate) {
  * - דלתא שלילית (ריסט מונה / טעות)
  * - דלתא 0
  */
-function computeDeltas(sortedRows) {
+function computeDeltas(sortedRows, tariffs) {
   const out = [];
   let prev = null;
 
@@ -348,7 +351,7 @@ function computeDeltas(sortedRows) {
     }
 
     const peak = isPeak(row.timestamp);
-    const rate = getRateNisPerKwh(row.timestamp, peak);
+    const rate = getRateNisPerKwh(row.timestamp, peak, tariffs);
 
     out.push({
       ts: row.timestamp,
@@ -548,6 +551,9 @@ app.get("/api/consumption", authRequired, async (req, res) => {
       return res.status(400).json({ detail: "from_date and to_date are required (YYYY-MM-DD)" });
     }
 
+    // Fetch latest tariffs from DB for every request
+    const tariffs = await db.getTariffs();
+
     const { from, to } = rangeToBounds(fromDate, toDate);
 
     const rawRows = await db.getEnergyData(
@@ -555,7 +561,6 @@ app.get("/api/consumption", authRequired, async (req, res) => {
       from.toDate(),
       to.toDate()
     );
-
 
     const breakerRows = rawRows
       .map((r) => ({
@@ -566,8 +571,7 @@ app.get("/api/consumption", authRequired, async (req, res) => {
       .filter((r) => r.breakerId === breakerId && r.timestamp.isValid())
       .sort((a, b) => a.timestamp.valueOf() - b.timestamp.valueOf());
 
-
-    const deltas = computeDeltas(breakerRows).filter(
+    const deltas = computeDeltas(breakerRows, tariffs).filter(
       (d) => !d.ts.isBefore(from) && !d.ts.isAfter(to)
     );
 
@@ -651,8 +655,8 @@ app.get("/api/consumption", authRequired, async (req, res) => {
             "Mixed";
 
       const rate =
-        type === "Peak" ? TARIFFS[season].peak :
-          type === "Off-Peak" ? TARIFFS[season].off :
+        type === "Peak" ? tariffs[season].peak :
+          type === "Off-Peak" ? tariffs[season].off :
             "-";
 
       return { timestamp: period, season, type, kwh, rate, peak_kwh, off_kwh, amount };

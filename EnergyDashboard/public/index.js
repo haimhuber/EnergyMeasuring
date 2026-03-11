@@ -129,7 +129,8 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         tariffModalOverlay.classList.add('hidden');
         showAbbModal('Tariff rates updated successfully!');
-
+        // Refresh summary bar with new values
+        await fillTariffSummaryBar();
       } catch (err) {
         tariffModalOverlay.classList.add('hidden');
         showAbbModal('Failed to update tariffs', err?.message || 'Network/server error');
@@ -1030,7 +1031,7 @@ async function generateMultiBreakerReport() {
         const breaker = BREAKERS[String(id)] || { id: String(id), name: `Breaker ${id}` };
 
         if (!rows.length) {
-          parts.push(`<div style="padding:18px;border:1px solid #eee;margin-bottom:12px;">No data for ${breaker.name} (${id}) in selected period.</div>`);
+          parts.push(`<div style="padding:18px;border:1px solid #000000;margin-bottom:12px;">No data for ${breaker.name} (${id}) in selected period.</div>`);
           continue;
         }
 
@@ -1039,8 +1040,8 @@ async function generateMultiBreakerReport() {
         const tableRows = buildTableRowsHtml(rows, view);
 
         const part = `
-            <div style="border:1px solid #201f1f;border-radius:8px;margin-bottom:18px;overflow:hidden;background:#fff;">
-              <div style="padding:12px 16px;border-bottom:1px solid #f2f2f2;display:flex;justify-content:space-between;align-items:center;">
+            <div style="border:0px solid #201f1f;border-radius:8px;margin-bottom:18px;overflow:hidden;background:#fff;">
+              <div style="padding:12px 16px;border-bottom:1px solid #000000;display:flex;justify-content:space-between;align-items:center;">
                 <div style="font-weight:800">${breaker.name} — Breaker ID ${breaker.id}</div>
                 <div style="font-family:DM Mono,monospace;font-size:12px;color:#666">Invoice: ${d.invoice_no || ''}</div>
               </div>
@@ -1056,7 +1057,7 @@ async function generateMultiBreakerReport() {
                   </table>
                 </div>
               </div>
-              <div style="padding:12px 12px; border-top:1px solid #f2f2f2; display:flex; justify-content:flex-end; gap:20px;">
+              <div style="padding:12px 12px; border-top:1px solid #000000; display:flex; justify-content:flex-end; gap:20px;">
         <div style="font-weight:700;">Total due (not included VAT): <span style="font-family:DM Mono,monospace;">${fmtMoney(d.total_amount || 0)} ILS</span></div>
         </div>
         <hr style="margin:30px 0; height:6px; border: solid; background:#e6e6e6;" />
@@ -1110,7 +1111,7 @@ async function generateMultiBreakerReport() {
         <div style="display:flex;justify-content:flex-end;margin:24px 0 0 0;">
           <button class="btn-print" onclick="printRecordsOnly()">Print records</button>
         </div>
-        <div style="font-size:1.2em;font-weight:700;margin:24px 0 0 0;text-align:left;">Total for all breakers: <span style="font-family:DM Mono,monospace;">${fmtMoney(totalAmount)} ILS</span></div>
+        <div style="font-size:1.2em;font-weight:700;margin:24px 0 0 0;text-align:left;color:#111;">Total for all breakers: <span style="font-family:DM Mono,monospace;">${fmtMoney(totalAmount)} ILS</span></div>
       `;
       card.classList.add('visible');
 
