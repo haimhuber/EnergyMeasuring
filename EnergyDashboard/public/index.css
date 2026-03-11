@@ -1,3 +1,70 @@
+.tariff-season.current-season {
+    background: linear-gradient(135deg, #ffe7a0 0%, #fffbe0 100%);
+    color: #000 !important;
+    box-shadow: 0 4px 18px 0 rgba(255, 231, 160, 0.35), 0 1.5px 8px 0 rgba(0, 0, 0, 0.10);
+    transform: scale(1.08) perspective(300px) translateZ(8px);
+    border: 2.5px solid #ffe7a0;
+    z-index: 2;
+}
+
+.tariff-season.current-season .tariff-label,
+.tariff-season.current-season .tariff-rates,
+.tariff-season.current-season .tariff-emoji {
+    color: #000 !important;
+}
+
+/* Tariff summary bar styles */
+.tariff-summary-bar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 32px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 18px;
+    margin: 18px 0 10px 0;
+    padding: 12px 18px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    font-size: 1.08rem;
+}
+
+.tariff-season {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 12px;
+    padding: 6px 14px;
+    min-width: 170px;
+    font-weight: 600;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.tariff-emoji {
+    font-size: 1.5em;
+    margin-right: 4px;
+}
+
+.tariff-label {
+    font-weight: 700;
+    margin-right: 4px;
+}
+
+.tariff-rates {
+    font-size: 1em;
+    color: #e0e6f0;
+}
+
+.tariff-vat-summary {
+    margin-left: 24px;
+    font-size: 1.08em;
+    font-weight: 700;
+    color: #ffe7a0;
+    background: #2a3140;
+    border-radius: 10px;
+    padding: 6px 16px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
 .tariff-table {
     width: 100%;
     border-collapse: collapse;

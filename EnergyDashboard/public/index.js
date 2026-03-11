@@ -1,3 +1,46 @@
+// --- Highlight current season in summary bar ---
+function highlightCurrentSeasonInBar() {
+  // Remove previous highlight
+  document.querySelectorAll('.tariff-season').forEach(el => el.classList.remove('current-season'));
+  // Determine current season
+  const now = new Date();
+  const m = now.getMonth() + 1;
+  let season = 'shoulder';
+  if (m === 12 || m === 1 || m === 2) season = 'winter';
+  else if (m >= 6 && m <= 9) season = 'summer';
+  // Highlight
+  const el = document.getElementById('tariff-' + season);
+  if (el) el.classList.add('current-season');
+}
+
+document.addEventListener('DOMContentLoaded', highlightCurrentSeasonInBar);
+// --- Tariff Summary Bar Fill ---
+async function fillTariffSummaryBar() {
+  try {
+    const resp = await fetch('/api/tariffs', { credentials: 'include' });
+    if (!resp.ok) throw new Error('Failed to load tariffs');
+    const data = await resp.json();
+    if (data.tariffs && data.vat != null) {
+      // Winter
+      document.querySelector('#tariff-winter .tariff-off').textContent = data.tariffs.winter.off;
+      document.querySelector('#tariff-winter .tariff-peak').textContent = data.tariffs.winter.peak;
+      // Shoulder
+      document.querySelector('#tariff-shoulder .tariff-off').textContent = data.tariffs.shoulder.off;
+      document.querySelector('#tariff-shoulder .tariff-peak').textContent = data.tariffs.shoulder.peak;
+      // Summer
+      document.querySelector('#tariff-summer .tariff-off').textContent = data.tariffs.summer.off;
+      document.querySelector('#tariff-summer .tariff-peak').textContent = data.tariffs.summer.peak;
+      // VAT
+      document.getElementById('tariff-vat-summary').textContent = data.vat;
+    }
+  } catch (err) {
+    // fallback: show dashes
+    document.querySelectorAll('.tariff-off, .tariff-peak').forEach(e => e.textContent = '-');
+    document.getElementById('tariff-vat-summary').textContent = '-';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', fillTariffSummaryBar);
 // --- Tariff Modal Logic ---
 document.addEventListener('DOMContentLoaded', function () {
   const btnSettings = document.getElementById('btn-settings');
