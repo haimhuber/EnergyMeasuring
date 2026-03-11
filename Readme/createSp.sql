@@ -103,17 +103,16 @@ IF OBJECT_ID('dbo.GetTariffs', 'P') IS NOT NULL
     DROP PROCEDURE dbo.GetTariffs;
 GO
 
-CREATE PROCEDURE dbo.GetTariffs
+CREATE or alter PROCEDURE dbo.GetTariffs
 AS
 BEGIN
     SET NOCOUNT ON;
 
     SELECT
-        id,
+        id, 
         season,
         off_rate,
-        peak_rate,
-        vat_rate
+        peak_rate
     FROM dbo.Tariffs
     ORDER BY id;
 END;
@@ -174,3 +173,39 @@ BEGIN
 END;
 GO
 
+
+-- Update Tariff
+CREATE OR ALTER PROCEDURE dbo.UpdateAllTariffs
+    @WinterOffRate DECIMAL(10,4),
+    @WinterPeakRate DECIMAL(10,4),
+    @ShoulderOffRate DECIMAL(10,4),
+    @ShoulderPeakRate DECIMAL(10,4),
+    @SummerOffRate DECIMAL(10,4),
+    @SummerPeakRate DECIMAL(10,4)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE dbo.Tariffs
+    SET
+        off_rate = CASE season
+            WHEN 'winter' THEN @WinterOffRate
+            WHEN 'shoulder' THEN @ShoulderOffRate
+            WHEN 'summer' THEN @SummerOffRate
+        END,
+        peak_rate = CASE season
+            WHEN 'winter' THEN @WinterPeakRate
+            WHEN 'shoulder' THEN @ShoulderPeakRate
+            WHEN 'summer' THEN @SummerPeakRate
+        END
+    WHERE season IN ('winter', 'shoulder', 'summer');
+
+    SELECT
+        id,
+        season,
+        off_rate,
+        peak_rate
+    FROM dbo.Tariffs
+    ORDER BY id;
+END;
+GO

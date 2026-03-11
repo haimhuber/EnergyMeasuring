@@ -56,6 +56,23 @@ async function csvHandler() {
     }
 }
 
+/* ---------- Update Tariffs ---------- */
+async function updateAllTariffs(tariffs) {
+    const pool = await connectionToSqlDB();
+
+    const result = await pool
+        .request()
+        .input("WinterOffRate", sql.Decimal(10, 4), tariffs.winter.off)
+        .input("WinterPeakRate", sql.Decimal(10, 4), tariffs.winter.peak)
+        .input("ShoulderOffRate", sql.Decimal(10, 4), tariffs.shoulder.off)
+        .input("ShoulderPeakRate", sql.Decimal(10, 4), tariffs.shoulder.peak)
+        .input("SummerOffRate", sql.Decimal(10, 4), tariffs.summer.off)
+        .input("SummerPeakRate", sql.Decimal(10, 4), tariffs.summer.peak)
+        .execute("UpdateAllTariffs");
+
+    return result.recordset;
+}
+
 
 /* ---------- Get Tariffs ---------- */
 
@@ -180,4 +197,4 @@ async function getEnergyData(breakerId, fromDate, toDate) {
 }
 
 
-export default { connectionToSqlDB, csvHandler, getTariffs, getUserByUsername,getUserByEmail, createUser, getBreakerNames, getEnergyData };
+export default { connectionToSqlDB, csvHandler, getTariffs, updateAllTariffs, getUserByUsername, getUserByEmail, createUser, getBreakerNames, getEnergyData };

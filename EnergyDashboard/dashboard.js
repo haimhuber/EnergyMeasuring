@@ -386,7 +386,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 // Serve static files (CSS/JS/images) אבל בלי index אוטומטי,
-// כדי שאנחנו נחליט ב-GET / אם להחזיר login או index.
+
 app.use(express.static(PUBLIC_DIR, { index: false }));
 
 // =========================
@@ -459,6 +459,50 @@ app.get("/api/me", (req, res) => {
   res.json({ ok: true, user });
 });
 
+app.get("/api/tariffs", authRequired, async (req, res) => {
+  try {
+    const tariffs = await db.getTariffs();
+    const vat = VAT_RATE || Number(process.env.VAT_RATE) || 0.18;
+    res.json({ tariffs, vat });
+  } catch (err) {
+    console.error("Error fetching tariffs:", err);
+    res.status(500).json({ detail: "Failed to load tariffs" });
+  }
+});
+app.post("/api/change-tariffs", authRequired, async (req, res) => {
+  try {
+    const { winter, shoulder, summer } = req.body;
+
+    if (
+      !winter || !shoulder || !summer ||
+      winter.off == null || winter.peak == null ||
+      shoulder.off == null || shoulder.peak == null ||
+      summer.off == null || summer.peak == null
+    ) {
+      return res.status(400).json({ detail: "Missing required tariff fields" });
+    }
+
+    const updatedTariffs = await db.updateAllTariffs({
+      winter: {
+        off: Number(winter.off),
+        peak: Number(winter.peak),
+      },
+      shoulder: {
+        off: Number(shoulder.off),
+        peak: Number(shoulder.peak),
+      },
+      summer: {
+        off: Number(summer.off),
+        peak: Number(summer.peak),
+      },
+    });
+
+    return res.status(200).json({ ok: true, tariffs: updatedTariffs });
+  } catch (err) {
+    console.error("Error updating tariffs:", err);
+    return res.status(500).json({ detail: err?.message || "Failed to update tariffs" });
+  }
+});
 // =========================
 // 11) API Endpoints
 // =========================
@@ -714,6 +758,9 @@ app.post("/api/register", async (req, res) => {
     return res.status(500).json({ detail: err?.message || "Registration failed" });
   }
 });
+
+
+
 
 // =========================
 // 12) Start server

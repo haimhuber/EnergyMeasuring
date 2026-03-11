@@ -1,3 +1,97 @@
+// --- Tariff Modal Logic ---
+document.addEventListener('DOMContentLoaded', function () {
+  const btnSettings = document.getElementById('btn-settings');
+  const tariffModalOverlay = document.getElementById('tariff-modal-overlay');
+  const tariffModalClose = document.getElementById('tariff-modal-close');
+  const tariffForm = document.getElementById('tariff-form');
+  if (btnSettings) {
+    btnSettings.style.visibility = 'visible';
+    btnSettings.addEventListener('click', async function () {
+      // Fetch tariffs from API and populate fields
+      try {
+        const resp = await fetch('/api/tariffs', { credentials: 'include' });
+        if (!resp.ok) throw new Error('Failed to load tariffs');
+        const data = await resp.json();
+        if (data.tariffs && data.vat != null) {
+          // Winter
+          document.getElementById('winter-off').value = data.tariffs.winter.off ?? '';
+          document.getElementById('winter-peak').value = data.tariffs.winter.peak ?? '';
+          // Shoulder
+          document.getElementById('shoulder-off').value = data.tariffs.shoulder.off ?? '';
+          document.getElementById('shoulder-peak').value = data.tariffs.shoulder.peak ?? '';
+          // Summer
+          document.getElementById('summer-off').value = data.tariffs.summer.off ?? '';
+          document.getElementById('summer-peak').value = data.tariffs.summer.peak ?? '';
+          // VAT (single input)
+          document.getElementById('tariff-vat').value = data.vat ?? '';
+        }
+      } catch (err) {
+        showAbbModal('Failed to load tariff rates from server.');
+      }
+      tariffModalOverlay.classList.remove('hidden');
+    });
+  }
+  if (tariffModalClose) {
+    tariffModalClose.addEventListener('click', function () {
+      tariffModalOverlay.classList.add('hidden');
+    });
+  }
+  if (tariffModalOverlay) {
+    tariffModalOverlay.addEventListener('click', function (e) {
+      if (e.target === tariffModalOverlay) {
+        tariffModalOverlay.classList.add('hidden');
+      }
+    });
+  }
+  if (tariffForm) {
+    tariffForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      // Save all season rates to localStorage (single VAT)
+      const tariffData = {
+        winter: {
+          off: document.getElementById('winter-off').value,
+          peak: document.getElementById('winter-peak').value
+        },
+        shoulder: {
+          off: document.getElementById('shoulder-off').value,
+          peak: document.getElementById('shoulder-peak').value
+        },
+        summer: {
+          off: document.getElementById('summer-off').value,
+          peak: document.getElementById('summer-peak').value
+        },
+        vat: document.getElementById('tariff-vat').value
+      };
+      localStorage.setItem('tariffData', JSON.stringify(tariffData));
+      tariffModalOverlay.classList.add('hidden');
+      alert('Tariff rates saved successfully!');
+    });
+  }
+  // Load saved values if exist
+  if (tariffForm) {
+    const saved = localStorage.getItem('tariffData');
+    if (saved) {
+      try {
+        const tariffData = JSON.parse(saved);
+        if (tariffData.winter) {
+          document.getElementById('winter-off').value = tariffData.winter.off || '';
+          document.getElementById('winter-peak').value = tariffData.winter.peak || '';
+        }
+        if (tariffData.shoulder) {
+          document.getElementById('shoulder-off').value = tariffData.shoulder.off || '';
+          document.getElementById('shoulder-peak').value = tariffData.shoulder.peak || '';
+        }
+        if (tariffData.summer) {
+          document.getElementById('summer-off').value = tariffData.summer.off || '';
+          document.getElementById('summer-peak').value = tariffData.summer.peak || '';
+        }
+        if (tariffData.vat !== undefined) {
+          document.getElementById('tariff-vat').value = tariffData.vat || '';
+        }
+      } catch (e) { }
+    }
+  }
+});
 // Msg alarimgent: This file contains recent edits. Please review the changes carefully before suggesting code that has been deleted or significantly modified.
 const abbModalOverlay = document.getElementById("abb-modal-overlay");
 const abbModalTitle = document.getElementById("abb-modal-title");
@@ -70,6 +164,8 @@ function deleteCompareBreakerButton() {
   if (oldBtn) oldBtn.remove();
 }
 
+
+// --- Get Tarrriff type (Peak/Off-Peak) \\---
 
 // --- Small Modal for Breaker Selection ---
 function showSmallBreakerCompareModal() {
@@ -1501,3 +1597,13 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
   // Reload so server serves login page
   window.location.href = '/';
 });
+
+// Show setting button
+async function showSettingButton() {
+  const settingsBtn = document.getElementById('btn-settings');
+  const currentUser = await adjustUIForUserRole();
+  if (currentUser === 'admin') {
+    settingsBtn.style.visibility = 'visible';
+  }
+}
+showSettingButton();

@@ -1,3 +1,131 @@
+.tariff-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 12px;
+}
+
+.tariff-table th,
+.tariff-table td {
+    border: 1px solid #2a3140;
+    padding: 6px 10px;
+    text-align: center;
+    font-size: 1rem;
+}
+
+.tariff-table th {
+    background: #232a3a;
+    color: #fff;
+    font-weight: 700;
+}
+
+.tariff-table input[type="number"] {
+    width: 90px;
+    padding: 4px 6px;
+    border-radius: 6px;
+    border: 1px solid #444b5a;
+    background: #232a3a;
+    color: #fff;
+    font-size: 1rem;
+    text-align: center;
+}
+
+/* =========================
+     Tariff Modal
+     ========================= */
+.tariff-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(4, 8, 14, 0.76);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100000;
+}
+
+.tariff-modal-overlay.hidden {
+    display: none;
+}
+
+.tariff-modal {
+    background: #181e2a;
+    color: #fff;
+    border-radius: 18px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.32);
+    min-width: 320px;
+    max-width: 94vw;
+    padding: 0 0 18px 0;
+}
+
+.tariff-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 22px 8px 22px;
+    font-size: 1.18rem;
+    font-weight: 700;
+    border-bottom: 1px solid #2a3140;
+}
+
+.tariff-modal-close {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0 8px;
+}
+
+.tariff-modal-body {
+    padding: 18px 22px 0 22px;
+}
+
+#tariff-form label {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 1rem;
+}
+
+.btn-save-tariff {
+    margin-top: 10px;
+    background: #ff1a1a;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 8px 22px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background 0.18s;
+}
+
+.btn-save-tariff:hover {
+    background: #c30010;
+}
+
+/* =========================
+   Settings Button
+   ========================= */
+.btn-settings {
+    text-align: center;
+    height: 30px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.025));
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 0 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 700;
+    transition: 0.18s ease;
+    margin-left: 8px;
+    visibility: hidden;
+}
+
+.btn-settings:hover {
+    border-color: rgba(255, 0, 15, 0.25);
+    box-shadow: 0 0 0 4px rgba(255, 0, 15, 0.08);
+    transform: translateY(-1px);
+}
+
 /* =========================
    ABB NEXT-GEN ENERGY UI
    Full CSS Replacement
@@ -368,7 +496,7 @@ body {
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.025));
     color: #fff;
     border: 1px solid rgba(255, 255, 255, 0.08);
-    padding: 0 12px; 
+    padding: 0 12px;
     border-radius: 12px;
     cursor: pointer;
     font-weight: 700;
@@ -561,7 +689,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     background: rgba(255, 255, 255, 0.05);
 }
 
-.view-toggle input[type="radio"]:checked + .vt-btn {
+.view-toggle input[type="radio"]:checked+.vt-btn {
     background: linear-gradient(180deg, rgba(255, 20, 20, 0.96), rgba(200, 16, 16, 0.96));
     color: #fff;
     box-shadow:
@@ -677,6 +805,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 @keyframes pulse {
+
     0%,
     100% {
         opacity: 1;
@@ -1742,6 +1871,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         opacity: 0;
         transform: translateY(12px) scale(0.98);
     }
+
     to {
         opacity: 1;
         transform: translateY(0) scale(1);
@@ -1760,7 +1890,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 #breaker-modal .breaker-item:hover {
-    background: rgba(255,255,255,0.05);
+    background: rgba(255, 255, 255, 0.05);
 }
 
 #breaker-modal .breaker-item span {
@@ -1777,29 +1907,28 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 /* confirm button */
 
 #breaker-modal .btn-confirm {
-    background: linear-gradient(180deg,#FF000F 0%,#C0000C 100%);
+    background: linear-gradient(180deg, #FF000F 0%, #C0000C 100%);
     border: none;
     border-radius: 10px;
     padding: 10px 22px;
     color: #fff;
     font-weight: 700;
-    box-shadow: 0 10px 22px rgba(255,0,15,0.25);
+    box-shadow: 0 10px 22px rgba(255, 0, 15, 0.25);
     transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 #breaker-modal .btn-confirm:hover {
     transform: translateY(-1px);
-    box-shadow: 0 14px 30px rgba(255,0,15,0.35);
+    box-shadow: 0 14px 30px rgba(255, 0, 15, 0.35);
 }
+
 /* ===== Cancel Button – Modern ABB Secondary Style ===== */
 
 #breaker-modal .btn-cancel {
-    background: linear-gradient(
-        180deg,
-        rgba(255,255,255,0.06),
-        rgba(255,255,255,0.03)
-    );
-    border: 1px solid rgba(255,255,255,0.14);
+    background: linear-gradient(180deg,
+            rgba(255, 255, 255, 0.06),
+            rgba(255, 255, 255, 0.03));
+    border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 12px;
     padding: 10px 24px;
     color: #020202;
@@ -1820,17 +1949,15 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 /* hover */
 
 #breaker-modal .btn-cancel:hover {
-    background: linear-gradient(
-        180deg,
-        rgba(255,255,255,0.10),
-        rgba(255,255,255,0.05)
-    );
+    background: linear-gradient(180deg,
+            rgba(255, 255, 255, 0.10),
+            rgba(255, 255, 255, 0.05));
 
-    border-color: rgba(255,255,255,0.22);
+    border-color: rgba(255, 255, 255, 0.22);
 
     box-shadow:
-        0 8px 22px rgba(0,0,0,0.25),
-        0 0 0 1px rgba(255,255,255,0.05) inset;
+        0 8px 22px rgba(0, 0, 0, 0.25),
+        0 0 0 1px rgba(255, 255, 255, 0.05) inset;
 
     transform: translateY(-1px);
 }
@@ -1840,5 +1967,5 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 #breaker-modal .btn-cancel:active {
     transform: translateY(0);
     box-shadow:
-        0 4px 12px rgba(0,0,0,0.35) inset;
+        0 4px 12px rgba(0, 0, 0, 0.35) inset;
 }
