@@ -1117,8 +1117,8 @@ async function generateReport() {
 
     const seasons = new Set(rows.map(r => r.season).filter(Boolean));
     const tariffText = seasons.size === 1
-      ? `ToU — ${seasonLabel([...seasons][0])} (Before VAT)`
-      : `ToU — Seasonal (Before VAT)`;
+      ? `ToU — ${seasonLabel([...seasons][0])} (Before VAT )`
+      : `ToU — Seasonal (Before  VAT )`;
 
     const peakKwh = Number(d.peak_kwh || 0);
     const offKwh = Number(d.offpeak_kwh || 0);
