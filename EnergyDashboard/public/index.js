@@ -1087,7 +1087,6 @@ async function generateReport() {
     }
 
     const d = await resp.json();
-    console.log(d);
 
 
     const totalKwh = Number(d.total_kwh || 0);
@@ -1397,8 +1396,6 @@ async function generateReport() {
 
     card.classList.add('visible');
     const breakerName = document.getElementById('status-text').innerText = `${breaker.name}`;
-    console.log(breakerName);
-
 
 
     // Chart
@@ -1406,15 +1403,25 @@ async function generateReport() {
     const ctx = document.getElementById('rpt-chart').getContext('2d');
     if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
 
+    // For daily/monthly view we show the supplier's total consumption as a single column
+    // (Peak + Off-Peak combined). For hourly view we keep separate Peak/Off-Peak bars.
+    const datasets = [];
+    if (view === 'daily' || view === 'monthly') {
+      // combine peak + off into a single supplier series
+      const chartSupplier = chartLabels.map((_, i) => {
+        const pk = Number(chartPeak[i] || 0);
+        const off = Number(chartOff[i] || 0);
+        return pk + off;
+      });
+      datasets.push({ label: `${breakerName} — Supplier (total)`, data: chartSupplier, backgroundColor: 'rgba(97, 28, 28, 0.88)', borderRadius: 2, borderSkipped: false });
+    } else {
+      datasets.push({ label: `${breakerName} - Peak`, data: chartPeak, backgroundColor: 'rgba(255,0,15,0.85)', borderRadius: 2, borderSkipped: false });
+      datasets.push({ label: `${breakerName} - Off-Peak`, data: chartOff, backgroundColor: 'rgba(129, 39, 39, 0.72)', borderRadius: 2, borderSkipped: false });
+    }
+
     chartInstance = new Chart(ctx, {
       type: 'bar',
-      data: {
-        labels: chartLabels,
-        datasets: [
-          { label: `${breakerName} - Peak`, data: chartPeak, backgroundColor: 'rgba(255,0,15,0.85)', borderRadius: 2, borderSkipped: false },
-          { label: `${breakerName} - Off-Peak`, data: chartOff, backgroundColor: 'rgba(26,26,26,0.72)', borderRadius: 2, borderSkipped: false },
-        ]
-      },
+      data: { labels: chartLabels, datasets },
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -1424,12 +1431,11 @@ async function generateReport() {
           tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y} kWh` } }
         },
         scales: {
-          x: { stacked: true, ticks: { font: { family: 'DM Mono', size: 9 }, maxRotation: 55, color: '#888' }, grid: { display: false } },
-          y: { stacked: true, title: { display: true, text: 'kWh', font: { family: 'DM Sans', size: 13 }, color: '#aaa' }, ticks: { font: { family: 'DM Mono', size: 11 }, color: '#888' }, grid: { color: '#f0f0f0' } }
+          x: { stacked: (view !== 'hourly'), ticks: { font: { family: 'DM Mono', size: 9 }, maxRotation: 55, color: '#888' }, grid: { display: false } },
+          y: { stacked: (view !== 'hourly'), title: { display: true, text: 'kWh', font: { family: 'DM Sans', size: 13 }, color: '#aaa' }, ticks: { font: { family: 'DM Mono', size: 11 }, color: '#888' }, grid: { color: '#f0f0f0' } }
         }
       }
-    }
-    );
+    });
 
     setStatus('active', `Report ready — ${breaker.name} | ${view} view | ${from} → ${to} | PDF = clear rows`);
     card.scrollIntoView({ behavior: 'smooth', block: 'start' });
