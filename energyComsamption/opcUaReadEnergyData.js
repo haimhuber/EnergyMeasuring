@@ -4,11 +4,12 @@ const dotenv = require("dotenv");
 const path = require("path");
 
 dotenv.config({
-  path: path.join(__dirname, "../EnergyDashboard/.env.unified")
+    path: path.join(__dirname, "../EnergyDashboard/.env.unified")
 });
 
 const config = require("./nodeIds.json");
 const { timestampFunction } = require("./timestamp");
+const nodeIds = config.nodeIds;
 
 async function readOpcActiveEnergyTags() {
     const client = OPCUAClient.create({
@@ -16,7 +17,6 @@ async function readOpcActiveEnergyTags() {
     });
 
     const endpointUrl = process.env.OPC_UA_SERVER_URL;
-    const nodeIds = config.nodeIds;
     let activeEnergy = [];
     let session = null;
 
@@ -35,6 +35,7 @@ async function readOpcActiveEnergyTags() {
         for (let i = 0; i < nodeIds.length; i++) {
             const dataValue = await session.readVariableValue(nodeIds[i]);
             activeEnergy[i] = dataValue?.value?.value ?? null;
+
         }
 
         console.log("Active Energy values:", activeEnergy, { timestamp: timestampFunction() });
@@ -44,12 +45,15 @@ async function readOpcActiveEnergyTags() {
         }
 
         return activeEnergy;
+
     } catch (err) {
         console.error("Error:", err.message || err);
         console.log("OPC UA Server might be down. Returning null for demand status.", {
             timestamp: timestampFunction()
         });
+
         return null;
+
     } finally {
         try {
             if (session) {
@@ -68,5 +72,6 @@ async function readOpcActiveEnergyTags() {
         }
     }
 }
+
 
 module.exports = { readOpcActiveEnergyTags };

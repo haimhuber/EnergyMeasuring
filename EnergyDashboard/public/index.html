@@ -64,7 +64,7 @@
   <div id="loading-overlay">
     <div class="loading-inner">
       <div class="loading-spinner" aria-hidden="true"></div>
-  <div class="loading-text">Loading…</div>
+      <div class="loading-text">Loading…</div>
     </div>
   </div>
   <div id="abb-modal-overlay" class="abb-modal-overlay hidden">
@@ -110,7 +110,6 @@
     </span>
     <span class="nav-sub">Energy Monitoring System</span>
     <div class="nav-right">
-      <button id="btn-settings" class="btn-settings" style="margin-left: 12px;">Settings</button>
       <span class="nav-user">Welcome, <span id="nav-username"></span></span>
 
       <button id="btn-logout" class="btn-logout" style="display:none;">Logout</button>
@@ -119,6 +118,9 @@
 
   <div class="selector-section">
     <div id="tariff-summary-bar" class="tariff-summary-bar">
+      <button id="btn-settings" class="btn-settings" style="margin-left:12px;font-size:18px;" title="Settings">
+        ⚙️
+      </button>
       <h3>Seasons & Tariffs:</h3>
       <div class="tariff-season" id="tariff-winter">
         <span class="tariff-emoji">❄️</span>
@@ -140,6 +142,27 @@
       </div>
       <div class="tariff-vat-summary">VAT: <span id="tariff-vat-summary">-</span></div>
     </div>
+
+    <div id="office-hours-bar" class="tariff-summary-bar">
+
+      <h3>Office hours</h3>
+      <div class="office-hours-input-group">
+        <div class="office-hours-input">
+          <label for="start-hours">Start Hours</label>
+          <input type="time" id="start-hours" name="start-hours" />
+        </div>
+        <div class="office-hours-input">
+          <label for="end-hours">End Hours</label>
+          <input type="time" id="end-hours" name="end-hours" />
+        </div>
+        <button id="set-office-hours" class="set-office-hours-btn">Set time</button>
+      </div>
+    </div>
+
+
+
+
+
     <div class="selector-label">Report Generator</div>
     <div class="selector-title">Generate Energy Invoice</div>
     <div class="controls">
