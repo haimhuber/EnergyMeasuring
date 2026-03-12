@@ -972,7 +972,6 @@ function showBreakerSelectionModal(onConfirm) {
 
     list.appendChild(label);
   });
-  console.log(BREAKERS);
 
 
   box.appendChild(list);
@@ -1087,49 +1086,123 @@ async function generateMultiBreakerReport() {
         parts.push(part);
 
         // For print: always show daily table and summary, regardless of view
-        const dailyRowsForPrint = aggregateHourlyToDaily(rows);
-        let pdfRows = "";
+        let dailyRowsForPrint = aggregateHourlyToDaily(rows);
+        // Chart for this breaker
+        let chartImgHtml = "";
+        try {
+          // Short date format: D/M
+          function shortDayLabel(ts) {
+            const d = new Date(ts);
+            return d.getDate() + '/' + (d.getMonth() + 1);
+          }
+          const labels = dailyRowsForPrint.map(r => shortDayLabel(r.timestamp));
+          const peakData = dailyRowsForPrint.map(r => Number(r.peak_kwh || 0));
+          const offData = dailyRowsForPrint.map(r => Number(r.off_kwh || 0));
+          const pdfChartCanvas = document.createElement('canvas');
+          pdfChartCanvas.width = 900;
+          pdfChartCanvas.height = 320;
+          const ctx = pdfChartCanvas.getContext('2d');
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0, 0, pdfChartCanvas.width, pdfChartCanvas.height);
+          const chartLeft = 60, chartTop = 40, chartWidth = 780, chartHeight = 200;
+          const maxVal = Math.max(...peakData, ...offData, 10);
+          ctx.strokeStyle = '#bbb';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(chartLeft, chartTop);
+          ctx.lineTo(chartLeft, chartTop + chartHeight);
+          ctx.lineTo(chartLeft + chartWidth, chartTop + chartHeight);
+          ctx.stroke();
+          const barWidth = Math.max(10, Math.floor(chartWidth / (labels.length * 2)));
+          for (let i = 0; i < labels.length; i++) {
+            const offH = (offData[i] / maxVal) * chartHeight;
+            ctx.fillStyle = '#444';
+            ctx.fillRect(chartLeft + i * barWidth * 2, chartTop + chartHeight - offH, barWidth, offH);
+            const peakH = (peakData[i] / maxVal) * chartHeight;
+            ctx.fillStyle = '#e53935';
+            ctx.fillRect(chartLeft + i * barWidth * 2, chartTop + chartHeight - peakH, barWidth, peakH);
+          }
+          ctx.font = 'bold 12px DM Mono, monospace';
+          ctx.textAlign = 'center';
+          for (let i = 0; i < labels.length; i++) {
+            ctx.save();
+            ctx.translate(chartLeft + i * barWidth * 2 + barWidth / 2, chartTop + chartHeight + 16);
+            ctx.rotate(-0.10);
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(-18, -12, 36, 16);
+            ctx.fillStyle = '#111';
+            ctx.fillText(labels[i], 0, 0);
+            ctx.restore();
+          }
+          ctx.textAlign = 'right';
+          ctx.font = '13px DM Mono, monospace';
+          for (let y = 0; y <= 5; y++) {
+            const val = Math.round((maxVal * (5 - y)) / 5);
+            ctx.fillStyle = '#888';
+            ctx.fillText(val + ' kWh', chartLeft - 8, chartTop + (chartHeight * y) / 5 + 4);
+          }
+          // Legend (top right)
+          const legendY = chartTop - 36;
+          let lx = chartLeft + chartWidth - 120;
+          ctx.save();
+          ctx.font = 'bold 13px DM Sans, Arial, sans-serif';
+          ctx.fillStyle = '#e53935';
+          ctx.fillRect(lx, legendY, 18, 10);
+          ctx.fillStyle = '#222';
+          ctx.fillText('Peak', lx + 28, legendY + 10);
+          lx += 70;
+          ctx.fillStyle = '#444';
+          ctx.fillRect(lx, legendY, 18, 10);
+          ctx.fillStyle = '#222';
+          ctx.fillText('Off-Peak', lx + 38, legendY + 10);
+          ctx.restore();
+          ctx.font = 'bold 18px DM Sans, Arial, sans-serif';
+          ctx.fillStyle = '#222';
+          ctx.fillText('Consumption — Daily Breakdown', chartLeft + chartWidth / 2, chartTop - 40);
+          const chartDataUrl = pdfChartCanvas.toDataURL('image/png');
+          chartImgHtml = `<div style=\"margin:18px 0 18px 0;text-align:center;\"><img src=\"${chartDataUrl}\" style=\"max-width:100%;height:auto;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.08);\" alt=\"Consumption Chart\"></div>`;
+        } catch (e) { /* ignore errors */ }
+        // Table
+        let pdfRows = `<table class='pdf-table'><thead><tr><th>Date</th><th>Peak (kWh)</th><th>Off-peak (kWh)</th><th>Total (kWh)</th><th>ILS (VAT not included)</th></tr></thead><tbody>`;
         dailyRowsForPrint.forEach(r => {
           const dPk = Number(r.peak_kwh || 0);
           const dOff = Number(r.off_kwh || 0);
           const dTot = Number(r.kwh || 0);
           const dAmt = Number(r.amount || 0);
-          pdfRows += `
-              <div class=\"row\">
-                <div class=\"d\">${gbDate(r.timestamp)}</div>
-                <div class=\"cell\"><div class=\"k\">Peak</div><div class=\"v\"><strong>${fmtKwh(dPk)}</strong> kWh</div></div>
-                <div class=\"cell\"><div class=\"k\">Off-peak</div><div class=\"v\"><strong>${fmtKwh(dOff)}</strong> kWh</div></div>
-                <div class=\"cell\"><div class=\"k\">Total</div><div class=\"v\"><strong>${fmtKwh(dTot)}</strong> kWh</div></div>
-                <div class=\"cell\"><div class=\"k\">ILS</div><div class=\"v\"><strong>${fmtMoney(dAmt)}</strong></div></div>
-              </div>
-            `;
+          function shortDayLabel(ts) { const d = new Date(ts); return d.getDate() + '/' + (d.getMonth() + 1); }
+          pdfRows += `<tr><td>${shortDayLabel(r.timestamp)}</td><td>${fmtKwh(dPk)}</td><td>${fmtKwh(dOff)}</td><td>${fmtKwh(dTot)}</td><td>${fmtMoney(dAmt)}</td></tr>`;
         });
-
-        const printPart = `
-            <div class=\"pdf-page\" style=\"margin-bottom:16px;\">
-              <div class=\"pdf-header\">
-                <div class=\"pdf-logo\">ABB</div>
-                <div class=\"pdf-title\" style=\"text-align:right;\">
-                  <div class=\"t1\" style=\"font-size:13px;letter-spacing:2px;font-weight:400;opacity:.7;\">ENERGY MONITORING SYSTEM</div>
-                  <div class=\"t2\" style=\"font-size:1.35em;font-weight:700;letter-spacing:0.5px;\">Consumption Records</div>
-                </div>
+        pdfRows += `</tbody></table>`;
+        // Only one PDF page for all breakers
+        // Define 'today' for the PDF footer
+        const today = new Date();
+        const todayStr = today.getDate().toString().padStart(2, '0') + '/' + (today.getMonth() + 1).toString().padStart(2, '0') + '/' + today.getFullYear();
+        printParts.push(`
+          <div class=\"pdf-page\"> 
+            <div class=\"pdf-header\">
+              <div class=\"pdf-logo\">ABB</div>
+              <div class=\"pdf-title\" style=\"text-align:right;\">
+                <div class=\"t1\" style=\"font-size:13px;letter-spacing:2px;font-weight:400;opacity:.7;\">ENERGY MONITORING SYSTEM</div>
+                <div class=\"t2\" style=\"font-size:1.35em;font-weight:700;letter-spacing:0.5px;\">Consumption Records</div>
               </div>
-              <div class=\"pdf-chips\">
-                <div class=\"chip\"><strong>Breaker:</strong> ${breaker.name}</div>
-                <div class=\"chip\"><strong>ID:</strong> ${breaker.id}</div>
-                <div class=\"chip\"><strong>Period:</strong> ${from} → ${to}</div>
-                <div class=\"chip\"><strong>Invoice:</strong> ${d.invoice_no || ''}</div>
-              </div>
-              <div class=\"pdf-summary\">
-                <div class=\"sum-total\"><div class=\"k\">TOTAL DUE</div><div class=\"v\" style=\"font-size:2.5em;font-weight:700;letter-spacing:1px;\">${fmtMoney(d.total_amount || 0)} <span style=\"font-size:0.5em;font-weight:800;opacity:.75\">ILS</span></div></div>
-                <div class=\"sum-box pk\" style=\"border-left:4px solid #e53935;\"><div class=\"k\" style=\"font-size:0.95em;letter-spacing:1px;color:#e53935;font-weight:700;\">PEAK SUMMARY</div><div class=\"v\" style=\"font-size:1.5em;font-weight:700;\">${fmtKwh(d.peak_kwh || 0)} kWh</div><div class=\"s\" style=\"font-size:1.1em;color:#1976d2;\">${fmtMoney(d.peak_amount || 0)} ILS</div></div>
-                <div class=\"sum-box op\" style=\"border-left:4px solid #1976d2;\"><div class=\"k\" style=\"font-size:0.95em;letter-spacing:1px;color:#1976d2;font-weight:700;\">OFF-PEAK SUMMARY</div><div class=\"v\" style=\"font-size:1.5em;font-weight:700;\">${fmtKwh(d.offpeak_kwh || 0)} kWh</div><div class=\"s\" style=\"font-size:1.1em;color:#1976d2;\">${fmtMoney(d.offpeak_amount || 0)} ILS</div></div>
-              </div>
-              <div class=\"pdf-section-title\" style=\"margin-top:18px;\"><div class=\"l\" style=\"font-size:1.1em;font-weight:700;letter-spacing:1px;\">DAILY TABLE</div><div class=\"r\" style=\"font-size:1em;opacity:.7;\">${dailyRowsForPrint.length} days</div></div>
-              <div class=\"rowlist\">${pdfRows}</div>
             </div>
-          `;
-        printParts.push(printPart);
+            <div class=\"pdf-chips\">
+              <div class=\"chip\"><strong>Breaker:</strong> ${breaker.name}</div>
+              <div class=\"chip\"><strong>ID:</strong> ${breaker.id}</div>
+              <div class=\"chip\"><strong>Period:</strong> ${from} → ${to}</div>
+              <div class=\"chip\"><strong>Invoice:</strong> ${d.invoice_no || ''}</div>
+            </div>
+            <div class=\"pdf-summary\">
+              <div class=\"sum-total\"><div class=\"k\">TOTAL DUE</div><div class=\"v\" style=\"font-size:2.5em;font-weight:700;letter-spacing:1px;\">${fmtMoney(d.total_amount || 0)} <span style=\"font-size:0.5em;font-weight:800;opacity:.75\">ILS</span></div></div>
+              <div class=\"sum-box pk\" style=\"border-left:4px solid #e53935;\"><div class=\"k\" style=\"font-size:0.95em;letter-spacing:1px;color:#e53935;font-weight:700;\">PEAK SUMMARY</div><div class=\"v\" style=\"font-size:1.5em;font-weight:700;\">${fmtKwh(d.peak_kwh || 0)} kWh</div><div class=\"s\" style=\"font-size:1.1em;color:#1976d2;\">${fmtMoney(d.peak_amount || 0)} ILS</div></div>
+              <div class=\"sum-box op\" style=\"border-left:4px solid #1976d2;\"><div class=\"k\" style=\"font-size:0.95em;letter-spacing:1px;color:#1976d2;font-weight:700;\">OFF-PEAK SUMMARY</div><div class=\"v\" style=\"font-size:1.5em;font-weight:700;\">${fmtKwh(d.offpeak_kwh || 0)} kWh</div><div class=\"s\" style=\"font-size:1.1em;color:#1976d2;\">${fmtMoney(d.offpeak_amount || 0)} ILS</div></div>
+            </div>
+            ${chartImgHtml}
+            <div class=\"pdf-section-title\" style=\"margin-top:18px;\"><div class=\"l\" style=\"font-size:1.1em;font-weight:700;letter-spacing:1px;\">DAILY TABLE</div><div class=\"r\" style=\"font-size:1em;opacity:.7;\">${dailyRowsForPrint.length} days</div></div>
+            <div class=\"rowlist\">${pdfRows}</div>
+            <div class=\"pdf-footer\"><div><span class=\"abb\">ABB</span> | Energy Report v1.0</div><div>Before VAT • IEC ToU • Generated: ${todayStr}</div></div>
+          </div>
+        `);
       }
 
       // render combined UI
@@ -1449,7 +1522,12 @@ async function generateReport() {
       ctx.fillStyle = '#fff';
       ctx.fillRect(0, 0, pdfChartCanvas.width, pdfChartCanvas.height);
       // Prepare data
-      const labels = dailyRowsForChart.map(r => view === 'monthly' ? gbMonth(r.timestamp) : gbDate(r.timestamp));
+      // Short date format: D/M
+      function shortDayLabel(ts) {
+        const d = new Date(ts);
+        return d.getDate() + '/' + (d.getMonth() + 1);
+      }
+      const labels = dailyRowsForChart.map(r => view === 'monthly' ? gbMonth(r.timestamp) : shortDayLabel(r.timestamp));
       const peakData = dailyRowsForChart.map(r => Number(r.peak_kwh || 0));
       const offData = dailyRowsForChart.map(r => Number(r.off_kwh || 0));
       // Chart area
@@ -1477,13 +1555,17 @@ async function generateReport() {
         ctx.fillRect(chartLeft + i * barWidth * 2, chartTop + chartHeight - peakH, barWidth, peakH);
       }
       // Draw labels (dates)
-      ctx.font = '13px DM Mono, monospace';
-      ctx.fillStyle = '#222';
+      ctx.font = 'bold 12px DM Mono, monospace';
       ctx.textAlign = 'center';
       for (let i = 0; i < labels.length; i++) {
         ctx.save();
-        ctx.translate(chartLeft + i * barWidth * 2 + barWidth / 2, chartTop + chartHeight + 18);
-        ctx.rotate(-0.35);
+        ctx.translate(chartLeft + i * barWidth * 2 + barWidth / 2, chartTop + chartHeight + 16);
+        ctx.rotate(-0.10);
+        // Draw white background for label
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(-18, -12, 36, 16);
+        // Draw label text
+        ctx.fillStyle = '#111';
         ctx.fillText(labels[i], 0, 0);
         ctx.restore();
       }
@@ -1495,15 +1577,23 @@ async function generateReport() {
         ctx.fillStyle = '#888';
         ctx.fillText(val + ' kWh', chartLeft - 8, chartTop + (chartHeight * y) / 5 + 4);
       }
-      // Draw legend
+      // Draw legend (top right, spaced)
+      const legendY = chartTop - 36;
+      let lx = chartLeft + chartWidth - 120;
+      ctx.save();
+      ctx.font = 'bold 13px DM Sans, Arial, sans-serif';
+      // Peak
       ctx.fillStyle = '#e53935';
-      ctx.fillRect(chartLeft + 10, chartTop - 32, 18, 10);
+      ctx.fillRect(lx, legendY, 18, 10);
       ctx.fillStyle = '#222';
-      ctx.fillText('Peak', chartLeft + 34, chartTop - 23);
+      ctx.fillText('Peak', lx + 28, legendY + 10);
+      // Off-Peak
+      lx += 70;
       ctx.fillStyle = '#444';
-      ctx.fillRect(chartLeft + 80, chartTop - 32, 18, 10);
+      ctx.fillRect(lx, legendY, 18, 10);
       ctx.fillStyle = '#222';
-      ctx.fillText('Off-Peak', chartLeft + 104, chartTop - 23);
+      ctx.fillText('Off-Peak', lx + 38, legendY + 10);
+      ctx.restore();
       // Title
       ctx.font = 'bold 18px DM Sans, Arial, sans-serif';
       ctx.fillStyle = '#222';
@@ -1513,6 +1603,7 @@ async function generateReport() {
       chartImgHtml = `<div style=\"margin:18px 0 18px 0;text-align:center;\"><img src=\"${chartDataUrl}\" style=\"max-width:100%;height:auto;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.08);\" alt=\"Consumption Chart\"></div>`;
     } catch (e) { /* ignore errors */ }
 
+    // Only one PDF page should be generated
     document.getElementById("print-records").innerHTML = `
       <div class="pdf-page">
         <div class="pdf-header">
@@ -1523,7 +1614,6 @@ async function generateReport() {
               <div class="t2">${pdfTitleText}</div>
             </div>
           </div>
-
           <div class="pdf-chips">
             <div class="chip"><strong>Breaker:</strong> ${breaker.name}</div>
             <div class="chip"><strong>ID:</strong> ${breaker.id}</div>
@@ -1531,37 +1621,30 @@ async function generateReport() {
             <div class="chip"><strong>Invoice:</strong> ${invoiceNo}</div>
           </div>
         </div>
-
         <div class="pdf-summary">
           <div class="sum-total">
             <div class="k">Total due</div>
             <div class="v">${fmtMoney(grand)} <span style="font-size:13px;font-weight:800;opacity:.75">ILS</span></div>
           </div>
-
           <div class="sum-box pk">
             <div class="k">Peak summary</div>
             <div class="v">${fmtKwh(peakKwh)} kWh</div>
             <div class="s">${fmtMoney(peakAmt)} ILS</div>
           </div>
-
           <div class="sum-box op">
             <div class="k">Off-peak summary</div>
             <div class="v">${fmtKwh(offKwh)} kWh</div>
             <div class="s">${fmtMoney(offAmt)} ILS</div>
           </div>
         </div>
-
         ${chartImgHtml}
-
         <div class="pdf-section-title">
           <div class="l">${view === 'monthly' ? 'Monthly records' : 'Daily records'}</div>
           <div class="r">${dailyRowsForPrint.length} ${view === 'monthly' ? 'months' : 'days'}</div>
         </div>
-
         <div class="rowlist">
           ${pdfRows}
         </div>
-
         <div class="pdf-footer">
           <div><span class="abb">ABB</span> | Energy Report v1.0</div>
           <div>Before VAT • IEC ToU • Generated: ${today}</div>
