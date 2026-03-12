@@ -1427,6 +1427,92 @@ async function generateReport() {
 
     const pdfTitleText = view === 'monthly' ? 'Monthly Consumption Invoice' : (view === 'daily' ? 'Daily Consumption Invoice' : 'Consumption Records');
 
+
+    // Always create a daily bar chart for the PDF, regardless of view
+    let chartImgHtml = "";
+    try {
+      // Prepare daily data
+      let dailyRowsForChart = [];
+      if (view === "monthly") {
+        // For monthly, show monthly bars
+        dailyRowsForChart = rows;
+      } else {
+        // For daily/hourly, aggregate to daily
+        dailyRowsForChart = view === "hourly" ? aggregateHourlyToDaily(rows) : rows;
+      }
+      // Create a hidden canvas
+      const pdfChartCanvas = document.createElement('canvas');
+      pdfChartCanvas.width = 900;
+      pdfChartCanvas.height = 320;
+      const ctx = pdfChartCanvas.getContext('2d');
+      // White background
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, pdfChartCanvas.width, pdfChartCanvas.height);
+      // Prepare data
+      const labels = dailyRowsForChart.map(r => view === 'monthly' ? gbMonth(r.timestamp) : gbDate(r.timestamp));
+      const peakData = dailyRowsForChart.map(r => Number(r.peak_kwh || 0));
+      const offData = dailyRowsForChart.map(r => Number(r.off_kwh || 0));
+      // Chart area
+      const chartLeft = 60, chartTop = 40, chartWidth = 780, chartHeight = 200;
+      // Find max value
+      const maxVal = Math.max(...peakData, ...offData, 10);
+      // Draw axes
+      ctx.strokeStyle = '#bbb';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(chartLeft, chartTop);
+      ctx.lineTo(chartLeft, chartTop + chartHeight);
+      ctx.lineTo(chartLeft + chartWidth, chartTop + chartHeight);
+      ctx.stroke();
+      // Draw bars
+      const barWidth = Math.max(10, Math.floor(chartWidth / (labels.length * 2)));
+      for (let i = 0; i < labels.length; i++) {
+        // Off-peak bar (gray)
+        const offH = (offData[i] / maxVal) * chartHeight;
+        ctx.fillStyle = '#444';
+        ctx.fillRect(chartLeft + i * barWidth * 2, chartTop + chartHeight - offH, barWidth, offH);
+        // Peak bar (red)
+        const peakH = (peakData[i] / maxVal) * chartHeight;
+        ctx.fillStyle = '#e53935';
+        ctx.fillRect(chartLeft + i * barWidth * 2, chartTop + chartHeight - peakH, barWidth, peakH);
+      }
+      // Draw labels (dates)
+      ctx.font = '13px DM Mono, monospace';
+      ctx.fillStyle = '#222';
+      ctx.textAlign = 'center';
+      for (let i = 0; i < labels.length; i++) {
+        ctx.save();
+        ctx.translate(chartLeft + i * barWidth * 2 + barWidth / 2, chartTop + chartHeight + 18);
+        ctx.rotate(-0.35);
+        ctx.fillText(labels[i], 0, 0);
+        ctx.restore();
+      }
+      // Draw Y axis labels
+      ctx.textAlign = 'right';
+      ctx.font = '13px DM Mono, monospace';
+      for (let y = 0; y <= 5; y++) {
+        const val = Math.round((maxVal * (5 - y)) / 5);
+        ctx.fillStyle = '#888';
+        ctx.fillText(val + ' kWh', chartLeft - 8, chartTop + (chartHeight * y) / 5 + 4);
+      }
+      // Draw legend
+      ctx.fillStyle = '#e53935';
+      ctx.fillRect(chartLeft + 10, chartTop - 32, 18, 10);
+      ctx.fillStyle = '#222';
+      ctx.fillText('Peak', chartLeft + 34, chartTop - 23);
+      ctx.fillStyle = '#444';
+      ctx.fillRect(chartLeft + 80, chartTop - 32, 18, 10);
+      ctx.fillStyle = '#222';
+      ctx.fillText('Off-Peak', chartLeft + 104, chartTop - 23);
+      // Title
+      ctx.font = 'bold 18px DM Sans, Arial, sans-serif';
+      ctx.fillStyle = '#222';
+      ctx.fillText('Consumption — Daily Breakdown', chartLeft + chartWidth / 2, chartTop - 40);
+      // Convert to image
+      const chartDataUrl = pdfChartCanvas.toDataURL('image/png');
+      chartImgHtml = `<div style=\"margin:18px 0 18px 0;text-align:center;\"><img src=\"${chartDataUrl}\" style=\"max-width:100%;height:auto;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.08);\" alt=\"Consumption Chart\"></div>`;
+    } catch (e) { /* ignore errors */ }
+
     document.getElementById("print-records").innerHTML = `
       <div class="pdf-page">
         <div class="pdf-header">
@@ -1464,6 +1550,8 @@ async function generateReport() {
             <div class="s">${fmtMoney(offAmt)} ILS</div>
           </div>
         </div>
+
+        ${chartImgHtml}
 
         <div class="pdf-section-title">
           <div class="l">${view === 'monthly' ? 'Monthly records' : 'Daily records'}</div>
