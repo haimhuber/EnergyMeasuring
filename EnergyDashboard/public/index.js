@@ -1178,29 +1178,32 @@ async function generateMultiBreakerReport() {
         const today = new Date();
         const todayStr = today.getDate().toString().padStart(2, '0') + '/' + (today.getMonth() + 1).toString().padStart(2, '0') + '/' + today.getFullYear();
         printParts.push(`
-          <div class=\"pdf-page\"> 
-            <div class=\"pdf-header\">
-              <div class=\"pdf-logo\">ABB</div>
+          <div class=\"pdf-page\" style=\"background: radial-gradient(circle at 60% 10%, #ff1a1a22 0%, #fff0 70%), linear-gradient(120deg, #fff 60%, #ffe7e7 100%); box-shadow: 0 0 60px #ff000f33, 0 0 0 12px #fff0; border-radius: 32px; overflow: hidden; position: relative;\">
+            <div class=\"pdf-header\" style=\"display:flex;align-items:center;justify-content:space-between;padding:32px 38px 18px 38px;background:linear-gradient(90deg,#ff000f 0%,#fff 100%);box-shadow:0 8px 32px #ff000f22;position:relative;z-index:2;\">
+              <div class=\"pdf-logo\" style=\"font-size:2.6em;font-weight:900;letter-spacing:6px;color:#fff;text-shadow:0 2px 16px #ff000f88,0 1px 0 #fff;display:flex;align-items:center;gap:18px;\">
+                <span style=\"display:inline-block;transform:rotate(-8deg);font-size:1.2em;filter:drop-shadow(0 0 8px #ff000f88);\">⚡</span>ABB
+              </div>
               <div class=\"pdf-title\" style=\"text-align:right;\">
-                <div class=\"t1\" style=\"font-size:13px;letter-spacing:2px;font-weight:400;opacity:.7;\">ENERGY MONITORING SYSTEM</div>
-                <div class=\"t2\" style=\"font-size:1.35em;font-weight:700;letter-spacing:0.5px;\">Consumption Records</div>
+                <div class=\"t1\" style=\"font-size:15px;letter-spacing:2.5px;font-weight:600;opacity:.85;color:#ff000f;text-shadow:0 1px 0 #fff;\">ENERGY MONITORING SYSTEM</div>
+                <div class=\"t2\" style=\"font-size:2em;font-weight:900;letter-spacing:1.5px;color:#222;text-shadow:0 2px 12px #ff000f22;\">Consumption Records</div>
               </div>
             </div>
-            <div class=\"pdf-chips\">
-              <div class=\"chip\"><strong>Breaker:</strong> ${breaker.name}</div>
-              <div class=\"chip\"><strong>ID:</strong> ${breaker.id}</div>
-              <div class=\"chip\"><strong>Period:</strong> ${from} → ${to}</div>
-              <div class=\"chip\"><strong>Invoice:</strong> ${d.invoice_no || ''}</div>
+            <div class=\"pdf-chips\" style=\"display:flex;gap:18px;margin:18px 38px 0 38px;\">
+              <div class=\"chip\" style=\"background:linear-gradient(90deg,#fff 60%,#ffe7e7 100%);box-shadow:0 2px 8px #ff000f22;border-radius:12px;padding:8px 18px;font-weight:700;color:#e30613;\"><strong>Breaker:</strong> ${breaker.name}</div>
+              <div class=\"chip\" style=\"background:linear-gradient(90deg,#fff 60%,#ffe7e7 100%);box-shadow:0 2px 8px #ff000f22;border-radius:12px;padding:8px 18px;font-weight:700;color:#e30613;\"><strong>ID:</strong> ${breaker.id}</div>
+              <div class=\"chip\" style=\"background:linear-gradient(90deg,#fff 60%,#ffe7e7 100%);box-shadow:0 2px 8px #ff000f22;border-radius:12px;padding:8px 18px;font-weight:700;color:#e30613;\"><strong>Period:</strong> ${from} → ${to}</div>
+              <div class=\"chip\" style=\"background:linear-gradient(90deg,#fff 60%,#ffe7e7 100%);box-shadow:0 2px 8px #ff000f22;border-radius:12px;padding:8px 18px;font-weight:700;color:#e30613;\"><strong>Invoice:</strong> ${d.invoice_no || ''}</div>
             </div>
-            <div class=\"pdf-summary\">
-              <div class=\"sum-total\"><div class=\"k\">TOTAL DUE</div><div class=\"v\" style=\"font-size:2.5em;font-weight:700;letter-spacing:1px;\">${fmtMoney(d.total_amount || 0)} <span style=\"font-size:0.5em;font-weight:800;opacity:.75\">ILS</span></div></div>
-              <div class=\"sum-box pk\" style=\"border-left:4px solid #e53935;\"><div class=\"k\" style=\"font-size:0.95em;letter-spacing:1px;color:#e53935;font-weight:700;\">PEAK SUMMARY</div><div class=\"v\" style=\"font-size:1.5em;font-weight:700;\">${fmtKwh(d.peak_kwh || 0)} kWh</div><div class=\"s\" style=\"font-size:1.1em;color:#1976d2;\">${fmtMoney(d.peak_amount || 0)} ILS</div></div>
-              <div class=\"sum-box op\" style=\"border-left:4px solid #1976d2;\"><div class=\"k\" style=\"font-size:0.95em;letter-spacing:1px;color:#1976d2;font-weight:700;\">OFF-PEAK SUMMARY</div><div class=\"v\" style=\"font-size:1.5em;font-weight:700;\">${fmtKwh(d.offpeak_kwh || 0)} kWh</div><div class=\"s\" style=\"font-size:1.1em;color:#1976d2;\">${fmtMoney(d.offpeak_amount || 0)} ILS</div></div>
+            <div class=\"pdf-summary\" style=\"display:flex;gap:32px;justify-content:center;align-items:stretch;margin:32px 38px 0 38px;\">
+              <div class=\"sum-total\" style=\"background:linear-gradient(120deg,#fff 60%,#ffe7e7 100%);box-shadow:0 2px 16px #ff000f22;border-radius:18px;padding:24px 38px;display:flex;flex-direction:column;align-items:center;justify-content:center;transform:scale(1.08) perspective(300px) translateZ(12px);\"><div class=\"k\" style=\"font-size:1.2em;font-weight:900;letter-spacing:1.5px;color:#e30613;text-shadow:0 1px 0 #fff;\">TOTAL DUE</div><div class=\"v\" style=\"font-size:3.2em;font-weight:900;letter-spacing:2px;color:#222;text-shadow:0 2px 12px #ff000f22;\">${fmtMoney(d.total_amount || 0)} <span style=\"font-size:0.5em;font-weight:800;opacity:.75\">ILS</span></div></div>
+              <div class=\"sum-box pk\" style=\"background:linear-gradient(120deg,#ffe7e7 0%,#fff 100%);box-shadow:0 2px 12px #e5393533;border-radius:18px;padding:18px 28px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-left:6px solid #e53935;\"><div class=\"k\" style=\"font-size:1.1em;letter-spacing:1.2px;color:#e53935;font-weight:900;\">PEAK SUMMARY</div><div class=\"v\" style=\"font-size:2em;font-weight:900;\">${fmtKwh(d.peak_kwh || 0)} kWh</div><div class=\"s\" style=\"font-size:1.2em;color:#1976d2;\">${fmtMoney(d.peak_amount || 0)} ILS</div></div>
+              <div class=\"sum-box op\" style=\"background:linear-gradient(120deg,#e7f0ff 0%,#fff 100%);box-shadow:0 2px 12px #1976d233;border-radius:18px;padding:18px 28px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-left:6px solid #1976d2;\"><div class=\"k\" style=\"font-size:1.1em;letter-spacing:1.2px;color:#1976d2;font-weight:900;\">OFF-PEAK SUMMARY</div><div class=\"v\" style=\"font-size:2em;font-weight:900;\">${fmtKwh(d.offpeak_kwh || 0)} kWh</div><div class=\"s\" style=\"font-size:1.2em;color:#1976d2;\">${fmtMoney(d.offpeak_amount || 0)} ILS</div></div>
             </div>
-            ${chartImgHtml}
-            <div class=\"pdf-section-title\" style=\"margin-top:18px;\"><div class=\"l\" style=\"font-size:1.1em;font-weight:700;letter-spacing:1px;\">DAILY TABLE</div><div class=\"r\" style=\"font-size:1em;opacity:.7;\">${dailyRowsForPrint.length} days</div></div>
-            <div class=\"rowlist\">${pdfRows}</div>
-            <div class=\"pdf-footer\"><div><span class=\"abb\">ABB</span> | Energy Report v1.0</div><div>Before VAT • IEC ToU • Generated: ${todayStr}</div></div>
+            <div style=\"margin:0 38px;\">${chartImgHtml}</div>
+            <div class=\"pdf-section-title\" style=\"margin:32px 38px 0 38px;display:flex;justify-content:space-between;align-items:center;\"><div class=\"l\" style=\"font-size:1.3em;font-weight:900;letter-spacing:1.2px;color:#e30613;text-shadow:0 1px 0 #fff;\">DAILY TABLE</div><div class=\"r\" style=\"font-size:1.1em;opacity:.7;\">${dailyRowsForPrint.length} days</div></div>
+            <div class=\"rowlist\" style=\"margin:0 38px 0 38px;box-shadow:0 2px 12px #ff000f11;border-radius:16px;overflow:hidden;\">${pdfRows}</div>
+            <div class=\"pdf-footer\" style=\"margin:38px 38px 0 38px;display:flex;justify-content:space-between;align-items:center;font-size:1.1em;color:#e30613;font-weight:700;text-shadow:0 1px 0 #fff;\"><div><span class=\"abb\" style=\"font-weight:900;font-size:1.2em;letter-spacing:2px;\">ABB</span> | Energy Report v1.0</div><div>Before VAT • IEC ToU • Generated: ${todayStr}</div></div>
+            <div style=\"position:absolute;bottom:-40px;right:-40px;width:180px;height:180px;z-index:0;pointer-events:none;opacity:0.18;filter:blur(1px);\"><svg width=\"180\" height=\"180\" viewBox=\"0 0 180 180\"><circle cx=\"90\" cy=\"90\" r=\"80\" fill=\"#ff000f\"/><text x=\"30\" y=\"110\" font-size=\"64\" font-family=\"DM Sans,Arial,sans-serif\" fill=\"#fff\" font-weight=\"900\">ABB</text></svg></div>
           </div>
         `);
       }
