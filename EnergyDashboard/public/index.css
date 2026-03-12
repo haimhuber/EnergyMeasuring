@@ -1,3 +1,47 @@
+/* PDF Table Styling */
+.pdf-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: 18px 0 0 0;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+    font-size: 1.08em;
+}
+
+.pdf-table thead th {
+    background: #f7f7fa;
+    color: #222;
+    font-weight: 700;
+    padding: 14px 10px;
+    border-bottom: 2px solid #e0e6f0;
+    text-align: left;
+    letter-spacing: 1px;
+}
+
+.pdf-table tbody td {
+    padding: 12px 10px;
+    border-bottom: 1px solid #f0f0f0;
+    color: #222;
+    font-weight: 500;
+}
+
+.pdf-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.pdf-table td,
+.pdf-table th {
+    vertical-align: middle;
+}
+
+.pdf-table td {
+    font-family: DM Mono, monospace, Arial, sans-serif;
+    font-size: 1em;
+}
+
 /* Set time button styling */
 
 .set-office-hours-btn {

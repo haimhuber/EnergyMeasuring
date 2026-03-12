@@ -1086,8 +1086,8 @@ async function generateMultiBreakerReport() {
 
         parts.push(part);
 
-        // For print: a compact summary + rows as on single report
-        const dailyRowsForPrint = (view === "daily" || view === "monthly") ? rows : aggregateHourlyToDaily(rows);
+        // For print: always show daily table and summary, regardless of view
+        const dailyRowsForPrint = aggregateHourlyToDaily(rows);
         let pdfRows = "";
         dailyRowsForPrint.forEach(r => {
           const dPk = Number(r.peak_kwh || 0);
@@ -1095,32 +1095,38 @@ async function generateMultiBreakerReport() {
           const dTot = Number(r.kwh || 0);
           const dAmt = Number(r.amount || 0);
           pdfRows += `
-              <div class="row">
-                <div class="d">${gbDate(r.timestamp)}</div>
-                <div class="cell"><div class="k">Peak</div><div class="v"><strong>${fmtKwh(dPk)}</strong> kWh</div></div>
-                <div class="cell"><div class="k">Off-peak</div><div class="v"><strong>${fmtKwh(dOff)}</strong> kWh</div></div>
-                <div class="cell"><div class="k">Total</div><div class="v"><strong>${fmtKwh(dTot)}</strong> kWh</div></div>
-                <div class="cell"><div class="k">ILS</div><div class="v"><strong>${fmtMoney(dAmt)}</strong></div></div>
+              <div class=\"row\">
+                <div class=\"d\">${gbDate(r.timestamp)}</div>
+                <div class=\"cell\"><div class=\"k\">Peak</div><div class=\"v\"><strong>${fmtKwh(dPk)}</strong> kWh</div></div>
+                <div class=\"cell\"><div class=\"k\">Off-peak</div><div class=\"v\"><strong>${fmtKwh(dOff)}</strong> kWh</div></div>
+                <div class=\"cell\"><div class=\"k\">Total</div><div class=\"v\"><strong>${fmtKwh(dTot)}</strong> kWh</div></div>
+                <div class=\"cell\"><div class=\"k\">ILS</div><div class=\"v\"><strong>${fmtMoney(dAmt)}</strong></div></div>
               </div>
             `;
         });
 
         const printPart = `
-            <div class="pdf-page" style="margin-bottom:16px;">
-              <div class="pdf-header">
-                <div class="pdf-head-row">
-                  <div class="pdf-title" style="text-align:left; width:100%; font-weight:700; font-size:18px; padding:0 0 8px 0;">${breaker.name} — ${from} → ${to}</div>
+            <div class=\"pdf-page\" style=\"margin-bottom:16px;\">
+              <div class=\"pdf-header\">
+                <div class=\"pdf-logo\">ABB</div>
+                <div class=\"pdf-title\" style=\"text-align:right;\">
+                  <div class=\"t1\" style=\"font-size:13px;letter-spacing:2px;font-weight:400;opacity:.7;\">ENERGY MONITORING SYSTEM</div>
+                  <div class=\"t2\" style=\"font-size:1.35em;font-weight:700;letter-spacing:0.5px;\">Consumption Records</div>
                 </div>
-                <div class="pdf-title"><div class="t1">Energy Monitoring System</div></div>
-                <div class="pdf-chips"><div class="chip"><strong>Breaker:</strong> ${breaker.name}</div><div class="chip"><strong>ID:</strong> ${breaker.id}</div></div>
               </div>
-              <div class="pdf-summary">
-                <div class="sum-total"><div class="k">Total due</div><div class="v">${fmtMoney(d.total_amount || 0)} <span style="font-size:13px;font-weight:800;opacity:.75">ILS</span></div></div>
-                <div class="sum-box pk"><div class="k">Peak summary</div><div class="v">${fmtKwh(d.peak_kwh || 0)} kWh</div><div class="s">${fmtMoney(d.peak_amount || 0)} ILS</div></div>
-                <div class="sum-box op"><div class="k">Off-peak summary</div><div class="v">${fmtKwh(d.offpeak_kwh || 0)} kWh</div><div class="s">${fmtMoney(d.offpeak_amount || 0)} ILS</div></div>
+              <div class=\"pdf-chips\">
+                <div class=\"chip\"><strong>Breaker:</strong> ${breaker.name}</div>
+                <div class=\"chip\"><strong>ID:</strong> ${breaker.id}</div>
+                <div class=\"chip\"><strong>Period:</strong> ${from} → ${to}</div>
+                <div class=\"chip\"><strong>Invoice:</strong> ${d.invoice_no || ''}</div>
               </div>
-              <div class="pdf-section-title"><div class="l">${view === 'monthly' ? 'Monthly records' : 'Daily records'}</div><div class="r">${dailyRowsForPrint.length} ${view === 'monthly' ? 'months' : 'days'}</div></div>
-              <div class="rowlist">${pdfRows}</div>
+              <div class=\"pdf-summary\">
+                <div class=\"sum-total\"><div class=\"k\">TOTAL DUE</div><div class=\"v\" style=\"font-size:2.5em;font-weight:700;letter-spacing:1px;\">${fmtMoney(d.total_amount || 0)} <span style=\"font-size:0.5em;font-weight:800;opacity:.75\">ILS</span></div></div>
+                <div class=\"sum-box pk\" style=\"border-left:4px solid #e53935;\"><div class=\"k\" style=\"font-size:0.95em;letter-spacing:1px;color:#e53935;font-weight:700;\">PEAK SUMMARY</div><div class=\"v\" style=\"font-size:1.5em;font-weight:700;\">${fmtKwh(d.peak_kwh || 0)} kWh</div><div class=\"s\" style=\"font-size:1.1em;color:#1976d2;\">${fmtMoney(d.peak_amount || 0)} ILS</div></div>
+                <div class=\"sum-box op\" style=\"border-left:4px solid #1976d2;\"><div class=\"k\" style=\"font-size:0.95em;letter-spacing:1px;color:#1976d2;font-weight:700;\">OFF-PEAK SUMMARY</div><div class=\"v\" style=\"font-size:1.5em;font-weight:700;\">${fmtKwh(d.offpeak_kwh || 0)} kWh</div><div class=\"s\" style=\"font-size:1.1em;color:#1976d2;\">${fmtMoney(d.offpeak_amount || 0)} ILS</div></div>
+              </div>
+              <div class=\"pdf-section-title\" style=\"margin-top:18px;\"><div class=\"l\" style=\"font-size:1.1em;font-weight:700;letter-spacing:1px;\">DAILY TABLE</div><div class=\"r\" style=\"font-size:1em;opacity:.7;\">${dailyRowsForPrint.length} days</div></div>
+              <div class=\"rowlist\">${pdfRows}</div>
             </div>
           `;
         printParts.push(printPart);
@@ -1390,43 +1396,34 @@ async function generateReport() {
       });
     }
 
-    // ===== PDF rows = ALWAYS DAILY =====
-    const dailyRowsForPrint = (view === "daily" || view === "monthly") ? rows : aggregateHourlyToDaily(rows);
 
-    // Build clear "row list" for PDF
+    // ===== PDF rows: daily for hourly/daily, monthly for monthly =====
     let pdfRows = "";
-    dailyRowsForPrint.forEach(r => {
-      const dPk = Number(r.peak_kwh || 0);
-      const dOff = Number(r.off_kwh || 0);
-      const dTot = Number(r.kwh || 0);
-      const dAmt = Number(r.amount || 0);
-
-      pdfRows += `
-        <div class="row">
-          <div class="d">${gbDate(r.timestamp)}</div>
-
-          <div class="cell">
-            <div class="k">Peak</div>
-            <div class="v"><strong>${fmtKwh(dPk)}</strong> kWh</div>
-          </div>
-
-          <div class="cell">
-            <div class="k">Off-peak</div>
-            <div class="v"><strong>${fmtKwh(dOff)}</strong> kWh</div>
-          </div>
-
-          <div class="cell">
-            <div class="k">Total</div>
-            <div class="v"><strong>${fmtKwh(dTot)}</strong> kWh</div>
-          </div>
-
-          <div class="cell">
-            <div class="k">ILS (VAT not included)</div>
-            <div class="v"><strong>${fmtMoney(dAmt)}</strong></div>
-          </div>
-        </div>
-      `;
-    });
+    let dailyRowsForPrint = [];
+    if (view === "monthly") {
+      dailyRowsForPrint = rows;
+      pdfRows += `<table class='pdf-table'><thead><tr><th>Month</th><th>Peak (kWh)</th><th>Off-peak (kWh)</th><th>Total (kWh)</th><th>ILS (VAT not included)</th></tr></thead><tbody>`;
+      rows.forEach(r => {
+        const dPk = Number(r.peak_kwh || 0);
+        const dOff = Number(r.off_kwh || 0);
+        const dTot = Number(r.kwh || 0);
+        const dAmt = Number(r.amount || 0);
+        pdfRows += `<tr><td>${gbMonth(r.timestamp)}</td><td>${fmtKwh(dPk)}</td><td>${fmtKwh(dOff)}</td><td>${fmtKwh(dTot)}</td><td>${fmtMoney(dAmt)}</td></tr>`;
+      });
+      pdfRows += `</tbody></table>`;
+    } else {
+      // daily for daily/hourly
+      dailyRowsForPrint = view === "hourly" ? aggregateHourlyToDaily(rows) : rows;
+      pdfRows += `<table class='pdf-table'><thead><tr><th>Date</th><th>Peak (kWh)</th><th>Off-peak (kWh)</th><th>Total (kWh)</th><th>ILS (VAT not included)</th></tr></thead><tbody>`;
+      dailyRowsForPrint.forEach(r => {
+        const dPk = Number(r.peak_kwh || 0);
+        const dOff = Number(r.off_kwh || 0);
+        const dTot = Number(r.kwh || 0);
+        const dAmt = Number(r.amount || 0);
+        pdfRows += `<tr><td>${gbDate(r.timestamp)}</td><td>${fmtKwh(dPk)}</td><td>${fmtKwh(dOff)}</td><td>${fmtKwh(dTot)}</td><td>${fmtMoney(dAmt)}</td></tr>`;
+      });
+      pdfRows += `</tbody></table>`;
+    }
 
     const pdfTitleText = view === 'monthly' ? 'Monthly Consumption Invoice' : (view === 'daily' ? 'Daily Consumption Invoice' : 'Consumption Records');
 
