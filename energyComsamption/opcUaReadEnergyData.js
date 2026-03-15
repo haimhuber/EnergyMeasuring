@@ -51,7 +51,10 @@ async function readOpcActiveEnergyTags() {
             return null;
         }
 
-        // המרה ל Array רגיל
+        // Transform the activeEnergy value into an array if it's not already
+        if (!Array.isArray(activeEnergy)) {
+            activeEnergy = [activeEnergy];
+        }
         activeEnergy = Array.from(activeEnergy);
 
         console.log("Active Energy values:", activeEnergy, {
