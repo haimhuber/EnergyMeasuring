@@ -41,15 +41,24 @@ const PUBLIC_DIR = path.join(process.cwd(), "public");
 // 2) Breakers config
 // =========================
 // הופך רשימה כמו: "1 - Q0 Roof" למפה: { "1": {id:"1", name:"Q0 Roof"} }
-const BREAKERS = Object.fromEntries(
-  (breakersConfig?.breakers || []).map((item) => {
-    const [id, name] = String(item).split(" - ");
-    const sid = String(id || "").trim();
-    const sname = String(name || "").trim();
-    return [sid, { id: sid, name: sname || `Breaker ${sid}` }];
-  })
-);
+const breakerRows = await db.getBreakerNamesInitial();
 
+const BREAKERS = Object.fromEntries(
+    breakerRows.map((row) => {
+        const sid = String(row.id).trim();
+        const sname = String(row.name || "").trim();
+        const sdisplayName = String(row.displayName || "").trim();
+
+        return [
+            sid,
+            {
+                id: sid,
+                name: sname || `Breaker ${sid}`,
+                displayName: sdisplayName || `${sid} - ${sname || `Breaker ${sid}`}`
+            }
+        ];
+    })
+);
 // =========================
 // 3) תעריפים (לפני מע"מ) + מע"מ
 // =========================

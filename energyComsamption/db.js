@@ -196,5 +196,22 @@ async function getEnergyData(breakerId, fromDate, toDate) {
     return result.recordset;
 }
 
+async function getBreakerNamesInitial() {
+    const pool = await connectionToSqlDB();
 
-export default { connectionToSqlDB, csvHandler, getTariffs, updateAllTariffs, getUserByUsername, getUserByEmail, createUser, getBreakerNames, getEnergyData };
+    if (!pool) {
+        console.error('Unable to connect to the database.');
+        return [];
+    }
+
+    try {
+        const result = await pool.request().execute('GetBreakersFormatted');
+        return result.recordset;
+    } catch (err) {
+        console.error('Error fetching breaker names:', err);
+        return [];
+    }
+}
+
+
+export default { connectionToSqlDB, csvHandler, getTariffs, updateAllTariffs, getUserByUsername, getUserByEmail, createUser, getBreakerNames, getEnergyData, getBreakerNamesInitial };
