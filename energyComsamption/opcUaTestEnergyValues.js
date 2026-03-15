@@ -100,6 +100,6 @@ async function readOpcActiveEnergyTags() {
 }
 
 module.exports = { readOpcActiveEnergyTags };
-
+//readOpcActiveEnergyTags();
 
 
