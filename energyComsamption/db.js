@@ -213,5 +213,34 @@ async function getBreakerNamesInitial() {
     }
 }
 
+async function getBreakersLastDailyAndHourlyConsumption() {
+    const pool = await connectionToSqlDB();
 
-export default { connectionToSqlDB, csvHandler, getTariffs, updateAllTariffs, getUserByUsername, getUserByEmail, createUser, getBreakerNames, getEnergyData, getBreakerNamesInitial };
+    if (!pool) {
+        console.error("Unable to connect to the database.");
+        return {
+            summary: [],
+            hourly: []
+        };
+    }
+
+    try {
+        const result = await pool
+            .request()
+            .execute("GetBreakersLastDailyAndHourlyConsumption");
+
+        return {
+            summary: result.recordsets[0] || [],
+            hourly: result.recordsets[1] || []
+        };
+    } catch (err) {
+        console.error("Error fetching breakers last/daily/hourly consumption:", err);
+        return {
+            summary: [],
+            hourly: []
+        };
+    }
+}
+
+
+export default { connectionToSqlDB, csvHandler, getTariffs, updateAllTariffs, getUserByUsername, getUserByEmail, createUser, getBreakerNames, getEnergyData, getBreakerNamesInitial, getBreakersLastDailyAndHourlyConsumption };

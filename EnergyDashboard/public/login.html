@@ -273,67 +273,68 @@
   </div>
 
   <script>
-  async function doLogin() {
-    const email = document.getElementById('email').value.trim().toLowerCase();
-    const password = document.getElementById('password').value || '';
-    const msg = document.getElementById('msg');
-    const btn = document.getElementById('btnLogin');
+    async function doLogin() {
+      const email = document.getElementById('email').value.trim().toLowerCase();
+      const password = document.getElementById('password').value || '';
+      const msg = document.getElementById('msg');
+      const btn = document.getElementById('btnLogin');
 
-    msg.textContent = '';
+      msg.textContent = '';
 
-    if (!email || !password) {
-      msg.textContent = 'Please enter email and password';
-      return;
-    }
-
-    btn.disabled = true;
-    btn.textContent = 'Signing in...';
-
-    try {
-      const resp = await fetch('/api/login', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await resp.json().catch(() => ({}));
-
-      if (!resp.ok) {
-        msg.textContent = data?.detail || 'Login failed';
-        btn.disabled = false;
-        btn.textContent = 'LOGIN';
+      if (!email || !password) {
+        msg.textContent = 'Please enter email and password';
         return;
       }
 
-      localStorage.setItem('UserEmail', email);
-      localStorage.setItem('Username', data?.user?.username || '');
-      msg.textContent = 'Login successful! Redirecting...';
+      btn.disabled = true;
+      btn.textContent = 'Signing in...';
 
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 1000);
+      try {
+        const resp = await fetch('/api/login', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
 
-    } catch (e) {
-      msg.textContent = e?.message || 'Network error';
-      btn.disabled = false;
-      btn.textContent = 'LOGIN';
+        const data = await resp.json().catch(() => ({}));
+
+        if (!resp.ok) {
+          msg.textContent = data?.detail || 'Login failed';
+          btn.disabled = false;
+          btn.textContent = 'LOGIN';
+          return;
+        }
+
+        localStorage.setItem('UserEmail', email);
+        localStorage.setItem('Username', data?.user?.username || '');
+        msg.textContent = 'Login successful! Redirecting...';
+
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 1000);
+
+      } catch (e) {
+        msg.textContent = e?.message || 'Network error';
+        btn.disabled = false;
+        btn.textContent = 'LOGIN';
+      }
     }
-  }
 
-  document.getElementById('btnLogin').addEventListener('click', doLogin);
+    document.getElementById('btnLogin').addEventListener('click', doLogin);
 
-  [document.getElementById('email'), document.getElementById('password')].forEach(el => {
-    el.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') doLogin();
+    [document.getElementById('email'), document.getElementById('password')].forEach(el => {
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') doLogin();
+      });
     });
-  });
 
-  const showRegisterBtn = document.getElementById('show-register');
-  showRegisterBtn.addEventListener('click', () => {
-    window.location.href = './register.html';
-  });
-</script>
+    const showRegisterBtn = document.getElementById('show-register');
+    showRegisterBtn.addEventListener('click', () => {
+      window.location.href = './register.html';
+    });
+  </script>
+
 </body>
 
 </html>

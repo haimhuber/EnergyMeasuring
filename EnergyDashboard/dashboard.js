@@ -44,20 +44,20 @@ const PUBLIC_DIR = path.join(process.cwd(), "public");
 const breakerRows = await db.getBreakerNamesInitial();
 
 const BREAKERS = Object.fromEntries(
-    breakerRows.map((row) => {
-        const sid = String(row.id).trim();
-        const sname = String(row.name || "").trim();
-        const sdisplayName = String(row.displayName || "").trim();
+  breakerRows.map((row) => {
+    const sid = String(row.id).trim();
+    const sname = String(row.name || "").trim();
+    const sdisplayName = String(row.displayName || "").trim();
 
-        return [
-            sid,
-            {
-                id: sid,
-                name: sname || `Breaker ${sid}`,
-                displayName: sdisplayName || `${sid} - ${sname || `Breaker ${sid}`}`
-            }
-        ];
-    })
+    return [
+      sid,
+      {
+        id: sid,
+        name: sname || `Breaker ${sid}`,
+        displayName: sdisplayName || `${sid} - ${sname || `Breaker ${sid}`}`
+      }
+    ];
+  })
 );
 // =========================
 // 3) תעריפים (לפני מע"מ) + מע"מ
@@ -700,6 +700,25 @@ app.get("/api/consumption", authRequired, async (req, res) => {
     return res.status(500).json({ detail: err?.message || "Server error" });
   }
 });
+
+app.get("/api/breakers/consumption", authRequired, async (req, res) => {
+  try {
+    const data = await db.getBreakersLastDailyAndHourlyConsumption();
+
+    res.json({
+      success: true,
+      summary: data.summary,
+      hourly: data.hourly
+    });
+  } catch (err) {
+    console.error("API error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch breakers consumption data"
+    });
+  }
+});
+
 
 // Debug rows – מוגן
 app.get("/api/debug-rows", authRequired, (req, res) => {

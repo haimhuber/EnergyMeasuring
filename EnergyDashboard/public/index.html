@@ -68,26 +68,21 @@
       <div class="loading-text">Loading…</div>
     </div>
   </div>
+
   <div id="abb-modal-overlay" class="abb-modal-overlay hidden">
     <div class="abb-modal" role="dialog" aria-modal="true" aria-labelledby="abb-modal-title">
       <div class="abb-modal-topbar"></div>
-
       <div class="abb-modal-header">
         <div class="abb-modal-brand">
           <span class="abb-modal-brand-text">ABB</span>
           <span class="abb-modal-system-text">Energy Monitoring System</span>
         </div>
-
-        <button id="abb-modal-close" class="abb-modal-close" aria-label="Close dialog">
-          ×
-        </button>
+        <button id="abb-modal-close" class="abb-modal-close" aria-label="Close dialog">×</button>
       </div>
-
       <div class="abb-modal-body">
         <div class="abb-modal-icon-wrap">
           <div class="abb-modal-icon">!</div>
         </div>
-
         <div class="abb-modal-content">
           <h3 id="abb-modal-title" class="abb-modal-title">Hourly comparison limitation</h3>
           <p id="abb-modal-message" class="abb-modal-message">
@@ -95,33 +90,13 @@
           </p>
         </div>
       </div>
-
       <div class="abb-modal-footer">
         <button id="abb-modal-ok" class="abb-btn-primary">OK</button>
       </div>
     </div>
   </div>
 
-  <div class="nav">
-    <span class="nav-logo">
-      <svg width="86" height="20" viewBox="0 0 86 28" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <text x="-10" y="18" font-family="DM Sans, Arial, sans-serif" font-weight="900" font-size="26"
-          fill="#FF000F">ABB</text>
-      </svg>
-    </span>
-    <span class="nav-sub">Energy Monitoring System</span>
-    <div class="nav-right">
-      <span class="nav-user">Welcome, <span id="nav-username"></span></span>
-      <button id="btn-logout" class="btn-logout" style="display:none;">Logout</button>
-    </div>
-    <div class="main-action-buttons">
-      <button onclick="window.location.href='index.html'" id="btn-report-billing" class="action-btn">Report &
-        Billing</button>
-      <button onclick="window.location.href='analyze.html'" id="btn-analyze" class="action-btn">Analyze</button>
-    </div>
-  </div>
-
-  </div>
+  <div id="navbar-container"></div>
 
   <div class="selector-section">
     <div id="tariff-summary-bar" class="tariff-summary-bar">
@@ -165,9 +140,6 @@
         <button id="set-office-hours" class="set-office-hours-btn">Set time</button>
       </div>
     </div>
-
-
-
 
 
     <div class="selector-label">Report Generator</div>
@@ -233,6 +205,15 @@
 
   <script src="index.js">
 
+  </script>
+  <script>
+    async function loadNavbar() {
+      const res = await fetch('navbar.html');
+      const html = await res.text();
+      document.getElementById('navbar-container').innerHTML = html;
+    }
+
+    loadNavbar();
   </script>
 </body>
 

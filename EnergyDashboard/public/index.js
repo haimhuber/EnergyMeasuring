@@ -636,6 +636,7 @@ function currentUsername() {
   const storedName = localStorage.getItem('Username');
   if (username && storedName) {
     username.textContent = storedName;
+
   }
 }
 currentUsername();
@@ -1879,7 +1880,7 @@ async function appInit() {
 appInit();
 
 // Logout helper
-document.getElementById('btn-logout').addEventListener('click', async () => {
+async function logout() {
   try {
     await fetch('/api/logout', { method: 'POST', credentials: 'include' });
   } catch (e) {
@@ -1887,7 +1888,7 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
   }
   // Reload so server serves login page
   window.location.href = '/';
-});
+}
 
 // Show setting button
 async function showSettingButton() {

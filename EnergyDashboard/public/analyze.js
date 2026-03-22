@@ -1,57 +1,64 @@
-// analyze.js
-// This script will render breaker cards with last hourly and daily energy data
-// Placeholder for now
+// Logout helper
+async function logout() {
+    try {
+        await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+    } catch (e) {
+        // ignore
+    }
+    // Reload so server serves login page
+    window.location.href = '/';
+}
 
-document.addEventListener('DOMContentLoaded', () => {
-    const breakers = [
-        {
-            name: 'Breaker 1',
-            lastHourly: '2.1 kWh',
-            totalDaily: '18.7 kWh',
-            hourly: [1.2, 1.5, 2.1, 2.0, 1.8, 2.3, 2.1, 2.0]
-        },
-        {
-            name: 'Breaker 2',
-            lastHourly: '1.7 kWh',
-            totalDaily: '15.2 kWh',
-            hourly: [1.0, 1.3, 1.7, 1.6, 1.5, 2.0, 2.1, 2.0]
-        },
-        {
-            name: 'Breaker 3',
-            lastHourly: '2.5 kWh',
-            totalDaily: '20.1 kWh',
-            hourly: [1.5, 1.8, 2.5, 2.3, 2.2, 2.7, 2.5, 2.6]
-        }
-    ];
-
+document.addEventListener('DOMContentLoaded', async () => {
     const list = document.getElementById('analyze-breakers-list');
-    list.innerHTML = breakers.map((b, idx) => `
-      <div class="breaker-card">
-        <h2>${b.name}</h2>
-        <div class="breaker-data">
-          <div>Last Hourly Consumption: <span>${b.lastHourly}</span></div>
-          <div>Total Daily Energy: <span>${b.totalDaily}</span></div>
-        </div>
-        <div class="breaker-table-section">
-          <div class="breaker-table-title">Hourly Consumption (kWh)</div>
-          <table class="breaker-table">
-          </table>
-          <canvas id="breaker-chart-${idx}" width="320" height="120" style="margin-top:12px;"></canvas>
-        </div>
-      </div>
-    `).join('');
 
-    // Render Chart.js charts for each breaker
-    breakers.forEach((b, idx) => {
-        const ctx = document.getElementById(`breaker-chart-${idx}`);
-        if (ctx && window.Chart) {
+    function formatNumber(value) {
+        const num = Number(value || 0);
+        return `${num.toFixed(2)} kWh`;
+    }
+
+    function formatHourLabel(hourOfDay) {
+        return `${String(hourOfDay).padStart(2, '0')}:00`;
+    }
+
+    function renderBreakers(breakers) {
+        if (!breakers.length) {
+            list.innerHTML = `<div class="breaker-card"><h2>No data available</h2></div>`;
+            return;
+        }
+
+        list.innerHTML = breakers.map((b, idx) => `
+    <div class="breaker-card">
+        <h2>${b.BreakerName}</h2>
+
+        <div class="breaker-data">
+            <div>Last Hourly Consumption: <span>${formatNumber(b.LastHourConsumption)}</span></div>
+            <div>Total Daily Energy: <span>${formatNumber(b.DailyTotalConsumption)}</span></div>
+        </div>
+
+            <div class="breaker-table-section">
+            <div class="breaker-table-title">Hourly Consumption (kWh)</div>
+            <div class="chart-wrap">
+                <canvas id="breaker-chart-${idx}"></canvas>
+            </div>
+            </div>
+            </div>
+            `).join('');
+
+        breakers.forEach((b, idx) => {
+            const ctx = document.getElementById(`breaker-chart-${idx}`);
+            if (!ctx || !window.Chart) return;
+
+            const labels = (b.hourlyData || []).map(h => formatHourLabel(h.HourOfDay));
+            const data = (b.hourlyData || []).map(h => Number(h.HourlyConsumption || 0));
+
             new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: b.hourly.map((_, i) => `Hour ${i + 1}`),
+                    labels,
                     datasets: [{
                         label: 'Hourly Consumption',
-                        data: b.hourly,
+                        data,
                         borderColor: '#ff416c',
                         backgroundColor: 'rgba(255,65,108,0.12)',
                         fill: true,
@@ -63,21 +70,75 @@ document.addEventListener('DOMContentLoaded', () => {
                     }]
                 },
                 options: {
+                    responsive: true,
                     plugins: {
                         legend: { display: false }
                     },
                     scales: {
                         x: {
                             grid: { display: false },
-                            ticks: { color: '#ffe7a0', font: { weight: 600 } }
+                            ticks: {
+                                color: '#ffe7a0',
+                                font: { weight: 600 },
+                                callback: function (value, index) {
+                                    return index % 3 === 0 ? this.getLabelForValue(value) : '';
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Hour',
+                                color: '#ffe7a0'
+                            }
                         },
                         y: {
+                            beginAtZero: true,
                             grid: { color: 'rgba(255,255,255,0.08)' },
-                            ticks: { color: '#ffe7a0', font: { weight: 600 } }
+                            ticks: {
+                                color: '#ffe7a0',
+                                font: { weight: 600 }
+                            },
+                            title: {
+                                display: true,
+                                text: 'kWh',
+                                color: '#ffe7a0'
+                            }
                         }
                     }
                 }
             });
+        });
+    }
+
+    try {
+        list.innerHTML = `<div class="breaker-card"><h2>Loading...</h2></div>`;
+
+        const response = await fetch('/api/breakers/consumption');
+        if (!response.ok) {
+            throw new Error(`HTTP error ${response.status}`);
         }
-    });
+
+        const data = await response.json();
+
+        const summary = data.summary || [];
+        const hourly = data.hourly || [];
+
+        const breakers = summary.map(breaker => ({
+            ...breaker,
+            hourlyData: hourly
+                .filter(h => h.BreakerId === breaker.BreakerId)
+                .sort((a, b) => a.HourOfDay - b.HourOfDay)
+        }));
+
+        renderBreakers(breakers);
+    } catch (err) {
+        console.error('Error loading breaker analysis data:', err);
+        list.innerHTML = `
+            <div class="breaker-card">
+                <h2>Failed to load data</h2>
+                <div class="breaker-data">
+                    <div>Please try again later.</div>
+                </div>
+            </div>
+        `;
+    }
 });

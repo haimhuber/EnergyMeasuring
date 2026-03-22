@@ -5,29 +5,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Analyze - Energy Overview</title>
-    <link rel="stylesheet" href="index.css">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="analyze.css">
     <script defer src="chart.umd.min.js"></script>
 </head>
 
 <body>
-    <div class="nav">
-        <span class="nav-logo">
-            <svg width="86" height="20" viewBox="0 0 86 28" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <text x="-10" y="18" font-family="DM Sans, Arial, sans-serif" font-weight="900" font-size="26"
-                    fill="#FF000F">ABB</text>
-            </svg>
-        </span>
-        <span class="nav-sub">Energy Monitoring System</span>
-        <div class="nav-right">
-            <span class="nav-user">Welcome, <span id="nav-username"></span></span>
-            <button id="btn-logout" class="btn-logout" style="display:none;">Logout</button>
-        </div>
-        <div class="main-action-buttons">
-            <button onclick="window.location.href='index.html'" id="btn-report-billing" class="action-btn">Report &
-                Billing</button>
-            <button onclick="window.location.href='analyze.html'" id="btn-analyze" class="action-btn">Analyze</button>
-        </div>
-    </div>
+    <div id="navbar-container"></div>
     <div class="analyze-title-section">
         <h1>Analyze - Breaker Overview</h1>
         <p>General overview of all breakers: last hourly consumption and total daily energy.</p>
@@ -37,5 +22,14 @@
     </div>
     <script src="analyze.js"></script>
 </body>
+
+<script>
+    async function loadNavbar() {
+        const res = await fetch('navbar.html');
+        const html = await res.text();
+        document.getElementById('navbar-container').innerHTML = html;
+    }
+    loadNavbar();
+</script>
 
 </html>
