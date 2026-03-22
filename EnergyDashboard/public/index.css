@@ -1,3 +1,41 @@
+/* Modern action buttons below nav */
+.main-action-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin: 0;
+    padding: 0 0 12px 0;
+    width: 100%;
+    background: none;
+    box-shadow: none;
+    position: relative;
+    grid-column: 1 / -1;
+}
+
+.action-btn {
+    background: linear-gradient(90deg, #ff416c 0%, #ff4b2b 100%);
+    color: #fff;
+    border: none;
+    border-radius: 16px;
+    padding: 10px 10px;
+    font-size: 12px;
+    font-family: 'DM Sans', Arial, sans-serif;
+    font-weight: 700;
+    box-shadow: 0 4px 18px 0 rgba(255, 65, 108, 0.12);
+    cursor: pointer;
+    transition: transform 0.13s, box-shadow 0.13s, background 0.2s;
+    outline: none;
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.action-btn:hover,
+.action-btn:focus {
+    background: linear-gradient(90deg, #ff4b2b 0%, #ff416c 100%);
+    transform: translateY(-2px) scale(1.04);
+    box-shadow: 0 8px 24px 0 rgba(255, 65, 108, 0.18);
+}
+
 /* PDF Table Styling */
 .pdf-table {
     width: 100%;
@@ -669,7 +707,7 @@ body {
     position: sticky;
     top: 0;
     z-index: 100;
-    height: 70px;
+    height: 90px;
     padding: 0 30px;
     display: grid;
     grid-template-columns: auto 1fr auto;
