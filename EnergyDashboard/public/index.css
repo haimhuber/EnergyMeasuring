@@ -1,3 +1,106 @@
+/* Breaker Table Styles for Analyze */
+.breaker-table-section {
+    margin-top: 18px;
+    width: 100%;
+}
+.breaker-table-title {
+    font-size: 1.01rem;
+    font-weight: 600;
+    color: #ffe7a0;
+    margin-bottom: 6px;
+}
+.breaker-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: rgba(255,255,255,0.03);
+    border-radius: 10px;
+    overflow: hidden;
+    font-size: 0.98rem;
+    margin-bottom: 0;
+}
+.breaker-table th, .breaker-table td {
+    border: 1px solid #232a3a;
+    padding: 6px 8px;
+    text-align: center;
+}
+.breaker-table th {
+    background: #232a3a;
+    color: #fff;
+    font-weight: 700;
+}
+.breaker-table td {
+    color: #ffe7a0;
+    font-weight: 600;
+}
+/* Analyze Screen Styles */
+.analyze-title-section {
+    margin: 36px auto 18px auto;
+    text-align: center;
+}
+
+.analyze-title-section h1 {
+    font-size: 2.1rem;
+    font-weight: 800;
+    color: #ff416c;
+    margin-bottom: 8px;
+}
+
+.analyze-title-section p {
+    color: var(--text-dim);
+    font-size: 1.08rem;
+}
+
+.analyze-breakers-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 32px;
+    justify-content: center;
+    margin: 0 auto;
+    max-width: 1200px;
+}
+
+.breaker-card {
+    background: linear-gradient(120deg, #181e2a 60%, #232a3a 100%);
+    border-radius: 18px;
+    box-shadow: 0 4px 18px 0 rgba(255, 65, 108, 0.10);
+    padding: 28px 32px 22px 32px;
+    min-width: 260px;
+    max-width: 320px;
+    flex: 1 1 260px;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 18px;
+    border: 1.5px solid #232a3a;
+    transition: box-shadow 0.18s, transform 0.13s;
+}
+
+.breaker-card:hover {
+    box-shadow: 0 8px 32px 0 rgba(255, 65, 108, 0.18);
+    transform: translateY(-2px) scale(1.03);
+}
+
+.breaker-card h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #ff416c;
+}
+
+.breaker-data {
+    font-size: 1.08rem;
+    color: #ffe7a0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.breaker-data span {
+    color: #fff;
+    font-weight: 700;
+}
+
 /* Modern action buttons below nav */
 .main-action-buttons {
     display: flex;

@@ -1342,7 +1342,7 @@ async function generateReport() {
 
   setStatus('loading', 'Fetching data...');
   console.log(breakerId);
-  
+
   try {
     const url = `${API_BASE}/api/consumption?breaker_id=${breakerId}&from_date=${encodeURIComponent(from)}&to_date=${encodeURIComponent(to)}&view=${encodeURIComponent(view)}`;
     const resp = await fetch(url, { cache: "no-store", credentials: 'include' });
@@ -1383,7 +1383,7 @@ async function generateReport() {
 
     // ✅ IMPORTANT: keys in BREAKERS are strings
     const breaker = BREAKERS[String(breakerId)] || { name: `Breaker ${breakerId}`, id: String(breakerId) };
-    
+
     const invoiceNo = d.invoice_no || `INV-${new Date().toISOString().slice(0, 10)}`;
     const today = (d.generated_at || new Date().toLocaleString("en-GB")).toString();
 
