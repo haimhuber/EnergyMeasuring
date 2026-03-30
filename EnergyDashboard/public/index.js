@@ -13,8 +13,27 @@ function highlightCurrentSeasonInBar() {
   if (el) el.classList.add('current-season');
 }
 
+async function checkAuth() {
+  try {
+    const response = await fetch('/api/me', { credentials: 'include' });
+    const data = await response.json();
+    if (!data.ok) {
+      window.alert('Session expired. Please log in again.');
+      logout();
+    } else {
+      const userName = document.getElementById('nav-username');
+      userName.textContent = data.user.username;
+    }
+  } catch (e) {
+    window.alert('Unable to verify session. Please log in again.');
+    logout();
+  }
+}
+
+
 // Run highlight on load unless the user disabled it (persisted in localStorage)
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  await checkAuth();
   try {
     const auto = localStorage.getItem('autoHighlightSeason');
     if (auto === 'false') return; // user opted out
