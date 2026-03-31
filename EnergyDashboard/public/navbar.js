@@ -1,4 +1,3 @@
-
 addEventListener('DOMContentLoaded', async function () {
     await loadNavbar();
 }
@@ -206,6 +205,14 @@ async function iniitializeNavbar() {
     }
 }
 
+// --- ChatGPT Modal Integration ---
+// Ensure chatgpt-modal.js is loaded in your HTML!
+document.addEventListener('DOMContentLoaded', function () {
+    const chatBtn = document.getElementById('btn-chatgpt');
+    if (chatBtn && typeof createChatGptModal === 'function') {
+        chatBtn.addEventListener('click', createChatGptModal);
+    }
+});
 
 async function loadNavbar() {
     const res = await fetch('navbar.html');
