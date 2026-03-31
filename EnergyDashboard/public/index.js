@@ -985,7 +985,7 @@ function showBreakerSelectionModal(onConfirm) {
   okBtn.textContent = 'Confirm';
   okBtn.className = 'btn-confirm';
   okBtn.style.background = '#1a7f37';
-  okBtn.style.color = '#fff';
+  okBtn.style.color = '#5a5757';
   okBtn.style.fontWeight = 'bold';
   okBtn.onclick = () => {
     const checked = Array.from(list.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
@@ -1055,7 +1055,7 @@ async function generateMultiBreakerReport() {
 
         const part = `
             <div style="border:0px solid #201f1f;border-radius:8px;margin-bottom:18px;overflow:hidden;background:#fff;">
-              <div style="padding:12px 16px;border-bottom:1px solid #000000;display:flex;justify-content:space-between;align-items:center;">
+              <div style="padding:12px 16px;border-bottom:1px solid #000000;display:flex;justify-content:space-between;align-items:center;color:#222;">
                 <div style="font-weight:800">${breaker.name} — Breaker ID ${breaker.id}</div>
                 <div style="font-family:DM Mono,monospace;font-size:12px;color:#666">Invoice: ${d.invoice_no || ''}</div>
               </div>
@@ -1071,9 +1071,9 @@ async function generateMultiBreakerReport() {
                   </table>
                 </div>
               </div>
-              <div style="padding:12px 12px; border-top:1px solid #000000; display:flex; justify-content:flex-end; gap:20px;">
-        <div style="font-weight:700;">Total due (not included VAT): <span style="font-family:DM Mono,monospace;">${fmtMoney(d.total_amount || 0)} ILS</span></div>
-        </div>
+                <div style="padding:12px 12px; border-top:1px solid #030303; display:flex; justify-content:flex-end; gap:20px; color:#222;">
+              <div style="font-weight:700;">Total due (not included VAT): <span style="font-family:DM Mono,monospace;">${fmtMoney(d.total_amount || 0)} ILS</span></div>
+              </div>
         <hr style="margin:30px 0; height:6px; border: solid; background:#e6e6e6;" />
           `;
 
@@ -1096,7 +1096,7 @@ async function generateMultiBreakerReport() {
           pdfChartCanvas.width = 900;
           pdfChartCanvas.height = 320;
           const ctx = pdfChartCanvas.getContext('2d');
-          ctx.fillStyle = '#fff';
+          ctx.fillStyle = '#2b2828';
           ctx.fillRect(0, 0, pdfChartCanvas.width, pdfChartCanvas.height);
           const chartLeft = 60, chartTop = 40, chartWidth = 780, chartHeight = 200;
           const maxVal = Math.max(...peakData, ...offData, 10);
