@@ -8,11 +8,11 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="analyze.css">
-    <link rel="stylesheet" href="navbar.css">
     <script defer src="chart.umd.min.js"></script>
 </head>
 
 <body>
+
     <div id="navbar-container"></div>
     <div class="analyze-title-section">
         <h1>Analyze - Breaker Overview</h1>
@@ -23,6 +23,7 @@
     </div>
     <script src="analyze.js"></script>
     <script src="navbar.js"></script>
+
     <script>
         async function loadNavbar() {
             const res = await fetch('navbar.html');

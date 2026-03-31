@@ -1699,6 +1699,11 @@ async function generateReport() {
               <div class="pv">${fmtKwh(offKwh)} kWh</div>
               <div class="ps">${fmtMoney(offAmt)} ILS</div>
             </div>
+             <div class="pill total">
+              <div class="pl">Total kWh</div>
+              <div class="pv">${fmtKwh(totalKwh)} kWh</div>
+              <div class="ps">${fmtMoney(grand)} ILS</div>
+            </div>
           </div>
         </div>
 
@@ -1872,17 +1877,6 @@ async function appInit() {
 }
 
 appInit();
-
-// Logout helper
-async function logout() {
-  try {
-    await fetch('/api/logout', { method: 'POST', credentials: 'include' });
-  } catch (e) {
-    // ignore
-  }
-  // Reload so server serves login page
-  window.location.href = '/';
-}
 
 // Show setting button
 async function showSettingButton() {

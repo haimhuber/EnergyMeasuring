@@ -1,3 +1,14 @@
+
+// Logout helper
+async function logout() {
+    try {
+        await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+    } catch (e) {
+        // ignore
+    }
+    // Reload so server serves login page
+    window.location.href = '/';
+}
 async function checkAuth() {
     try {
         const response = await fetch('/api/me', { credentials: 'include' });

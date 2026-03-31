@@ -9,7 +9,7 @@
     color: inherit;
 }
 
-.nav {
+.navbar {
     display: flex;
     align-items: center;
     height: 56px;
@@ -23,7 +23,7 @@
     max-width: 100vw;
 }
 
-.nav-inner {
+.navbar-inner {
     display: flex;
     align-items: center;
     gap: 9px;
@@ -31,16 +31,16 @@
     min-width: 0;
 }
 
-.nav-logo {
+.navbar-logo {
     margin-right: 16px;
 }
 
-.nav-sub {
+.navbar-sub {
     color: #941f1f;
     font-weight: bolder;
 }
 
-.main-action-buttons {
+.navbar-action-buttons {
     display: flex;
     gap: 8px;
     margin-right: 8px;
@@ -101,14 +101,14 @@
     font-size: 12px;
 }
 
-.nav-right {
+.navbar-right {
     display: flex;
     align-items: center;
     gap: 10px;
     min-width: 0;
 }
 
-.nav-user {
+.navbar-user {
     font-size: 13px;
 }
 

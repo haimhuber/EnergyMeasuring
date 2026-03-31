@@ -1,15 +1,4 @@
 
-// Logout helper
-async function logout() {
-    try {
-        await fetch('/api/logout', { method: 'POST', credentials: 'include' });
-    } catch (e) {
-        // ignore
-    }
-    // Reload so server serves login page
-    window.location.href = '/';
-}
-
 document.addEventListener('DOMContentLoaded', async () => {
     const list = document.getElementById('analyze-breakers-list');
 
