@@ -1,4 +1,15 @@
-const API_BASE = "";
+
+addEventListener('DOMContentLoaded', async function () {
+    await loadNavbar();
+}
+);
+
+async function loadNavbar() {
+    const res = await fetch('navbar.html');
+    const html = await res.text();
+    document.getElementById('navbar-container').innerHTML = html;
+    await iniitializeNavbar();
+}
 
 // Logout helper
 async function logout() {
@@ -29,7 +40,7 @@ async function checkAuth() {
 }
 
 async function adjustUIForUserRole() {
-    const userRole = await fetch(`${API_BASE}/api/me`);
+    const userRole = await fetch(`/api/me`);
     const userData = await userRole.json();
     return userData?.user?.role || "Expired";
 }
