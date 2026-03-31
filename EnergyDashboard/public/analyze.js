@@ -27,7 +27,7 @@ async function logout() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-    await checkAuth();
+    // await checkAuth();
 
 
     const list = document.getElementById('analyze-breakers-list');

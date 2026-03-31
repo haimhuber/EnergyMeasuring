@@ -379,20 +379,6 @@
     transform: rotate(20deg);
 }
 
-.tariff-season.current-season {
-    background: linear-gradient(135deg, #ffe7a0 0%, #fffbe0 100%);
-    color: #000 !important;
-    box-shadow: 0 4px 18px 0 rgba(255, 231, 160, 0.35), 0 1.5px 8px 0 rgba(0, 0, 0, 0.10);
-    transform: scale(1.08) perspective(300px) translateZ(8px);
-    border: 2.5px solid #ffe7a0;
-    z-index: 2;
-}
-
-.tariff-season.current-season .tariff-label,
-.tariff-season.current-season .tariff-rates,
-.tariff-season.current-season .tariff-emoji {
-    color: #000 !important;
-}
 
 /* Tariff summary bar styles */
 .tariff-summary-bar {

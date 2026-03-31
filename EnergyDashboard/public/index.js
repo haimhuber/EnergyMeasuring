@@ -1,18 +1,3 @@
-// --- Highlight current season in summary bar ---
-function highlightCurrentSeasonInBar() {
-  // Remove previous highlight
-  document.querySelectorAll('.tariff-season').forEach(el => el.classList.remove('current-season'));
-  // Determine current season
-  const now = new Date();
-  const m = now.getMonth() + 1;
-  let season = 'shoulder';
-  if (m === 12 || m === 1 || m === 2) season = 'winter';
-  else if (m >= 6 && m <= 9) season = 'summer';
-  // Highlight
-  const el = document.getElementById('tariff-' + season);
-  if (el) el.classList.add('current-season');
-}
-
 async function checkAuth() {
   try {
     const response = await fetch('/api/me', { credentials: 'include' });
@@ -30,18 +15,6 @@ async function checkAuth() {
   }
 }
 
-
-// Run highlight on load unless the user disabled it (persisted in localStorage)
-document.addEventListener('DOMContentLoaded', async () => {
-  await checkAuth();
-  try {
-    const auto = localStorage.getItem('autoHighlightSeason');
-    if (auto === 'false') return; // user opted out
-  } catch (e) {
-    // ignore localStorage errors
-  }
-  highlightCurrentSeasonInBar();
-});
 
 // Helpers exposed to the console so you can toggle the behaviour without editing code:
 window.setAutoHighlightSeason = function (enabled) {
@@ -1032,6 +1005,7 @@ function showBreakerSelectionModal(onConfirm) {
 
 // Updated: Generate report for user-selected breakers
 async function generateMultiBreakerReport() {
+  await checkAuth();
   showBreakerSelectionModal(async (ids) => {
     const checkCookie = await fetch(`${API_BASE}/api/me`);
     if (!checkCookie.ok) {
@@ -1327,6 +1301,7 @@ async function loadBreakersAndFillSelect() {
 }
 
 async function generateReport() {
+  await checkAuth();
   const breakerId = parseInt(document.getElementById('sel-breaker').value, 10);
   const from = document.getElementById('sel-from').value;
   const to = document.getElementById('sel-to').value;

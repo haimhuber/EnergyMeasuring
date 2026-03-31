@@ -41,7 +41,6 @@
       </form>
     </div>
   </div>
-
 </div>
 <!DOCTYPE html>
 <html lang="en">
@@ -99,48 +98,6 @@
   <div id="navbar-container"></div>
 
   <div class="selector-section">
-    <div id="tariff-summary-bar" class="tariff-summary-bar">
-      <button id="btn-settings" class="btn-settings" style="margin-left:12px;font-size:18px;" title="Settings">
-        ⚙️
-      </button>
-      <h3>Seasons & Tariffs:</h3>
-      <div class="tariff-season" id="tariff-winter">
-        <span class="tariff-emoji">❄️</span>
-        <span class="tariff-label">Winter</span>
-        <span class="tariff-rates">Off: <span class="tariff-off">-</span> | Peak: <span
-            class="tariff-peak">-</span></span>
-      </div>
-      <div class="tariff-season" id="tariff-shoulder">
-        <span class="tariff-emoji">🍂</span>
-        <span class="tariff-label">Shoulder</span>
-        <span class="tariff-rates">Off: <span class="tariff-off">-</span> | Peak: <span
-            class="tariff-peak">-</span></span>
-      </div>
-      <div class="tariff-season" id="tariff-summer">
-        <span class="tariff-emoji">🌞</span>
-        <span class="tariff-label">Summer</span>
-        <span class="tariff-rates">Off: <span class="tariff-off">-</span> | Peak: <span
-            class="tariff-peak">-</span></span>
-      </div>
-      <div class="tariff-vat-summary">VAT: <span id="tariff-vat-summary">-</span></div>
-    </div>
-
-    <div id="office-hours-bar" class="tariff-summary-bar">
-
-      <h3>Office hours</h3>
-      <div class="office-hours-input-group">
-        <div class="office-hours-input">
-          <label for="start-hours">Start Hours</label>
-          <input type="time" id="start-hours" name="start-hours" />
-        </div>
-        <div class="office-hours-input">
-          <label for="end-hours">End Hours</label>
-          <input type="time" id="end-hours" name="end-hours" />
-        </div>
-        <button id="set-office-hours" class="set-office-hours-btn">Set time</button>
-      </div>
-    </div>
-
 
     <div class="selector-label">Report Generator</div>
     <div class="selector-title">Generate Energy Invoice</div>
@@ -203,16 +160,15 @@
   <!-- ✅ Printable "records only" container -->
   <div id="print-records" class="print-only-records"></div>
 
-  <script src="index.js">
-
-  </script>
+  <script src="index.js"></script>
+  <script src="navbar.js"></script>
   <script>
     async function loadNavbar() {
       const res = await fetch('navbar.html');
       const html = await res.text();
       document.getElementById('navbar-container').innerHTML = html;
+      await iniitializeNavbar();
     }
-
     loadNavbar();
   </script>
 </body>

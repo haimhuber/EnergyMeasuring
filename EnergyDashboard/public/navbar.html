@@ -1,32 +1,105 @@
-<div class="nav">
-    <span class="nav-logo">
-        <svg width="86" height="20" viewBox="0 0 86 28" xmlns="http://www.w3.org/2000/svg">
-            <text x="-10" y="18" font-family="DM Sans, Arial, sans-serif" font-weight="900" font-size="26"
-                fill="#FF000F">ABB</text>
-        </svg>
-    </span>
+<!DOCTYPE html>
+<html lang="en">
 
-    <span class="nav-sub">Energy Monitoring System</span>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Navbar</title>
+    <link rel="stylesheet" href="navbar.css">
+</head>
 
-    <div class="nav-right">
-        <span class="nav-user">
-            Welcome, <span id="nav-username"></span>
-        </span>
+<body>
 
-        <button onclick="logout()" id="btn-logout" class="btn-logout">
-            Logout
-        </button>
+    <!-- Tariff Settings Modal -->
+    <div id="tariff-modal-overlay" class="tariff-modal-overlay hidden">
+        <div class="tariff-modal" role="dialog" aria-modal="true" aria-labelledby="tariff-modal-title">
+            <div class="tariff-modal-header">
+                <span id="tariff-modal-title">Edit Tariff Rates</span>
+                <button id="tariff-modal-close" class="tariff-modal-close" aria-label="Close">×</button>
+            </div>
+            <div class="tariff-modal-body">
+                <form id="tariff-form">
+                    <table class="tariff-table">
+                        <thead>
+                            <tr>
+                                <th>Season</th>
+                                <th>Off Rate</th>
+                                <th>Peak Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Winter</td>
+                                <td><input type="number" step="0.0001" min="0" id="winter-off" required></td>
+                                <td><input type="number" step="0.0001" min="0" id="winter-peak" required></td>
+                            </tr>
+                            <tr>
+                                <td>Shoulder</td>
+                                <td><input type="number" step="0.0001" min="0" id="shoulder-off" required></td>
+                                <td><input type="number" step="0.0001" min="0" id="shoulder-peak" required></td>
+                            </tr>
+                            <tr>
+                                <td>Summer</td>
+                                <td><input type="number" step="0.0001" min="0" id="summer-off" required></td>
+                                <td><input type="number" step="0.0001" min="0" id="summer-peak" required></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="tariff-table">
+                        <label for="tariff-vat">VAT Rate:</label>
+                        <input type="number" step="0.0001" min="0" id="tariff-vat" required
+                            style="width:100px; margin-left:8px;">
+                    </div>
+                    <button type="submit" class="btn-save-tariff">Save</button>
+                </form>
+            </div>
+        </div>
     </div>
 
-    <div class="main-action-buttons">
-        <button onclick="window.location.href='index.html'" class="action-btn">
-            Report & Billing
-        </button>
 
-        <button onclick="window.location.href='analyze.html'" class="action-btn">
-            Analyze
-        </button>
+    <div class="nav">
+        <div class="nav-inner">
+            <span class="nav-logo">
+                <svg width="110" height="32" viewBox="0 0 110 32" xmlns="http://www.w3.org/2000/svg">
+                    <text x="-1" y="26" font-family="DM Sans, Arial, sans-serif" font-weight="900" font-size="30"
+                        fill="#FF000F">ABB</text>
+                </svg>
+            </span>
+            <span class="nav-sub">Energy Monitoring System</span>
+            <div class="main-action-buttons">
+                <button onclick="window.location.href='index.html'" class="action-btn">Report & Billing</button>
+                <button onclick="window.location.href='analyze.html'" class="action-btn">Analyze</button>
+            </div>
+            <div id="tariff-summary-bar" class="tariff-summary-bar">
+                <button id="btn-settings" class="btn-settings" title="Settings">⚙️</button>
+                <span class="tariff-title">Seasons & Tariffs:</span>
+                <div class="tariff-season" id="tariff-winter">
+                    <span class="tariff-emoji">❄️</span>
+                    <span class="tariff-label">Winter</span>
+                    <span class="tariff-rates">Off: <span class="tariff-off">-</span> | Peak: <span
+                            class="tariff-peak">-</span></span>
+                </div>
+                <div class="tariff-season" id="tariff-shoulder">
+                    <span class="tariff-emoji">🍂</span>
+                    <span class="tariff-label">Shoulder</span>
+                    <span class="tariff-rates">Off: <span class="tariff-off">-</span> | Peak: <span
+                            class="tariff-peak">-</span></span>
+                </div>
+                <div class="tariff-season" id="tariff-summer">
+                    <span class="tariff-emoji">🌞</span>
+                    <span class="tariff-label">Summer</span>
+                    <span class="tariff-rates">Off: <span class="tariff-off">-</span> | Peak: <span
+                            class="tariff-peak">-</span></span>
+                </div>
+                <div class="tariff-vat-summary">VAT: <span id="tariff-vat-summary">-</span></div>
+            </div>
+        </div>
+        <div class="nav-right">
+            <span class="nav-user">Welcome, <span id="nav-username"></span></span>
+            <button onclick="logout()" id="btn-logout" class="btn-logout">Logout</button>
+        </div>
     </div>
-    <script src="analyze.js"></script>
 
-</div>
+</body>
+
+</html>
