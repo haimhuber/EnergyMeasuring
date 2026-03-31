@@ -1,3 +1,4 @@
+const API_BASE = "";
 
 // Logout helper
 async function logout() {
@@ -59,8 +60,10 @@ async function iniitializeNavbar() {
     const tariffForm = document.getElementById('tariff-form');
     if (btnSettings) btnSettings.style.visibility = 'visible';
 
-    // Open modal and load data
+    // Ensure modal only opens on button click
     if (btnSettings && modalOverlay) {
+        // Remove any accidental open state on load
+        modalOverlay.classList.add('hidden');
         btnSettings.addEventListener('click', async function () {
             // בדיקת הרשאות (אם צריך)
             if (typeof adjustUIForUserRole === 'function') {

@@ -258,3 +258,8 @@ body {
         font-size: 1.6rem;
     }
 }
+
+/* Force modal to be hidden unless .hidden is removed */
+#tariff-modal-overlay.hidden {
+    display: none !important;
+}

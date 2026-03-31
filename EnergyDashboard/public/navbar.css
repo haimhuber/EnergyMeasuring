@@ -126,3 +126,33 @@ body {
     padding: 4px 12px;
     height: 28px;
 }
+
+/* Stronger specificity for navbar to override analyze.css */
+body .navbar,
+body .navbar * {
+    color: inherit;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+body .navbar {
+    background: #020202 !important;
+    border-bottom: 2.5px solid #6d1b1b !important;
+    z-index: 1000 !important;
+}
+
+body .navbar .navbar-sub {
+    color: #941f1f !important;
+}
+
+body .navbar .action-btn,
+body .navbar .btn-logout {
+    background: #fff !important;
+    color: #222 !important;
+    border: 1px solid #222 !important;
+}
+
+body .navbar .action-btn:hover,
+body .navbar .btn-logout:hover {
+    background: #f5f5f5 !important;
+}
