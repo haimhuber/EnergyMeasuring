@@ -8,6 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="analyze.css">
+    <link rel="stylesheet" href="navbar.css">
     <script defer src="chart.umd.min.js"></script>
 </head>
 
@@ -27,8 +28,8 @@
             const res = await fetch('navbar.html');
             const html = await res.text();
             document.getElementById('navbar-container').innerHTML = html;
+            await iniitializeNavbar();
         }
-
         loadNavbar();
     </script>
 </body>
