@@ -19,6 +19,12 @@ dotenv.config({ path: './.env.unified' });
 // JSON import (Node ESM)
 import breakersConfig from "../energyComsamption/breakerConfig.json" with { type: "json" };
 import db from "../energyComsamption/db.js";
+import OpenAI from "openai";
+
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
 
 // 1) בסיס והגדרות כלליות
 // =========================
@@ -417,6 +423,319 @@ app.get("/", (req, res) => {
 // =========================
 // 10) AUTH API
 // =========================
+app.post("/api/ai-query", authRequired, async (req, res) => {
+  const { question } = req.body;
+
+  if (!question || typeof question !== "string") {
+    return res.status(400).json({ error: "Missing question" });
+  }
+
+  try {
+    const sqlResponse = await openai.responses.create({
+      model: "gpt-4.1-mini",
+      input: `
+You generate SQL Server queries for energy analysis.
+
+Important rules:
+1. EnergyData.ActiveEnergy is a cumulative meter value.
+2. Never SUM ActiveEnergy directly.
+3. Consumption must be calculated from differences between consecutive readings.
+4. Hourly consumption = current ActiveEnergy - previous ActiveEnergy.
+5. Use SQL Server syntax only.
+6. Return ONLY raw SQL.
+7. Do not use markdown.
+8. Do not use triple backticks.
+9. Only SELECT or WITH...SELECT queries are allowed.
+10. The [timestamp] column in EnergyData is already stored in correct local Israel time.
+11. Do NOT convert [timestamp] to UTC.
+12. Do NOT apply timezone transformations.
+13. Use [timestamp] as-is for filtering, grouping, and ordering.
+14. Use GETDATE() if current local server time is needed, not GETUTCDATE().
+15. Use [timestamp] with brackets because timestamp can be treated as a reserved word.
+16. Ignore negative consumption deltas unless the user explicitly asks about resets or anomalies.
+17. When comparing breakers for today, return one row per breaker with aliases such as BreakerId and daily_consumption.
+18. When returning total daily consumption, use aliases such as total_consumption_today.
+19. Prefer clear aliases in SQL output.
+
+Database schema:
+Table: EnergyData
+Columns:
+- BreakerId INT
+- ActiveEnergy FLOAT
+- [timestamp] DATETIME2
+
+Example for hourly consumption:
+WITH HourlyData AS (
+    SELECT
+        BreakerId,
+        [timestamp],
+        ActiveEnergy - LAG(ActiveEnergy) OVER (
+            PARTITION BY BreakerId
+            ORDER BY [timestamp]
+        ) AS Consumption
+    FROM EnergyData
+)
+SELECT
+    BreakerId,
+    [timestamp],
+    Consumption
+FROM HourlyData
+WHERE Consumption IS NOT NULL
+  AND Consumption >= 0
+ORDER BY [timestamp];
+
+Example for daily consumption of breaker 1:
+WITH HourlyData AS (
+    SELECT
+        BreakerId,
+        [timestamp],
+        ActiveEnergy - LAG(ActiveEnergy) OVER (
+            PARTITION BY BreakerId
+            ORDER BY [timestamp]
+        ) AS Consumption
+    FROM EnergyData
+    WHERE BreakerId = 1
+)
+SELECT
+    BreakerId,
+    CAST([timestamp] AS DATE) AS [day],
+    SUM(Consumption) AS daily_consumption
+FROM HourlyData
+WHERE Consumption IS NOT NULL
+  AND Consumption >= 0
+GROUP BY BreakerId, CAST([timestamp] AS DATE)
+ORDER BY [day];
+
+User question:
+${question}
+`
+    });
+
+    let sqlQuery = (sqlResponse.output_text || "").trim();
+
+    sqlQuery = sqlQuery
+      .replace(/```sql/gi, "")
+      .replace(/```/g, "")
+      .trim();
+
+    console.log("Generated SQL:", sqlQuery);
+
+    const lower = sqlQuery.toLowerCase().trim();
+
+    const forbidden = [
+      "delete",
+      "update",
+      "insert",
+      "drop",
+      "alter",
+      "truncate",
+      "create",
+      "merge",
+      "exec",
+      "execute"
+    ];
+
+    const isSelect = lower.startsWith("select") || lower.startsWith("with");
+
+    if (!isSelect || forbidden.some(word => lower.includes(word))) {
+      return res.status(400).json({
+        error: "Only SELECT / WITH SELECT queries are allowed",
+        sql: sqlQuery
+      });
+    }
+
+    const pool = await db.connectionToSqlDB();
+    const result = await pool.request().query(sqlQuery);
+
+    console.log("RAW DATA:", result.recordset);
+    console.log("JSON DATA:", JSON.stringify(result.recordset, null, 2));
+
+    function formatLocalDateTime(dateValue) {
+      const d = new Date(dateValue);
+      return (
+        d.getFullYear() + "-" +
+        String(d.getMonth() + 1).padStart(2, "0") + "-" +
+        String(d.getDate()).padStart(2, "0") + " " +
+        String(d.getHours()).padStart(2, "0") + ":" +
+        String(d.getMinutes()).padStart(2, "0") + ":" +
+        String(d.getSeconds()).padStart(2, "0")
+      );
+    }
+
+    const safeData = result.recordset.map(row => {
+      const safeRow = { ...row };
+
+      if (row.timestamp instanceof Date) {
+        safeRow.local_timestamp = formatLocalDateTime(row.timestamp);
+        delete safeRow.timestamp;
+      } else if (row.timestamp) {
+        safeRow.local_timestamp = row.timestamp;
+        delete safeRow.timestamp;
+      }
+
+      return safeRow;
+    });
+
+    console.log("SAFE DATA:", safeData);
+    console.log("SAFE JSON DATA:", JSON.stringify(safeData, null, 2));
+
+    function buildSingleRowAnswer(row) {
+      if (row.total_consumption_today !== undefined) {
+        return `סך הצריכה להיום הוא ${row.total_consumption_today}.`;
+      }
+
+      if (row.daily_consumption !== undefined && row.BreakerId !== undefined && row.day !== undefined) {
+        return `הצריכה היומית של מפסק ${row.BreakerId} בתאריך ${row.day} היא ${row.daily_consumption}.`;
+      }
+
+      if (row.daily_consumption !== undefined && row.BreakerId !== undefined) {
+        return `הצריכה היומית של מפסק ${row.BreakerId} היא ${row.daily_consumption}.`;
+      }
+
+      if (row.daily_consumption !== undefined) {
+        return `הצריכה היומית היא ${row.daily_consumption}.`;
+      }
+
+      if (row.hourly_consumption !== undefined) {
+        if (row.local_timestamp) {
+          return `הצריכה בשעה ${row.local_timestamp} היא ${row.hourly_consumption}.`;
+        }
+        return `הצריכה השעתית היא ${row.hourly_consumption}.`;
+      }
+
+      if (row.Consumption !== undefined && row.BreakerId !== undefined && row.local_timestamp) {
+        return `הנתון שחזר הוא עבור מפסק ${row.BreakerId}, בשעה ${row.local_timestamp}, עם צריכה של ${row.Consumption}.`;
+      }
+
+      if (row.Consumption !== undefined && row.BreakerId !== undefined) {
+        return `הערך שחזר עבור מפסק ${row.BreakerId} הוא ${row.Consumption}.`;
+      }
+
+      if (row.max_consumption !== undefined) {
+        return `הצריכה המקסימלית היא ${row.max_consumption}.`;
+      }
+
+      if (row.avg_consumption !== undefined) {
+        return `הצריכה הממוצעת היא ${row.avg_consumption}.`;
+      }
+
+      return null;
+    }
+
+    function buildMultiRowAnswer(rows) {
+      if (!Array.isArray(rows) || rows.length === 0) return null;
+
+      const allDailyByBreaker = rows.every(
+        row => row.BreakerId !== undefined && row.daily_consumption !== undefined
+      );
+
+      if (allDailyByBreaker) {
+        const sortedRows = [...rows].sort((a, b) => b.daily_consumption - a.daily_consumption);
+        const parts = rows.map(
+          row => `מפסק ${row.BreakerId} צרך ${row.daily_consumption}`
+        );
+
+        const topRow = sortedRows[0];
+        return `${parts.join(", ")}. הצריכה הגבוהה יותר היא של מפסק ${topRow.BreakerId} עם ${topRow.daily_consumption}.`;
+      }
+
+      const allConsumptionByBreaker = rows.every(
+        row => row.BreakerId !== undefined && row.Consumption !== undefined
+      );
+
+      if (allConsumptionByBreaker) {
+        const parts = rows.map(row => {
+          if (row.local_timestamp) {
+            return `מפסק ${row.BreakerId} בשעה ${row.local_timestamp} צרך ${row.Consumption}`;
+          }
+          return `מפסק ${row.BreakerId} צרך ${row.Consumption}`;
+        });
+
+        return parts.join(", ") + ".";
+      }
+
+      return null;
+    }
+
+    let finalAnswer = "לא נמצאה תשובה.";
+
+    if (safeData.length === 0) {
+      finalAnswer = "לא נמצאו נתונים עבור השאילתה המבוקשת.";
+    } else if (safeData.length === 1) {
+      const builtAnswer = buildSingleRowAnswer(safeData[0]);
+
+      if (builtAnswer) {
+        finalAnswer = builtAnswer;
+      } else {
+        const analysisResponse = await openai.responses.create({
+          model: "gpt-4.1-mini",
+          input: `
+ענה בעברית קצרה, ברורה ומדויקת.
+בסס את התשובה רק על הנתונים הבאים.
+
+Rules:
+1. local_timestamp is already correct local database time.
+2. Do not convert or shift time.
+3. Do not invent values.
+4. Base the answer only on the SQL result.
+
+User question:
+${question}
+
+SQL result:
+${JSON.stringify(safeData)}
+`
+        });
+
+        finalAnswer = analysisResponse.output_text || "לא נמצאה תשובה.";
+      }
+    } else {
+      const builtMultiAnswer = buildMultiRowAnswer(safeData);
+
+      if (builtMultiAnswer) {
+        finalAnswer = builtMultiAnswer;
+      } else {
+        const analysisResponse = await openai.responses.create({
+          model: "gpt-4.1-mini",
+          input: `
+ענה בעברית קצרה, ברורה ומדויקת.
+
+Rules:
+1. Base the answer only on the SQL result below.
+2. Do not invent values.
+3. If multiple breakers are returned, compare them clearly.
+4. Use the values exactly as provided.
+5. local_timestamp is already correct local database time.
+6. Do not convert or shift time.
+
+User question:
+${question}
+
+SQL result:
+${JSON.stringify(safeData)}
+`
+        });
+
+        finalAnswer = analysisResponse.output_text || "לא נמצאה תשובה.";
+      }
+    }
+
+    res.json({
+      sql: sqlQuery,
+      data: safeData,
+      answer: finalAnswer
+    });
+
+  } catch (err) {
+    console.error("AI Query error:", err);
+    res.status(500).json({
+      error: "AI query failed",
+      detail: err.message
+    });
+  }
+});
+
+
 app.post("/api/login", async (req, res) => {
   try {
     const email = String(req.body?.email || "").trim().toLowerCase();
