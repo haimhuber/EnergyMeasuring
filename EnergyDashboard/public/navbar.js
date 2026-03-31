@@ -4,11 +4,30 @@ addEventListener('DOMContentLoaded', async function () {
 }
 );
 
-async function loadNavbar() {
-    const res = await fetch('navbar.html');
-    const html = await res.text();
-    document.getElementById('navbar-container').innerHTML = html;
-    await iniitializeNavbar();
+// --- Tariff Summary Bar Fill ---
+async function fillTariffSummaryBar() {
+    try {
+        const resp = await fetch('/api/tariffs', { credentials: 'include' });
+        if (!resp.ok) throw new Error('Failed to load tariffs');
+        const data = await resp.json();
+        if (data.tariffs && data.vat != null) {
+            // Winter
+            document.querySelector('#tariff-winter .tariff-off').textContent = data.tariffs.winter.off;
+            document.querySelector('#tariff-winter .tariff-peak').textContent = data.tariffs.winter.peak;
+            // Shoulder
+            document.querySelector('#tariff-shoulder .tariff-off').textContent = data.tariffs.shoulder.off;
+            document.querySelector('#tariff-shoulder .tariff-peak').textContent = data.tariffs.shoulder.peak;
+            // Summer
+            document.querySelector('#tariff-summer .tariff-off').textContent = data.tariffs.summer.off;
+            document.querySelector('#tariff-summer .tariff-peak').textContent = data.tariffs.summer.peak;
+            // VAT
+            document.getElementById('tariff-vat-summary').textContent = data.vat;
+        }
+    } catch (err) {
+        // fallback: show dashes
+        document.querySelectorAll('.tariff-off, .tariff-peak').forEach(e => e.textContent = '-');
+        document.getElementById('tariff-vat-summary').textContent = '-';
+    }
 }
 
 // Logout helper
@@ -61,6 +80,7 @@ function highlightCurrentSeasonInBar() {
 }
 
 async function iniitializeNavbar() {
+    await fillTariffSummaryBar();
     await checkAuth();
     highlightCurrentSeasonInBar();
 
@@ -99,6 +119,7 @@ async function iniitializeNavbar() {
                     document.getElementById('summer-peak').value = data.tariffs.summer.peak ?? '';
                     document.getElementById('tariff-vat').value = data.vat ?? '';
                 }
+
             } catch (err) {
                 showAbbModal('Failed to load tariff rates from server.');
             }
@@ -183,6 +204,14 @@ async function iniitializeNavbar() {
             }
         });
     }
+}
+
+
+async function loadNavbar() {
+    const res = await fetch('navbar.html');
+    const html = await res.text();
+    document.getElementById('navbar-container').innerHTML = html;
+    await iniitializeNavbar();
 }
 
 
