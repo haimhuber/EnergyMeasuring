@@ -39,8 +39,6 @@ async function loadCities() {
         const data = await resp.json();
 
         const datalist = document.getElementById("cities-list");
-        console.log(data.cities.cities.city);
-
         data.cities.cities.city.forEach(city => {
 
             const name = city.english_name?.[0];
