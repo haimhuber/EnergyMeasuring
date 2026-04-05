@@ -149,6 +149,7 @@
     cursor: pointer;
     font-weight: 700;
     transition: 0.18s ease;
+    margin-left: 15px;
 }
 
 .btn-logout:hover {
