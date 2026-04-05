@@ -29,6 +29,7 @@ async function fillTariffSummaryBar() {
     }
 }
 
+// --- Load cities for location input ---
 async function loadCities() {
 
     try {
