@@ -14,7 +14,7 @@
     <div id="tariff-modal-overlay" class="tariff-modal-overlay hidden">
         <div class="tariff-modal" role="dialog" aria-modal="true" aria-labelledby="tariff-modal-title">
             <div class="tariff-modal-header">
-                <span id="tariff-modal-title">Edit Tariff Rates</span>
+                <span id="tariff-modal-title">Settings</span>
                 <button id="tariff-modal-close" class="tariff-modal-close" aria-label="Close">×</button>
             </div>
             <div class="tariff-modal-body">
@@ -50,6 +50,14 @@
                         <input type="number" step="0.0001" min="0" id="tariff-vat" required
                             style="width:100px; margin-left:8px;">
                     </div>
+                    <div class="location-field">
+                        <label for="nav-location">Location</label>
+
+                        <input type="text" id="nav-location" list="cities-list" placeholder="Start typing city..."
+                            autocomplete="off">
+
+                        <datalist id="cities-list"></datalist>
+                    </div>
                     <button type="submit" class="btn-save-tariff">Save</button>
                 </form>
             </div>
@@ -70,11 +78,9 @@
             <span class="navbar-sub">Energy Monitoring System</span>
             <div class="navbar-action-buttons">
                 <button onclick="window.location.href='index.html'" class="action-btn">Report & Billing</button>
-                <button onclick="window.location.href='analyze.html'" class="action-btn">Analyze</button>
             </div>
             <div id="tariff-summary-bar" class="tariff-summary-bar">
                 <button id="btn-settings" class="btn-settings" title="Settings">⚙️</button>
-                <span class="tariff-title">Seasons & Tariffs:</span>
                 <div class="tariff-season" id="tariff-winter">
                     <span class="tariff-emoji">❄️</span>
                     <span class="tariff-label">Winter</span>
@@ -93,14 +99,17 @@
                     <span class="tariff-rates">Off: <span class="tariff-off">-</span> | Peak: <span
                             class="tariff-peak">-</span></span>
                 </div>
-                <div class="tariff-vat-summary">VAT: <span id="tariff-vat-summary">-</span></div>
+                <!-- <div class="tariff-vat-summary">VAT: <span id="tariff-vat-summary">-</span></div> -->
             </div>
         </div>
         <div class="navbar-right">
             <span class="navbar-user">Welcome, <span id="nav-username"></span></span>
             <button onclick="logout()" id="btn-logout" class="btn-logout">Logout</button>
+            <span id="nav-time"></span>
+            <span>Site: <span id="navbar-location">-</span></span>
         </div>
     </div>
+
 
 </body>
 

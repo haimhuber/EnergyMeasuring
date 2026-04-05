@@ -20,14 +20,45 @@ async function fillTariffSummaryBar() {
             document.querySelector('#tariff-summer .tariff-off').textContent = data.tariffs.summer.off;
             document.querySelector('#tariff-summer .tariff-peak').textContent = data.tariffs.summer.peak;
             // VAT
-            document.getElementById('tariff-vat-summary').textContent = data.vat;
+            // document.getElementById('tariff-vat-summary').textContent = data.vat;
         }
     } catch (err) {
         // fallback: show dashes
         document.querySelectorAll('.tariff-off, .tariff-peak').forEach(e => e.textContent = '-');
-        document.getElementById('tariff-vat-summary').textContent = '-';
+        // document.getElementById('tariff-vat-summary').textContent = '-';
     }
 }
+
+async function loadCities() {
+
+    try {
+
+        const resp = await fetch("/api/cities");
+        if (!resp.ok) throw new Error("Failed to load cities");
+
+        const data = await resp.json();
+
+        const datalist = document.getElementById("cities-list");
+        console.log(data.cities.cities.city);
+
+        data.cities.cities.city.forEach(city => {
+
+            const name = city.english_name?.[0];
+            if (!name) return;
+
+            const option = document.createElement("option");
+            option.value = name;
+
+            datalist.appendChild(option);
+
+        });
+
+    } catch (err) {
+        console.error("Error loading cities:", err);
+    }
+
+}
+
 
 // Logout helper
 async function logout() {
@@ -82,7 +113,8 @@ async function iniitializeNavbar() {
     await fillTariffSummaryBar();
     await checkAuth();
     highlightCurrentSeasonInBar();
-
+    await loadCities();
+    await currentLocation();
     // Modal logic
     const btnSettings = document.getElementById('btn-settings');
     const modalOverlay = document.getElementById('tariff-modal-overlay');
@@ -95,7 +127,7 @@ async function iniitializeNavbar() {
         // Remove any accidental open state on load
         modalOverlay.classList.add('hidden');
         btnSettings.addEventListener('click', async function () {
-            // בדיקת הרשאות (אם צריך)
+            // Check user role before allowing access to settings
             if (typeof adjustUIForUserRole === 'function') {
                 const currentRole = await adjustUIForUserRole();
                 if (currentRole !== 'admin') {
@@ -122,6 +154,21 @@ async function iniitializeNavbar() {
             } catch (err) {
                 showAbbModal('Failed to load tariff rates from server.');
             }
+
+            // fetch location from server and populate location field
+            // try {
+            //     const resp = await fetch('/api/location', { credentials: 'include' });
+            //     if (!resp.ok) throw new Error('Failed to load location');
+            //     const data = await resp.json();
+            //     if (data.location && data.location.length > 0) {
+            //         document.getElementById("nav-location").addEventListener("input", (e) => {
+            //             const location = e.target.value;
+            //         });
+            //     }
+            // } catch (err) {
+            //     console.error('Error fetching location:', err);
+            // }
+
             // Load values from localStorage (if any)
             const saved = localStorage.getItem('tariffData');
             if (saved) {
@@ -180,6 +227,10 @@ async function iniitializeNavbar() {
                 vat: document.getElementById('tariff-vat').value
             };
             localStorage.setItem('tariffData', JSON.stringify(tariffData));
+            const location = document.getElementById('nav-location').value;
+            if (location) {
+                localStorage.setItem('location', location);
+            }
             try {
                 const resp = await fetch('/api/change-tariffs', {
                     method: 'POST',
@@ -193,13 +244,33 @@ async function iniitializeNavbar() {
                     showAbbModal('Failed to update tariffs', err.detail || 'Server error');
                     return;
                 }
-                modalOverlay.classList.add('hidden');
-                showAbbModal('Tariff rates updated successfully!');
                 if (typeof fillTariffSummaryBar === 'function') await fillTariffSummaryBar();
             } catch (err) {
                 modalOverlay.classList.add('hidden');
                 showAbbModal('Failed to update tariffs', err?.message || 'Network/server error');
                 console.log(err.message);
+            }
+            try {
+
+                const location = document.getElementById("nav-location").value;
+
+                await fetch('/api/update-location', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ location })
+                });
+
+                modalOverlay.classList.add('hidden');
+
+                showAbbModal('Settings updated successfully!');
+
+                if (typeof currentLocation === 'function') {
+                    await currentLocation();
+                }
+
+            } catch (err) {
+                console.error('Error updating location:', err);
             }
         });
     }
@@ -214,12 +285,43 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
+
+function currentHour() {
+    const now = new Date();
+    const displayTime = now.toLocaleTimeString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+    document.getElementById('nav-time').textContent = displayTime;
+    setTimeout(currentHour, 60000); // Update every minute
+}
+
+async function currentLocation() {
+    // get location from server and display in navbar
+    try {
+        const resp = await fetch('/api/location', { credentials: 'include' });
+        if (!resp.ok) throw new Error('Failed to load location');
+        const data = await resp.json();
+        if (data.location && data.location.length > 0) {
+            document.getElementById('navbar-location').textContent = data.location[0].LocationName || 'Unknown';
+            document.getElementById('nav-location').value = data.location[0].LocationName || 'Unknown';
+        }
+    } catch (err) {
+        console.error('Error fetching location:', err);
+        const locationElements = document.getElementById('navbar-location');
+    }
+}
+
+
+
 async function loadNavbar() {
     const res = await fetch('navbar.html');
     const html = await res.text();
     document.getElementById('navbar-container').innerHTML = html;
     await iniitializeNavbar();
+    currentHour();
+    await currentLocation();
+
 }
+
+
 
 
 

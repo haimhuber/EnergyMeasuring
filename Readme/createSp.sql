@@ -339,3 +339,34 @@ END
 GO
 
 EXEC dbo.GetBreakersLastDailyAndHourlyConsumption;
+
+CREATE OR ALTER PROCEDURE dbo.GetLocations
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+        Id,
+        LocationName,
+        Latitude,
+        Longitude
+    FROM dbo.Location
+    ORDER BY LocationName;
+END
+
+
+CREATE OR ALTER PROCEDURE dbo.UpdateLocation
+    @LocationName NVARCHAR(100),
+    @Latitude FLOAT,
+    @Longitude FLOAT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE dbo.Location
+    SET
+        LocationName = @LocationName,
+        Latitude = @Latitude,
+        Longitude = @Longitude;
+
+END

@@ -118,6 +118,7 @@
 .tariff-vat-summary {
     margin-left: 2px;
     font-size: 12px;
+
 }
 
 .navbar-right {
@@ -188,4 +189,47 @@ body .navbar .btn-logout:hover {
 
 body {
     padding-top: 56px;
+}
+
+#nav-time {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    font-weight: 800;
+}
+
+.location-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 12px 0;
+    font-family: Arial, sans-serif;
+}
+
+.location-field label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #dfdfdf;
+}
+
+.location-field input {
+    width: 280px;
+    padding: 10px 14px;
+    font-size: 14px;
+    border: 1px solid #d0d7de;
+    border-radius: 10px;
+    background: #fff;
+    color: #222;
+    outline: none;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.location-field input:focus {
+    border-color: #e60012;
+    box-shadow: 0 0 0 3px rgba(230, 0, 18, 0.12);
+}
+
+.location-field input::placeholder {
+    color: #999;
 }

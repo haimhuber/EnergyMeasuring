@@ -242,5 +242,40 @@ async function getBreakersLastDailyAndHourlyConsumption() {
     }
 }
 
+async function getLocations() {
+    const pool = await connectionToSqlDB();
+    if (!pool) {
+        console.error('Unable to connect to the database.');
+        return [];
+    }
+    try {
+        const result = await pool.request().execute('GetLocations');
+        return result.recordset;
+    } catch (err) {
+        console.error('Error fetching locations:', err);
+        return [];
+    }
+}
 
-export default { connectionToSqlDB, csvHandler, getTariffs, updateAllTariffs, getUserByUsername, getUserByEmail, createUser, getBreakerNames, getEnergyData, getBreakerNamesInitial, getBreakersLastDailyAndHourlyConsumption };
+async function updateLocation(locationName, latitude, longitude) {
+    const pool = await connectionToSqlDB();
+
+    if (!pool) {
+        console.error('Unable to connect to the database.');
+        return;
+    }
+    try {
+        const result = await pool
+            .request()
+            .input('LocationName', sql.NVarChar(100), locationName)
+            .input('Latitude', sql.Float, latitude)
+            .input('Longitude', sql.Float, longitude)
+            .execute('UpdateLocation');
+    } catch (err) {
+        console.error('Error updating location:', err);
+    }
+}
+
+
+
+export default { connectionToSqlDB, csvHandler, getTariffs, updateAllTariffs, getUserByUsername, getUserByEmail, createUser, getBreakerNames, getEnergyData, getBreakerNamesInitial, getBreakersLastDailyAndHourlyConsumption, getLocations, updateLocation };

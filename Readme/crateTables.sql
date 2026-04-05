@@ -148,3 +148,11 @@ WHERE TRY_CAST(BreakerId AS INT) IS NOT NULL
   AND TRY_CAST(ActiveEnergy AS FLOAT) IS NOT NULL
   AND TRY_CAST(REPLACE(REPLACE([timestamp], 'T', ' '), 'Z', '') AS DATETIME2) IS NOT NULL;
 GO
+
+-- Location table for storing site information
+CREATE TABLE Location (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    LocationName NVARCHAR(100),
+    Latitude FLOAT,
+    Longitude FLOAT
+);

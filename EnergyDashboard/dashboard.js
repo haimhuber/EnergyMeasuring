@@ -20,7 +20,7 @@ dotenv.config({ path: './.env.unified' });
 import breakersConfig from "../energyComsamption/breakerConfig.json" with { type: "json" };
 import db from "../energyComsamption/db.js";
 import OpenAI from "openai";
-
+import citiesConfig from "../EnergyDashboard/public/cities.json" with { type: "json" };
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
@@ -837,6 +837,31 @@ app.post("/api/change-tariffs", authRequired, async (req, res) => {
     return res.status(500).json({ detail: err?.message || "Failed to update tariffs" });
   }
 });
+
+app.get("/api/location", authRequired, async (req, res) => {
+  try {
+    const location = await db.getLocations();
+    res.json({ location });
+  } catch (err) {
+    console.error("Error fetching location:", err);
+    res.status(500).json({ detail: "Failed to load location" });
+  }
+});
+
+app.post("/api/update-location", authRequired, async (req, res) => {
+  try {
+    const { location } = req.body;
+    if (!location) {
+      return res.status(400).json({ detail: "Location is required" });
+    }
+    await db.updateLocation(location, 32.502, 34.889); // Example constant coordinates
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("Error updating location:", err);
+    res.status(500).json({ detail: "Failed to update location" });
+  }
+});
+
 // =========================
 // 11) API Endpoints
 // =========================
@@ -849,6 +874,17 @@ app.get("/api/health", (req, res) => {
     csv_path: CSV_PATH,
     now: dayjs().tz(TZ).format(),
   });
+});
+// City list - Static from JSON file
+app.get("/api/cities", async (req, res) => {
+  try {
+    const cities = citiesConfig;
+    res.json({ cities });
+  }
+  catch (err) {
+    console.error("Error loading cities:", err);
+    res.status(500).json({ detail: "Failed to load cities" });
+  }
 });
 
 // Breakers – מוגן (רק למשתמש מחובר)
