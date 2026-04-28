@@ -29,7 +29,6 @@ async function readOpcActiveEnergyTags() {
     }
 
     try {
-
         await client.connect(endpointUrl);
         console.log({
             "Connected to OPC UA server": true,
@@ -46,16 +45,22 @@ async function readOpcActiveEnergyTags() {
 
         let activeEnergy = dataValue?.value?.value ?? null;
 
-        if (!activeEnergy) {
+        // בדיקה נכונה (לא מפילה ערך 0)
+        if (activeEnergy == null) {
             console.log("No energy values received");
             return null;
         }
 
-        // Transform the activeEnergy value into an array if it's not already
-        if (!Array.isArray(activeEnergy)) {
+        // טיפול בכל סוגי המידע (Float32Array / scalar)
+        if (ArrayBuffer.isView(activeEnergy)) {
+            // TypedArray (כמו Float32Array)
+            activeEnergy = Array.from(activeEnergy);
+        } else if (!Array.isArray(activeEnergy)) {
+            // ערך בודד
             activeEnergy = [activeEnergy];
         }
-        activeEnergy = Array.from(activeEnergy);
+
+        console.log(`${activeEnergy.length} Active Energy values received`);
 
         console.log("Active Energy values:", activeEnergy, {
             timestamp: timestampFunction()
@@ -103,6 +108,5 @@ async function readOpcActiveEnergyTags() {
 }
 
 module.exports = { readOpcActiveEnergyTags };
-
 
 // readOpcActiveEnergyTags();
