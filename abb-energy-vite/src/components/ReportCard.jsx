@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback } from "react";
+import { generatePDF } from "../utils/generatePDF";
 import { Chart, BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from "chart.js";
 import { fmtMoney, fmtKwh, fmtRate, gbDate, gbStamp, gbMonth, shortDay, shortMonth, hhFromStamp, seasonLabel, sortByTimestampAsc } from "../utils/format";
 
@@ -65,36 +66,14 @@ export default function ReportCard({ data, breakerName, view, from, to }) {
     const btn = document.getElementById("pdf-export-btn");
     if (btn) { btn.textContent = "Generating..."; btn.disabled = true; }
     try {
-      const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
-        import("jspdf"),
-        import("html2canvas"),
-      ]);
-      const el = cardRef.current;
-      const canvas = await html2canvas(el, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#111317",
-        scrollY: -window.scrollY,
-        windowWidth: el.scrollWidth,
-        windowHeight: el.scrollHeight,
-      });
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-      const pdfW = pdf.internal.pageSize.getWidth();
-      const pdfH = pdf.internal.pageSize.getHeight();
-      const ratio = canvas.width / canvas.height;
-      let imgW = pdfW - 20;
-      let imgH = imgW / ratio;
-      if (imgH > pdfH - 20) { imgH = pdfH - 20; imgW = imgH * ratio; }
-      pdf.addImage(imgData, "PNG", (pdfW - imgW) / 2, 10, imgW, imgH);
-      pdf.save(`ABB-Energy-${breakerName.replace(/\s+/g, "-")}-${from}-${to}.pdf`);
+      await generatePDF({ data, breakerName, view, from, to });
     } catch (e) {
       console.error("PDF export failed:", e);
       alert("PDF export failed: " + e.message);
     } finally {
-      if (btn) { btn.textContent = "Export PDF"; btn.disabled = false; }
+      if (btn) { btn.textContent = "↓ Export PDF"; btn.disabled = false; }
     }
-  }, [breakerName, from, to]);
+  }, [data, breakerName, view, from, to]);
 
   const tableRows = rows.map((r, i) => {
     if (view === "monthly") {

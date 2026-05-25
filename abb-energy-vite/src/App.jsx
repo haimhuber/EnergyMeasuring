@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { TariffProvider } from "./context/TariffContext";
 import DashboardPage from "./pages/DashboardPage";
+import DashboardOverview from "./pages/DashboardOverview";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import "./App.css";
@@ -29,6 +30,13 @@ function AppRoutes() {
         <ProtectedRoute>
           <TariffProvider>
             <DashboardPage />
+          </TariffProvider>
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard" element={
+        <ProtectedRoute>
+          <TariffProvider>
+            <DashboardOverview />
           </TariffProvider>
         </ProtectedRoute>
       } />

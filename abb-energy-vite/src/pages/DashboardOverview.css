@@ -1,0 +1,84 @@
+.dov-page { padding: 24px 28px; min-height: 100vh; background: var(--bg, #080a0d); }
+
+.dov-topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.dov-title { display: flex; flex-direction: column; gap: 2px; }
+.dov-label { font-size: 11px; font-weight: 500; color: #CC0010; text-transform: uppercase; letter-spacing: 2px; }
+.dov-sub { font-size: 20px; font-weight: 500; color: #fff; }
+.dov-period-btns { display: flex; gap: 6px; align-items: center; }
+.dov-period-btn { padding: 7px 16px; background: #0f1114; border: 0.5px solid #1e2025; border-radius: 8px; color: #888; font-size: 12px; cursor: pointer; transition: 0.15s; font-family: inherit; }
+.dov-period-btn:hover { color: #fff; border-color: #333; }
+.dov-period-btn.active { background: #CC0010; color: #fff; border-color: #CC0010; }
+.dov-refresh-btn { padding: 7px 12px; background: #0f1114; border: 0.5px solid #1e2025; border-radius: 8px; color: #888; font-size: 16px; cursor: pointer; transition: 0.15s; }
+.dov-refresh-btn:hover { color: #fff; transform: rotate(90deg); }
+
+.dov-progress-wrap { position: relative; height: 3px; background: #1e2025; border-radius: 2px; margin-bottom: 16px; overflow: hidden; }
+.dov-progress-bar { height: 100%; background: #CC0010; border-radius: 2px; transition: width 0.2s; }
+.dov-progress-text { position: absolute; right: 0; top: 6px; font-size: 11px; color: #888; }
+
+.dov-kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
+.dov-kpi-card { background: #0f1114; border: 0.5px solid #1e2025; border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 14px; }
+.dov-kpi-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.dov-kpi-label { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+.dov-kpi-value { font-size: 20px; font-weight: 500; color: #fff; font-family: 'JetBrains Mono', monospace; }
+.dov-kpi-unit { font-size: 11px; color: #888; font-weight: 400; }
+
+.dov-main-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+.dov-card { background: #0f1114; border: 0.5px solid #1e2025; border-radius: 12px; padding: 18px; }
+.dov-card-title { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 16px; font-weight: 500; }
+
+.dov-pie-card { grid-column: span 2; }
+.dov-pie-wrap { display: flex; align-items: center; gap: 20px; }
+.dov-pie-legend { display: flex; flex-direction: column; gap: 6px; flex: 1; max-height: 200px; overflow-y: auto; }
+.dov-legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.dov-legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+.dov-legend-name { flex: 1; color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dov-legend-val { color: #888; font-family: monospace; font-size: 11px; }
+.dov-legend-more { font-size: 11px; color: #555; margin-top: 4px; }
+
+.dov-top-card { grid-column: span 2; }
+.dov-top-list { display: flex; flex-direction: column; gap: 12px; }
+.dov-top-item { display: flex; align-items: center; gap: 12px; }
+.dov-top-rank { font-size: 18px; font-weight: 500; width: 20px; flex-shrink: 0; font-family: monospace; }
+.dov-top-info { flex: 1; }
+.dov-top-name { font-size: 12px; color: #ccc; margin-bottom: 4px; }
+.dov-top-bar-wrap { height: 4px; background: #1e2025; border-radius: 2px; overflow: hidden; }
+.dov-top-bar { height: 100%; border-radius: 2px; transition: width 0.5s; }
+.dov-top-nums { text-align: right; }
+.dov-top-kwh { font-size: 13px; font-weight: 500; color: #fff; font-family: monospace; }
+.dov-top-ils { font-size: 11px; color: #666; font-family: monospace; }
+
+.dov-group-card { display: flex; flex-direction: column; }
+.dov-group-bars { display: flex; align-items: flex-end; justify-content: space-around; flex: 1; gap: 12px; padding-top: 8px; min-height: 160px; }
+.dov-group-bar-item { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
+.dov-group-bar-val { font-size: 11px; color: #888; font-family: monospace; }
+.dov-group-bar-wrap { display: flex; align-items: flex-end; height: 120px; }
+.dov-group-bar { width: 32px; border-radius: 4px 4px 0 0; transition: height 0.5s; min-height: 4px; }
+.dov-group-bar-label { font-size: 11px; color: #888; }
+
+.dov-split-card {}
+.dov-split-wrap { display: flex; align-items: center; gap: 16px; }
+.dov-split-legend { display: flex; flex-direction: column; gap: 16px; }
+.dov-split-item { display: flex; align-items: center; gap: 10px; }
+.dov-split-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+.dov-split-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+.dov-split-val { font-size: 15px; font-weight: 500; color: #fff; font-family: monospace; margin-top: 2px; }
+
+.dov-table-card { overflow: hidden; }
+.dov-table-wrap { overflow-x: auto; max-height: 420px; overflow-y: auto; }
+.dov-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.dov-table th { padding: 9px 12px; font-size: 10px; text-transform: uppercase; color: #555; letter-spacing: 1px; background: #0a0b0d; border-bottom: 0.5px solid #1e2025; position: sticky; top: 0; text-align: left; }
+.dov-table th.n { text-align: right; }
+.dov-table td { padding: 8px 12px; border-bottom: 0.5px solid #0f1114; font-family: 'JetBrains Mono', monospace; color: #ccc; }
+.dov-table td.n { text-align: right; }
+.dov-table tr:hover td { background: #13151a; }
+.dov-row-zero td { opacity: 0.35; }
+.dov-rank-cell { color: #555; font-size: 11px; }
+.dov-group-badge { padding: 2px 8px; border-radius: 4px; font-size: 10px; font-family: sans-serif; color: #ccc; }
+.dov-share-wrap { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+.dov-share-bar { height: 4px; background: #CC0010; border-radius: 2px; min-width: 2px; max-width: 60px; }
+
+@media (max-width: 1100px) {
+  .dov-kpi-row { grid-template-columns: repeat(3, 1fr); }
+  .dov-main-grid { grid-template-columns: 1fr 1fr; }
+  .dov-pie-card, .dov-top-card { grid-column: span 1; }
+}
