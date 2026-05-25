@@ -40,8 +40,9 @@ async function saveDataToSQLServer(data, numberOfNodes) {
 
     console.log("Connected to SQL Server.", { timestamp: timestampFunction() });
 
-    for (let i = 0; i < 30; i++) {
-      const activeEnergy = data[i];    
+    for (let i = 0; i < numberOfNodes; i++) {
+      const activeEnergy = data[i];
+
       if (activeEnergy === undefined || activeEnergy === null) {
         console.warn(`Skipping node ${i + 1}: activeEnergy is missing`);
         continue;
@@ -55,8 +56,7 @@ async function saveDataToSQLServer(data, numberOfNodes) {
       const request = pool.request();
       request.input("breakerId", sql.Int, i + 1);
       request.input("activeEnergy", sql.Float, activeEnergy);
-     
-      
+
       await request.query(query);
     }
 
