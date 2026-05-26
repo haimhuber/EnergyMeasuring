@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useTariffs } from "../context/TariffContext";
 import { api } from "../api/api";
-import SettingsModal from "./SettingsModal";
-import AIChat from "./AIChat";
+
 import "./Navbar.css";
 
 const SEASON_LABELS = { winter: "Winter ❄️", shoulder: "Shoulder 🍂", summer: "Summer 🌞" };
@@ -21,11 +20,9 @@ function Clock() {
   return <span className="sb-time">{time}</span>;
 }
 
-export default function Sidebar() {
+export default function Sidebar({ onOpenChat, onOpenSettings }) {
   const { user, logout } = useAuth();
   const { tariffs, season } = useTariffs();
-  const [showSettings, setShowSettings] = useState(false);
-  const [showChat, setShowChat] = useState(false);
   const [location, setLocation] = useState("-");
 
   useEffect(() => {
@@ -63,7 +60,7 @@ export default function Sidebar() {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v6H3z"/></svg>
             Dashboard
           </div>
-          <div className="sb-item" onClick={() => setShowChat(true)}>
+          <div className="sb-item" onClick={() => onOpenChat?.()}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 0 1 10 10c0 5.52-4.48 10-10 10a9.96 9.96 0 0 1-5.19-1.45L2 22l1.45-4.81A9.96 9.96 0 0 1 2 12 10 10 0 0 1 12 2z"/></svg>
             AI Assistant
           </div>
@@ -84,7 +81,7 @@ export default function Sidebar() {
           {user?.role === "admin" && (
             <>
               <div className="sb-section">Settings</div>
-              <div className="sb-item" onClick={() => setShowSettings(true)}>
+              <div className="sb-item" onClick={() => onOpenSettings?.()}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                 Tariff Settings
               </div>
@@ -105,8 +102,6 @@ export default function Sidebar() {
         </div>
       </aside>
 
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
-      {showChat && <AIChat onClose={() => setShowChat(false)} />}
     </>
   );
 }

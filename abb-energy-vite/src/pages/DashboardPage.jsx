@@ -1,5 +1,7 @@
 import { useState } from "react";
 import Navbar from "../components/Navbar";
+import AIChat from "../components/AIChat";
+import SettingsModal from "../components/SettingsModal";
 import ReportControls from "../components/ReportControls";
 import ReportCard from "../components/ReportCard";
 import AbbModal from "../components/AbbModal";
@@ -17,6 +19,8 @@ export default function DashboardPage() {
   const { data, loading, error, fetch } = useConsumption();
   const [params, setParams] = useState({ breakerId: "", from: yesterdayStr(), to: todayStr(), view: "daily" });
   const [modal, setModal] = useState({ title: "", message: "" });
+  const [showChat, setShowChat] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [status, setStatus] = useState({ type: "", text: "Select a breaker and date range to generate a report." });
 
   const onChange = (key, value) => setParams((p) => ({ ...p, [key]: value }));
@@ -48,7 +52,7 @@ export default function DashboardPage() {
 
   return (
     <>
-      <Navbar />
+      <Navbar onOpenChat={() => setShowChat(true)} onOpenSettings={() => setShowSettings(true)} />
       <AbbModal title={modal.title} message={modal.message} onClose={() => setModal({ title: "", message: "" })} />
 
       <ReportControls params={params} onChange={onChange} onGenerate={handleGenerate} onGenerateMulti={() => showModal("Coming soon", "Multi-breaker report coming soon.")} loading={loading} />
@@ -94,6 +98,8 @@ export default function DashboardPage() {
           />
         )}
       </div>
+      {showChat && <AIChat onClose={() => setShowChat(false)} />}
+      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
     </>
   );
 }

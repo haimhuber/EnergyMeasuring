@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { api } from "../api/api";
 import Navbar from "../components/Navbar";
+import AIChat from "../components/AIChat";
+import SettingsModal from "../components/SettingsModal";
 import "./DashboardOverview.css";
 
 
@@ -77,6 +79,8 @@ export default function DashboardOverview() {
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
   const [breakers, setBreakers] = useState([]);
+  const [showChat, setShowChat] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [drillGroup, setDrillGroup] = useState(null); // null = main view
   const [drillData, setDrillData] = useState([]);
   const [drillLoading, setDrillLoading] = useState(false);
@@ -177,7 +181,7 @@ export default function DashboardOverview() {
 
   return (
     <>
-      <Navbar />
+      <Navbar onOpenChat={() => setShowChat(true)} onOpenSettings={() => setShowSettings(true)} />
       <div className="dov-page">
 
         {/* Period selector */}
@@ -433,6 +437,8 @@ export default function DashboardOverview() {
         </div>
 
       </div>
+      {showChat && <AIChat onClose={() => setShowChat(false)} />}
+      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
     </>
   );
 }

@@ -201,3 +201,7 @@ body {
 }
 .btn-export-pdf:hover { background: rgba(255,255,255,0.05); color: #fff; border-color: rgba(255,255,255,0.25); }
 .btn-export-pdf:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Ensure portals render above everything */
+body > div[data-portal] { position: fixed; z-index: 99999; }
+.sidebar { transform: none !important; }
