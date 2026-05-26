@@ -286,10 +286,6 @@ export default function DashboardOverview() {
             <span className="dov-sub">Live consumption overview</span>
           </div>
           <div className="dov-period-btns">
-            <div className="dov-view-toggle">
-              <button className={`dov-view-btn${viewMode==="main"?" active":""}`} onClick={()=>setViewMode("main")}>⚡ All panels</button>
-              <button className={`dov-view-btn${viewMode==="charging"?" active":""}`} onClick={()=>setViewMode("charging")}>🔌 Charging</button>
-            </div>
             {PERIOD_OPTIONS.map(o => (
               <button key={o.value} className={`dov-period-btn${period===o.value?" active":""}`}
                 onClick={()=>setPeriod(o.value)}>{o.label}</button>

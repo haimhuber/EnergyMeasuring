@@ -2,13 +2,16 @@
  * db.js — Unified database driver
  * Supports SQL Server (mssql) and PostgreSQL (Supabase)
  * Set DB_DRIVER=mssql or DB_DRIVER=postgres in .env.unified
+ * Set PG_DUAL_WRITE=true to sync users/tariffs/location to both DBs
  */
 
 import dotenv from "dotenv";
 dotenv.config({ path: "./.env.unified" });
 
-const DRIVER = process.env.DB_DRIVER || "mssql";
-console.log(`🗄️  DB Driver: ${DRIVER}`);
+const DRIVER     = process.env.DB_DRIVER     || "mssql";
+const DUAL_WRITE = process.env.PG_DUAL_WRITE === "true";
+
+console.log(`🗄️  DB Driver: ${DRIVER} | Dual Write: ${DUAL_WRITE}`);
 
 // ============================================
 // MSSQL
@@ -60,7 +63,7 @@ async function pgQuery(text, params = []) {
 }
 
 // ============================================
-// connectionToSqlDB — used by server.js AI query
+// connectionToSqlDB
 // ============================================
 export async function connectionToSqlDB() {
     if (DRIVER === "postgres") return await pgConnect();
@@ -115,6 +118,7 @@ async function updateAllTariffs(tariffs) {
              tariffs.summer.off, tariffs.summer.peak]
         );
     }
+
     const { default: sql } = await import("mssql");
     const pool = await mssqlConnect();
     const result = await pool.request()
@@ -125,6 +129,22 @@ async function updateAllTariffs(tariffs) {
         .input("SummerOffRate",    sql.Decimal(10,4), tariffs.summer.off)
         .input("SummerPeakRate",   sql.Decimal(10,4), tariffs.summer.peak)
         .execute("UpdateAllTariffs");
+
+    // Dual write → Supabase
+    if (DUAL_WRITE) {
+        try {
+            await pgQuery(
+                `SELECT * FROM update_all_tariffs($1,$2,$3,$4,$5,$6)`,
+                [tariffs.winter.off, tariffs.winter.peak,
+                 tariffs.shoulder.off, tariffs.shoulder.peak,
+                 tariffs.summer.off, tariffs.summer.peak]
+            );
+            console.log("✅ Tariffs synced to Supabase");
+        } catch (err) {
+            console.error("❌ Failed to sync tariffs to Supabase:", err.message);
+        }
+    }
+
     return result.recordset;
 }
 
@@ -186,6 +206,7 @@ async function createUser(username, email, passwordHash, role) {
         );
         return rows[0] || null;
     }
+
     const { default: sql } = await import("mssql");
     const pool = await mssqlConnect();
     const result = await pool.request()
@@ -194,6 +215,20 @@ async function createUser(username, email, passwordHash, role) {
         .input("password_hash", sql.NVarChar(255), passwordHash)
         .input("role",          sql.NVarChar(50),  role)
         .execute("AddUser");
+
+    // Dual write → Supabase
+    if (DUAL_WRITE) {
+        try {
+            await pgQuery(
+                `SELECT * FROM add_user($1,$2,$3,$4)`,
+                [username, email, passwordHash, role]
+            );
+            console.log("✅ User synced to Supabase:", email);
+        } catch (err) {
+            console.error("❌ Failed to sync user to Supabase:", err.message);
+        }
+    }
+
     return result.recordset[0] || null;
 }
 
@@ -213,6 +248,7 @@ async function updateLocation(locationName, latitude, longitude) {
         await pgQuery(`SELECT update_location($1,$2,$3)`, [locationName, latitude, longitude]);
         return;
     }
+
     const { default: sql } = await import("mssql");
     const pool = await mssqlConnect();
     await pool.request()
@@ -220,6 +256,16 @@ async function updateLocation(locationName, latitude, longitude) {
         .input("Latitude",     sql.Float, latitude)
         .input("Longitude",    sql.Float, longitude)
         .execute("UpdateLocation");
+
+    // Dual write → Supabase
+    if (DUAL_WRITE) {
+        try {
+            await pgQuery(`SELECT update_location($1,$2,$3)`, [locationName, latitude, longitude]);
+            console.log("✅ Location synced to Supabase");
+        } catch (err) {
+            console.error("❌ Failed to sync location to Supabase:", err.message);
+        }
+    }
 }
 
 // ── Dashboard ─────────────────────────────────────────────
