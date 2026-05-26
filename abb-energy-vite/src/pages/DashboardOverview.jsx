@@ -42,6 +42,22 @@ const PIE_COLORS = [
   "#1e1b4b","#713f12","#4a044e",
 ];
 
+// Main breakers — one per panel group
+const MAIN_BREAKERS = [
+  { id: "1",  name: "Q0 Main Breaker", group: "B0",   displayName: "B0 — Main" },
+  { id: "22", name: "Q0 Main Breaker", group: "Roof",  displayName: "Roof — Main" },
+  { id: "27", name: "Q0 Main Breaker", group: "PB",    displayName: "PB — Main" },
+  { id: "28", name: "Q0 Main Breaker", group: "PB1",   displayName: "PB1 — Main" },
+];
+
+// All breakers for drill-down
+const GROUP_BREAKERS = {
+  "B0":  ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","30"],
+  "Roof":["22","23","24","25","26"],
+  "PB":  ["27"],
+  "PB1": ["28","29"],
+};
+
 function parseBreakers(list) {
   return (Array.isArray(list) ? list : []).map(text => {
     const str = String(text).trim();
@@ -61,34 +77,61 @@ export default function DashboardOverview() {
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
   const [breakers, setBreakers] = useState([]);
+  const [drillGroup, setDrillGroup] = useState(null); // null = main view
+  const [drillData, setDrillData] = useState([]);
+  const [drillLoading, setDrillLoading] = useState(false);
 
   useEffect(() => {
     api.breakers().then(list => setBreakers(parseBreakers(list))).catch(() => {});
   }, []);
 
-  const fetchAll = useCallback(async (p, brkList) => {
-    const list = brkList || breakers;
-    if (!list.length) return;
+  const fetchAll = useCallback(async (p) => {
     setLoading(true);
     setData([]);
     setProgress(0);
     const { from, to } = getDateRange(p);
-    const results = [];
-    for (let i = 0; i < list.length; i++) {
-      const b = list[i];
-      try {
-        const d = await api.consumption(b.id, from, to, "daily");
-        results.push({ ...b, kwh: d.total_kwh||0, ils: d.total_amount||0, peak_kwh: d.peak_kwh||0, off_kwh: d.offpeak_kwh||0 });
-      } catch {
-        results.push({ ...b, kwh: 0, ils: 0, peak_kwh: 0, off_kwh: 0 });
+
+    // Fetch only 4 main breakers in parallel
+    const settled = await Promise.allSettled(
+      MAIN_BREAKERS.map(b => api.consumption(b.id, from, to, "daily"))
+    );
+    const results = settled.map((res, j) => {
+      const b = MAIN_BREAKERS[j];
+      if (res.status === "fulfilled") {
+        const d = res.value;
+        return { ...b, kwh: d.total_kwh||0, ils: d.total_amount||0, peak_kwh: d.peak_kwh||0, off_kwh: d.offpeak_kwh||0 };
       }
-      setProgress(Math.round(((i+1)/list.length)*100));
-    }
+      return { ...b, kwh: 0, ils: 0, peak_kwh: 0, off_kwh: 0 };
+    });
+    setProgress(100);
     setData(results);
     setLoading(false);
   }, []);
 
-  useEffect(() => { if (breakers.length > 0) fetchAll(period, breakers); }, [period, breakers]);
+  // Drill-down: fetch all breakers in a group
+  const fetchDrillDown = useCallback(async (group) => {
+    setDrillGroup(group);
+    setDrillLoading(true);
+    setDrillData([]);
+    const { from, to } = getDateRange(period);
+    const ids = GROUP_BREAKERS[group] || [];
+    const allBreakers = breakers.filter(b => ids.includes(b.id));
+    const settled = await Promise.allSettled(
+      allBreakers.map(b => api.consumption(b.id, from, to, "daily"))
+    );
+    const results = settled.map((res, j) => {
+      const b = allBreakers[j];
+      if (res.status === "fulfilled") {
+        const d = res.value;
+        return { ...b, kwh: d.total_kwh||0, ils: d.total_amount||0, peak_kwh: d.peak_kwh||0, off_kwh: d.offpeak_kwh||0 };
+      }
+      return { ...b, kwh: 0, ils: 0, peak_kwh: 0, off_kwh: 0 };
+    });
+    setDrillData(results.sort((a,b) => b.kwh - a.kwh));
+    setDrillLoading(false);
+  }, [period, breakers]);
+
+  useEffect(() => { fetchAll(period); }, [period, fetchAll]);
 
   const totalKwh  = data.reduce((s,r) => s + r.kwh, 0);
   const totalIls  = data.reduce((s,r) => s + r.ils, 0);
@@ -194,7 +237,7 @@ export default function DashboardOverview() {
             <div className="dov-kpi-icon" style={{background:"rgba(240,160,0,0.12)",color:"#f0a000"}}>◈</div>
             <div>
               <div className="dov-kpi-label">Active breakers</div>
-              <div className="dov-kpi-value">{data.filter(r=>r.kwh>0).length} <span className="dov-kpi-unit">/ {breakers.length}</span></div>
+              <div className="dov-kpi-value">{data.filter(r=>r.kwh>0).length} <span className="dov-kpi-unit">/ 4 panels</span></div>
             </div>
           </div>
         </div>
@@ -222,7 +265,7 @@ export default function DashboardOverview() {
                 {pieData.slice(0,10).map((r,i) => (
                   <div key={r.id} className="dov-legend-item">
                     <span className="dov-legend-dot" style={{background:PIE_COLORS[i%PIE_COLORS.length]}}/>
-                    <span className="dov-legend-name">{r.name}</span>
+                    <span className="dov-legend-name">{r.displayName || r.name}</span>
                     <span className="dov-legend-val">{Math.round((r.kwh/totalKwh)*100)}%</span>
                   </div>
                 ))}
@@ -241,7 +284,7 @@ export default function DashboardOverview() {
                   <div key={r.id} className="dov-top-item">
                     <div className="dov-top-rank" style={{color: i===0?"#CC0010":i===1?"#f0a000":"#888"}}>{i+1}</div>
                     <div className="dov-top-info">
-                      <div className="dov-top-name">{r.group} — {r.name}</div>
+                      <div className="dov-top-name">{r.displayName || `${r.group} — ${r.name}`}</div>
                       <div className="dov-top-bar-wrap">
                         <div className="dov-top-bar" style={{width:`${pct}%`, background: PIE_COLORS[i]}}/>
                       </div>
@@ -263,12 +306,13 @@ export default function DashboardOverview() {
               {groupTotals.map((g,i) => {
                 const h = Math.max(4, (g.kwh/maxGroup)*120);
                 return (
-                  <div key={g.group} className="dov-group-bar-item">
+                  <div key={g.group} className="dov-group-bar-item" onClick={() => fetchDrillDown(g.group)} style={{cursor:"pointer"}} title={`Click to see ${g.group} details`}>
                     <div className="dov-group-bar-val">{fmt(g.kwh)}</div>
                     <div className="dov-group-bar-wrap">
                       <div className="dov-group-bar" style={{height:`${h}px`, background:PIE_COLORS[i*3]}}/>
                     </div>
                     <div className="dov-group-bar-label">{g.group}</div>
+                    <div style={{fontSize:9,color:"#555",marginTop:2}}>▼ details</div>
                   </div>
                 );
               })}
@@ -320,9 +364,38 @@ export default function DashboardOverview() {
 
         </div>
 
+        {/* Drill-down panel */}
+        {drillGroup && (
+          <div className="dov-card dov-table-card" style={{marginBottom:16}}>
+            <div className="dov-card-title" style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span>Panel {drillGroup} — All breakers</span>
+              <button onClick={() => setDrillGroup(null)} style={{background:"none",border:"0.5px solid #333",color:"#888",borderRadius:6,padding:"3px 10px",cursor:"pointer",fontSize:11}}>✕ Close</button>
+            </div>
+            {drillLoading ? <div style={{padding:20,color:"#555"}}>Loading...</div> : (
+              <div className="dov-table-wrap">
+                <table className="dov-table">
+                  <thead><tr><th>#</th><th>Breaker</th><th className="n">kWh</th><th className="n">Peak kWh</th><th className="n">Off-Peak kWh</th><th className="n">ILS</th></tr></thead>
+                  <tbody>
+                    {drillData.map((r,i) => (
+                      <tr key={r.id} className={r.kwh===0?"dov-row-zero":""}>
+                        <td className="dov-rank-cell">{i+1}</td>
+                        <td>{r.name}</td>
+                        <td className="n">{fmt(r.kwh)}</td>
+                        <td className="n" style={{color:"#CC0010"}}>{fmt(r.peak_kwh)}</td>
+                        <td className="n" style={{color:"rgba(100,140,200,0.9)"}}>{fmt(r.off_kwh)}</td>
+                        <td className="n">{fmtIls(r.ils)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Full breakers table */}
         <div className="dov-card dov-table-card">
-          <div className="dov-card-title">All breakers — {PERIOD_OPTIONS.find(o=>o.value===period)?.label}</div>
+          <div className="dov-card-title">Main Panels — {PERIOD_OPTIONS.find(o=>o.value===period)?.label}</div>
           <div className="dov-table-wrap">
             <table className="dov-table">
               <thead>

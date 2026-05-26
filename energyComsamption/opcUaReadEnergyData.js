@@ -20,7 +20,6 @@ async function readOpcActiveEnergyTags() {
     });
 
     const endpointUrl = process.env.OPC_UA_SERVER_URL;
-
     let session = null;
 
     if (!endpointUrl) {
@@ -31,33 +30,38 @@ async function readOpcActiveEnergyTags() {
     try {
 
         await client.connect(endpointUrl);
-        console.log({
-            "Connected to OPC UA server": true,
-            timestamp: timestampFunction()
-        });
+        console.log({ "Connected to OPC UA server": true, timestamp: timestampFunction() });
 
         session = await client.createSession();
-        console.log({
-            "Session created": true,
-            timestamp: timestampFunction()
-        });
+        console.log({ "Session created": true, timestamp: timestampFunction() });
 
         const dataValue = await session.readVariableValue(nodeIds[0]);
+        let raw = dataValue?.value?.value ?? null;
 
-        let activeEnergy = dataValue?.value?.value ?? null;
-
-        if (!activeEnergy) {
+        if (!raw) {
             console.log("No energy values received");
             return null;
         }
 
-        // Transform the activeEnergy value into an array if it's not already
-        if (!Array.isArray(activeEnergy)) {
-            activeEnergy = [activeEnergy];
+        // ── Parse Float32Array / TypedArray → regular number array ──
+        let activeEnergy;
+        if (raw?.buffer instanceof ArrayBuffer) {
+            // Float32Array with 30 values
+            activeEnergy = [...raw].map(v => Math.round(v));
+        } else if (Array.isArray(raw)) {
+            // Already an array — flatten if first element is TypedArray
+            if (raw[0]?.buffer instanceof ArrayBuffer) {
+                activeEnergy = [...raw[0]].map(v => Math.round(v));
+            } else {
+                activeEnergy = raw.map(v => parseFloat(v));
+            }
+        } else if (typeof raw === "string") {
+            activeEnergy = raw.split(",").map(v => parseFloat(v.trim())).filter(v => !isNaN(v));
+        } else {
+            activeEnergy = [parseFloat(raw)];
         }
-        activeEnergy = Array.from(activeEnergy);
 
-        console.log("Active Energy values:", activeEnergy, {
+        console.log(`Active Energy values (${activeEnergy.length} breakers):`, activeEnergy, {
             timestamp: timestampFunction()
         });
 
@@ -68,12 +72,7 @@ async function readOpcActiveEnergyTags() {
     } catch (err) {
 
         console.error("Error:", err.message || err);
-
-        console.log(
-            "OPC UA Server might be down. Returning null for demand status.",
-            { timestamp: timestampFunction() }
-        );
-
+        console.log("OPC UA Server might be down. Returning null.", { timestamp: timestampFunction() });
         return null;
 
     } finally {
@@ -81,10 +80,7 @@ async function readOpcActiveEnergyTags() {
         try {
             if (session) {
                 await session.close();
-                console.log({
-                    "Session closed": true,
-                    timestamp: timestampFunction()
-                });
+                console.log({ "Session closed": true, timestamp: timestampFunction() });
             }
         } catch (closeErr) {
             console.error("Error closing session:", closeErr.message || closeErr);
@@ -92,10 +88,7 @@ async function readOpcActiveEnergyTags() {
 
         try {
             await client.disconnect();
-            console.log({
-                "Disconnected from OPC UA server": true,
-                timestamp: timestampFunction()
-            });
+            console.log({ "Disconnected from OPC UA server": true, timestamp: timestampFunction() });
         } catch (disconnectErr) {
             console.error("Error disconnecting client:", disconnectErr.message || disconnectErr);
         }
@@ -103,6 +96,5 @@ async function readOpcActiveEnergyTags() {
 }
 
 module.exports = { readOpcActiveEnergyTags };
-
 
 // readOpcActiveEnergyTags();
