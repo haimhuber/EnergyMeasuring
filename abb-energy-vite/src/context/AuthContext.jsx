@@ -22,14 +22,25 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     checkAuth();
+
+    // Check session every 10 minutes (skip if on login page)
+    const interval = setInterval(() => {
+      if (window.location.pathname !== "/login") checkAuth();
+    }, 10 * 60 * 1000);
+
     // Register 401 handler
     setSessionExpiredHandler(() => {
+      if (window.location.pathname === "/login") return;
       setUser(null);
       setSessionAlert(true);
       setTimeout(() => {
-        window.location.href = "/login";
-      }, 3000);
+        if (window.location.pathname !== "/login") {
+          window.location.href = "/login";
+        }
+      }, 10 * 60 * 1000);
     });
+
+    return () => clearInterval(interval);
   }, [checkAuth]);
 
   const login = async (email, password) => {
