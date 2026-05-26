@@ -18,7 +18,7 @@ export default function LoginPage() {
     try {
       await login(email.trim().toLowerCase(), password);
       setMsg("Login successful! Redirecting...");
-      setTimeout(() => navigate("/"), 1000);
+      setTimeout(() => navigate("/dashboard"), 1000);
     } catch (e) {
       setMsg(e.message || "Login failed");
     } finally {
