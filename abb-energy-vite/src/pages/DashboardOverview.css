@@ -24,15 +24,15 @@
 
 .dov-main-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; margin-bottom: 20px; }
 .dov-card { background: #0f1114; border: 0.5px solid #1e2025; border-radius: 12px; padding: 18px; }
-.dov-card-title { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 16px; font-weight: 500; }
+.dov-card-title { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 16px; font-weight: 500; }
 
 .dov-pie-card { grid-column: span 2; }
 .dov-pie-wrap { display: flex; align-items: center; gap: 20px; }
 .dov-pie-legend { display: flex; flex-direction: column; gap: 6px; flex: 1; max-height: 200px; overflow-y: auto; }
 .dov-legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; }
 .dov-legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
-.dov-legend-name { flex: 1; color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.dov-legend-val { color: #888; font-family: monospace; font-size: 11px; }
+.dov-legend-name { flex: 1; color: #ddd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dov-legend-val { color: #aaa; font-family: monospace; font-size: 11px; }
 .dov-legend-more { font-size: 11px; color: #555; margin-top: 4px; }
 
 .dov-top-card { grid-column: span 2; }
@@ -40,28 +40,28 @@
 .dov-top-item { display: flex; align-items: center; gap: 12px; }
 .dov-top-rank { font-size: 18px; font-weight: 500; width: 20px; flex-shrink: 0; font-family: monospace; }
 .dov-top-info { flex: 1; }
-.dov-top-name { font-size: 12px; color: #ccc; margin-bottom: 4px; }
+.dov-top-name { font-size: 12px; color: #ddd; margin-bottom: 4px; }
 .dov-top-bar-wrap { height: 4px; background: #1e2025; border-radius: 2px; overflow: hidden; }
 .dov-top-bar { height: 100%; border-radius: 2px; transition: width 0.5s; }
 .dov-top-nums { text-align: right; }
-.dov-top-kwh { font-size: 13px; font-weight: 500; color: #fff; font-family: monospace; }
-.dov-top-ils { font-size: 11px; color: #666; font-family: monospace; }
+.dov-top-kwh { font-size: 13px; font-weight: 600; color: #fff; font-family: monospace; }
+.dov-top-ils { font-size: 11px; color: #888; font-family: monospace; }
 
 .dov-group-card { display: flex; flex-direction: column; }
 .dov-group-bars { display: flex; align-items: flex-end; justify-content: space-around; flex: 1; gap: 12px; padding-top: 8px; min-height: 160px; }
 .dov-group-bar-item { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
-.dov-group-bar-val { font-size: 11px; color: #888; font-family: monospace; }
+.dov-group-bar-val { font-size: 12px; color: #bbb; font-weight: 500; font-family: monospace; }
 .dov-group-bar-wrap { display: flex; align-items: flex-end; height: 120px; }
 .dov-group-bar { width: 32px; border-radius: 4px 4px 0 0; transition: height 0.5s; min-height: 4px; }
-.dov-group-bar-label { font-size: 11px; color: #888; }
+.dov-group-bar-label { font-size: 11px; color: #aaa; }
 
 .dov-split-card {}
 .dov-split-wrap { display: flex; align-items: center; gap: 16px; }
 .dov-split-legend { display: flex; flex-direction: column; gap: 16px; }
 .dov-split-item { display: flex; align-items: center; gap: 10px; }
 .dov-split-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
-.dov-split-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
-.dov-split-val { font-size: 15px; font-weight: 500; color: #fff; font-family: monospace; margin-top: 2px; }
+.dov-split-label { font-size: 11px; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
+.dov-split-val { font-size: 16px; font-weight: 600; color: #fff; font-family: monospace; margin-top: 2px; }
 
 .dov-table-card { overflow: hidden; }
 .dov-table-wrap { overflow-x: auto; max-height: 420px; overflow-y: auto; }
@@ -82,3 +82,46 @@
   .dov-main-grid { grid-template-columns: 1fr 1fr; }
   .dov-pie-card, .dov-top-card { grid-column: span 1; }
 }
+
+/* Efficiency card */
+.dov-efficiency-card { display: flex; flex-direction: column; }
+.dov-eff-wrap { display: flex; flex-direction: column; gap: 14px; flex: 1; justify-content: center; }
+.dov-eff-item { display: flex; flex-direction: column; gap: 4px; }
+.dov-eff-today { display: flex; flex-direction: column; gap: 4px; }
+.dov-eff-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+.dov-eff-value { font-size: 28px; font-weight: 600; font-family: 'JetBrains Mono', monospace; line-height: 1; }
+.dov-eff-sub { font-size: 11px; color: #777; font-family: monospace; }
+.dov-eff-bar-wrap { height: 3px; background: #1e2025; border-radius: 2px; overflow: hidden; margin-top: 4px; }
+.dov-eff-bar { height: 100%; border-radius: 2px; transition: width 0.6s; min-width: 2px; }
+.dov-eff-divider { height: 0.5px; background: #252830; }
+
+/* Forecast card */
+.dov-forecast-card { display: flex; flex-direction: column; }
+.dov-forecast-wrap { display: flex; flex-direction: column; gap: 14px; flex: 1; justify-content: center; }
+.dov-forecast-item { display: flex; flex-direction: column; gap: 4px; }
+.dov-forecast-value { font-size: 26px; font-weight: 600; font-family: 'JetBrains Mono', monospace; color: #fff; line-height: 1; }
+.dov-peak-badge { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500; margin-top: 4px; }
+.dov-peak-active { background: rgba(204,0,16,0.15); color: #CC0010; border: 0.5px solid rgba(204,0,16,0.3); }
+.dov-peak-soon   { background: rgba(240,160,0,0.12); color: #f0a000; border: 0.5px solid rgba(240,160,0,0.3); }
+.dov-peak-off    { background: rgba(26,127,55,0.12);  color: #1a7f37; border: 0.5px solid rgba(26,127,55,0.3); }
+
+/* Tabs */
+.dov-tab-header { display: flex; gap: 4px; margin-bottom: 14px; border-bottom: 0.5px solid #1e2025; padding-bottom: 10px; }
+.dov-tab-btn { padding: 5px 12px; background: none; border: 0.5px solid #252830; border-radius: 6px; color: #888; font-size: 11px; cursor: pointer; font-family: inherit; transition: 0.15s; }
+.dov-tab-btn:hover { color: #fff; border-color: #333; }
+.dov-tab-btn.active { background: rgba(204,0,16,0.12); color: #CC0010; border-color: rgba(204,0,16,0.3); }
+
+/* View toggle */
+.dov-view-toggle { display: flex; background: #0a0b0d; border: 0.5px solid #1e2025; border-radius: 8px; overflow: hidden; }
+.dov-view-btn { padding: 7px 14px; background: none; border: none; color: #888; font-size: 12px; cursor: pointer; font-family: inherit; transition: 0.15s; }
+.dov-view-btn:hover { color: #fff; }
+.dov-view-btn.active { background: #CC0010; color: #fff; }
+
+/* Charging card */
+.dov-charging-card { display: flex; flex-direction: column; }
+.dov-charging-wrap { display: flex; flex-direction: column; gap: 6px; flex: 1; justify-content: center; }
+.dov-charging-item { display: flex; flex-direction: column; gap: 2px; }
+.dov-charging-name { font-size: 11px; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
+.dov-charging-kwh { font-size: 22px; font-weight: 600; color: #fff; font-family: 'JetBrains Mono', monospace; line-height: 1.2; }
+.dov-charging-ils { font-size: 12px; color: #888; font-family: monospace; }
+.dov-charging-total .dov-charging-kwh { font-size: 18px; color: #2255bb; }

@@ -1,7 +1,22 @@
 const BASE = "";
 
+// Session expiry callback — set from AuthContext
+let onSessionExpired = null;
+export function setSessionExpiredHandler(fn) { onSessionExpired = fn; }
+
 async function request(url, options = {}) {
   const res = await fetch(BASE + url, { credentials: "include", ...options });
+
+  // 401 = session expired / not logged in
+  if (res.status === 401) {
+    if (onSessionExpired) {
+      onSessionExpired();
+    } else {
+      window.location.href = "/login";
+    }
+    throw Object.assign(new Error("Session expired"), { status: 401 });
+  }
+
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw Object.assign(new Error(text || res.statusText), { status: res.status });

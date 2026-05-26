@@ -1,11 +1,12 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { api } from "../api/api";
+import { api, setSessionExpiredHandler } from "../api/api";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [sessionAlert, setSessionAlert] = useState(false);
 
   const checkAuth = useCallback(async () => {
     try {
@@ -19,13 +20,24 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  useEffect(() => { checkAuth(); }, [checkAuth]);
+  useEffect(() => {
+    checkAuth();
+    // Register 401 handler
+    setSessionExpiredHandler(() => {
+      setUser(null);
+      setSessionAlert(true);
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 3000);
+    });
+  }, [checkAuth]);
 
   const login = async (email, password) => {
     const data = await api.login(email, password);
     localStorage.setItem("UserEmail", email);
     localStorage.setItem("Username", data?.user?.username || "");
     setUser(data.user);
+    setSessionAlert(false);
     return data;
   };
 
@@ -38,6 +50,17 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={{ user, loading, login, logout, checkAuth }}>
       {children}
+      {sessionAlert && (
+        <div style={{
+          position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
+          background: "#CC0010", color: "#fff", padding: "12px 24px",
+          borderRadius: 10, fontSize: 14, fontWeight: 500,
+          zIndex: 999999, boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
+          display: "flex", alignItems: "center", gap: 10,
+        }}>
+          ⚠ Session expired — redirecting to login...
+        </div>
+      )}
     </AuthContext.Provider>
   );
 }
