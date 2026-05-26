@@ -77,3 +77,7 @@ export function AuthProvider({ children }) {
 }
 
 export const useAuth = () => useContext(AuthContext);
+
+
+//Some notes
+// - The AuthProvider component manages authentication state and session expiry handling.
