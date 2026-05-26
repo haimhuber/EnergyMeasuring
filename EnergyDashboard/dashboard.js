@@ -18,6 +18,10 @@ import db from "../energyComsamption/db.js";
 import OpenAI from "openai";
 import citiesConfig from "../EnergyDashboard/public/cities.json" with { type: "json" };
 
+import { scheduleDailyReport } from "../energyComsamption/emailReport.js";
+// SMTP 
+scheduleDailyReport();
+
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 dayjs.extend(utc);
@@ -73,6 +77,8 @@ function authRequired(req, res, next) {
   if (!user) return res.status(401).json({ detail: "Unauthorized" });
   req.user = user; next();
 }
+
+
 
 // =========================
 // 5) Network
