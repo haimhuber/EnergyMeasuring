@@ -23,15 +23,9 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     checkAuth();
 
-<<<<<<< HEAD
-    // Check session every 10 minutes
-    const interval = setInterval(() => {
-      checkAuth();
-=======
     // Check session every 10 minutes (skip if on login page)
     const interval = setInterval(() => {
       if (window.location.pathname !== "/login") checkAuth();
->>>>>>> 853b710af733a7a51f510282f4e075d4cc32eee1
     }, 10 * 60 * 1000);
 
     // Register 401 handler
@@ -83,7 +77,3 @@ export function AuthProvider({ children }) {
 }
 
 export const useAuth = () => useContext(AuthContext);
-
-
-//Some notes
-// - The AuthProvider component manages authentication state and session expiry handling.
