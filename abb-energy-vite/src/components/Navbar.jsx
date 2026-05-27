@@ -38,6 +38,14 @@ export default function Sidebar({ onOpenChat, onOpenSettings }) {
     setTimeout(() => setToast(null), 4000);
   };
 
+  // Check if just updated
+  useEffect(() => {
+    fetch("/api/updates/status", { credentials: "include" })
+      .then(r => r.json())
+      .then(d => { if (d.justUpdated) showToast("✅ Update completed successfully!", "ok"); })
+      .catch(() => {});
+  }, []);
+
   const checkForUpdates = useCallback(async () => {
     setUpdateState(s => ({ ...s, checking: true }));
     try {
@@ -148,7 +156,7 @@ export default function Sidebar({ onOpenChat, onOpenSettings }) {
         <div className="sb-bottom">
           <div className="sb-version">
             ABB v{process.env.VITE_APP_VERSION || "dev"}
-            <span style={{display:"block",fontSize:10,color:"#333",fontWeight:400}}>{process.env.VITE_BUILD_TIME || ""}</span>
+            <span style={{display:"block",fontSize:10,color:"#666",fontWeight:400}}>{process.env.VITE_BUILD_TIME || ""}</span>
           </div>
           <Clock />
           <button className="sb-logout" onClick={logout}>

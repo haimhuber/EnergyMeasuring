@@ -31,3 +31,6 @@ echo [UPDATE] Restarting Dashboard (this process will end)...
 start /b cmd /c "timeout /t 3 /nobreak && nssm restart EnergyDataDashboardV2"
 
 echo [UPDATE] Done!
+timeout /t 8 /nobreak
+curl -s -X POST http://localhost:8000/api/updates/done > nul 2>&1
+echo [UPDATE] Server notified.

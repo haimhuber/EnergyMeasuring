@@ -19,6 +19,9 @@ import OpenAI from "openai";
 import citiesConfig from "./public/cities.json" with { type: "json" };
 import { registerReportScheduleRoutes } from "./report-schedules-routes.js";
 
+// SMTP scheduler
+scheduleDailyReport();
+
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 dayjs.extend(utc);
@@ -499,6 +502,20 @@ registerReportScheduleRoutes(app, db, authRequired, DB_DRIVER);
 // 14) Update API
 // =========================
 let updateStatus = { checking: false, applying: false, lastCheck: null, hasUpdate: false, localCommit: null, remoteCommit: null, error: null };
+
+// Track update status
+let justUpdated = false;
+app.get("/api/updates/status", authRequired, (req, res) => {
+  const was = justUpdated;
+  justUpdated = false; // reset after first read
+  res.json({ justUpdated: was });
+});
+
+app.post("/api/updates/done", (req, res) => {
+  justUpdated = true;
+  console.log("✅ Update completed successfully!");
+  res.json({ ok: true });
+});
 
 app.get("/api/updates/check", authRequired, async (req, res) => {
   try {
