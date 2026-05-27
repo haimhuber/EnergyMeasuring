@@ -17,6 +17,10 @@ import breakersConfig from "../energyComsamption/breakerConfig.json" with { type
 import db from "../energyComsamption/db.js";
 import OpenAI from "openai";
 import citiesConfig from "../EnergyDashboard/public/cities.json" with { type: "json" };
+import { scheduleDailyReport } from "../energyComsamption/emailReport.js";
+import { registerReportScheduleRoutes } from "./report-schedules-routes.js";
+
+
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -253,7 +257,6 @@ app.post("/api/ai-query", authRequired, async (req, res) => {
     if (!lower.startsWith("select") && !lower.startsWith("with")) return res.status(400).json({ error: "Only SELECT/WITH queries allowed", sql: sqlQuery });
     if (forbidden.some(w => lower.includes(w))) return res.status(400).json({ error: "Forbidden keyword", sql: sqlQuery });
 
-    // Execute
     let recordset;
     if (DB_DRIVER === "postgres") {
       const pool = await db.connectionToSqlDB();
@@ -279,8 +282,6 @@ app.post("/api/ai-query", authRequired, async (req, res) => {
       }
       return safeRow;
     });
-
-    console.log("SAFE DATA:", JSON.stringify(safeData, null, 2));
 
     function buildSingleRowAnswer(row) {
       if (row.total_consumption_today !== undefined) return `סך הצריכה להיום הוא ${row.total_consumption_today}.`;
@@ -493,6 +494,11 @@ app.post("/api/register", async (req, res) => {
 });
 
 // =========================
-// 13) Start
+// 13) Report Schedules
+// =========================
+registerReportScheduleRoutes(app, db, authRequired, DB_DRIVER);
+
+// =========================
+// 14) Start
 // =========================
 app.listen(PORT, "0.0.0.0", () => { console.log(`✅ Energy API running — driver: ${DB_DRIVER}`); });

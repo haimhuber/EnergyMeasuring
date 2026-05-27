@@ -52,7 +52,7 @@ export default function Sidebar({ onOpenChat, onOpenSettings }) {
 
         <nav className="sb-nav">
           <div className="sb-section">Main</div>
-           <div className={`sb-item${window.location.pathname==="/dashboard"?" active":""}`} onClick={()=>window.location.href="/dashboard"}>
+          <div className={`sb-item${window.location.pathname==="/dashboard"?" active":""}`} onClick={()=>window.location.href="/dashboard"}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v6H3z"/></svg>
             Dashboard
           </div>
@@ -60,11 +60,21 @@ export default function Sidebar({ onOpenChat, onOpenSettings }) {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
             Report &amp; Billing
           </div>
-         
+
           <div className="sb-item" onClick={() => onOpenChat?.()}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 0 1 10 10c0 5.52-4.48 10-10 10a9.96 9.96 0 0 1-5.19-1.45L2 22l1.45-4.81A9.96 9.96 0 0 1 2 12 10 10 0 0 1 12 2z"/></svg>
             AI Assistant
           </div>
+
+          {user?.role === "admin" && (
+            <div className="sb-item sb-item-highlight" onClick={() => window.location.href="/report-scheduler"}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/>
+              </svg>
+              Report Scheduler
+            </div>
+          )}
 
           <div className="sb-section">Current Season</div>
           <div className="sb-season-card">
@@ -102,7 +112,6 @@ export default function Sidebar({ onOpenChat, onOpenSettings }) {
           </button>
         </div>
       </aside>
-
     </>
   );
 }

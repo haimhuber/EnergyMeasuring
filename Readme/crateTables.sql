@@ -156,3 +156,19 @@ CREATE TABLE Location (
     Latitude FLOAT,
     Longitude FLOAT
 );
+
+
+-- Rreporst
+CREATE TABLE report_schedule (
+  id              INT IDENTITY(1,1) PRIMARY KEY,
+  name            NVARCHAR(100) NOT NULL,
+  breaker_ids     NVARCHAR(MAX) NOT NULL DEFAULT '[]',
+  frequency       NVARCHAR(10)  NOT NULL DEFAULT 'daily',
+  send_time       TIME NOT NULL DEFAULT '23:30',
+  send_day_week   INT DEFAULT 0,
+  send_day_month  INT DEFAULT 1,
+  recipients      NVARCHAR(MAX) NOT NULL DEFAULT '[]',
+  active          BIT NOT NULL DEFAULT 1,
+  created_at      DATETIME2 DEFAULT GETDATE(),
+  last_sent       DATETIME2 NULL
+);

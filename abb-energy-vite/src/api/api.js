@@ -7,12 +7,15 @@ export function setSessionExpiredHandler(fn) { onSessionExpired = fn; }
 async function request(url, options = {}) {
   const res = await fetch(BASE + url, { credentials: "include", ...options });
 
-  // 401 = session expired / not logged in
+  // 401 = session expired (skip for login/register endpoints)
   if (res.status === 401) {
-    if (onSessionExpired) {
-      onSessionExpired();
-    } else {
-      window.location.href = "/login";
+    const isAuthEndpoint = url.includes("/api/login") || url.includes("/api/register");
+    if (!isAuthEndpoint) {
+      if (onSessionExpired) {
+        onSessionExpired();
+      } else {
+        window.location.href = "/login";
+      }
     }
     throw Object.assign(new Error("Session expired"), { status: 401 });
   }
