@@ -2,15 +2,20 @@
   "name": "energy-node-api",
   "version": "1.0.0",
   "type": "module",
-  "main": "server.js",
+  "main": "dashboard.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node dashboard.js"
   },
   "dependencies": {
     "@azure/identity": "^4.13.0",
+    "bcrypt": "^6.0.0",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dayjs": "^1.11.13",
+    "dotenv": "^17.3.1",
     "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.3",
+    "mssql": "^11.0.1",
     "openai": "^6.33.0",
     "papaparse": "^5.4.1",
     "pg": "^8.21.0"
