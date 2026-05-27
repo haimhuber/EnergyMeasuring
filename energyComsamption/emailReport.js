@@ -8,6 +8,8 @@
 import nodemailer from "nodemailer";
 import pg from "pg";
 import puppeteer from "puppeteer";
+import fs from "fs";
+import pathModule from "path";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -35,6 +37,22 @@ async function pgQuery(text, params = []) {
     return res.rows;
   } finally {
     client.release();
+  }
+}
+
+// ── Save PDF to disk ─────────────────────────────────────
+function savePdfToDisk(pdf, subFolder, filename) {
+  try {
+    const baseDir = "C:/EnergyReports";
+    const dir = pathModule.join(baseDir, subFolder);
+    if (!fs.existsSync(baseDir)) fs.mkdirSync(baseDir, { recursive: true });
+    if (!fs.existsSync(dir))     fs.mkdirSync(dir,     { recursive: true });
+    const fullPath = pathModule.join(dir, filename);
+    fs.writeFileSync(fullPath, pdf);
+    console.log(`💾 PDF saved to: ${fullPath}`);
+    return fullPath;
+  } catch (err) {
+    console.error("❌ Failed to save PDF:", err.message);
   }
 }
 
@@ -194,12 +212,16 @@ async function buildReportData(fromDate, toDate, customBreakerIds = null) {
     panels, totalKwh, totalIls, totalPeak, totalOff,
     vsYesterday, vsLastWeek, yTotalKwh, lwTotalKwh,
     pb1Main, pb1Ac, pb1Other, pbDirect,
-    has27, has28, has29, dateStr: `${fromDate} → ${toDate}`,
+    has27, has28, has29,
+    dateStr: `${fromDate} → ${toDate}`,
+    frequency: "daily",
   };
 }
 
 // ── Generate HTML ─────────────────────────────────────────
 function buildHtml(d) {
+  const freqLabel = { daily: "Daily Report", weekly: "Weekly Report", monthly: "Monthly Report" };
+  const reportTypeLabel = freqLabel[d.frequency] || "Daily Report";
   const fmtPct = (n) => n == null ? "—" : `${n > 0 ? "+" : ""}${n.toFixed(1)}%`;
   const pctColor = (n) => n == null ? "#555" : n <= 0 ? "#1a7f37" : "#CC0010";
   const trendArrow = (n) => n == null ? "" : n <= 0 ? "↓" : "↑";
@@ -411,7 +433,7 @@ body{background:#f0f2f5;font-family:'Segoe UI',Arial,sans-serif}
         <div class="hdr-logomark">Energy Monitoring System</div>
       </div>
       <div style="text-align:right">
-        <div class="hdr-badge">IoT 4.0 · Daily Report</div>
+        <div class="hdr-badge">ABB · ${reportTypeLabel}</div>
         <div class="hdr-title">Energy Daily Summary</div>
         <div class="hdr-meta">${fmtDate(d.dateStr)} · ${SITE_NAME}</div>
       </div>
@@ -421,7 +443,7 @@ body{background:#f0f2f5;font-family:'Segoe UI',Arial,sans-serif}
   <div class="ts-bar">
     <div class="ts-item">OPC UA · <span>${d.panels.length} panels selected</span></div>
     <div class="ts-item">Generated: <span>${new Date().toLocaleTimeString("he-IL",{hour:"2-digit",minute:"2-digit"})} IDT</span></div>
-    <div class="ts-item">Period: <span>00:00 – 23:00</span></div>
+    <div class="ts-item">Period: <span>${d.dateStr}</span></div>
   </div>
 
   <div class="kpi-row">
@@ -490,7 +512,7 @@ body{background:#f0f2f5;font-family:'Segoe UI',Arial,sans-serif}
   </div>
 
   <div class="ftr">
-    <div class="ftr-left"><span>ABB Energy Monitoring</span> · ${SITE_NAME}<br>OPC UA · SQL Server · Supabase · IoT 4.0</div>
+    <div class="ftr-left"><span>ABB Energy Monitoring</span> · ${SITE_NAME}<br>OPC UA · SQL Server · Supabase · ABB</div>
     <div class="ftr-right">Auto-generated · ${new Date().toLocaleTimeString("he-IL",{hour:"2-digit",minute:"2-digit"})} IDT<br>Do not reply</div>
   </div>
 
@@ -501,6 +523,8 @@ body{background:#f0f2f5;font-family:'Segoe UI',Arial,sans-serif}
 
 // ── Send email ────────────────────────────────────────────
 async function _sendEmail(html, dateStr, totalKwh) {
+  // Save to today folder
+  const dailyFilename = `ABB-Energy-Daily-${dateStr}.pdf`;
 
   // Recipients — comma-separated list from .env.unified
   const recipients = (process.env.EMAIL_RECIPIENTS || "haimhuber90@gmail.com")
@@ -523,7 +547,9 @@ async function _sendEmail(html, dateStr, totalKwh) {
 
   console.log("📄 Generating PDF...");
   const pdf = await generatePdf(html);
-  const filename = `ABB-Energy-Report-${dateStr}.pdf`;
+  const ts2 = new Date().toTimeString().slice(0,8).replace(/:/g,"-");
+  const filename = `ABB-Energy-Report-${dateStr}_${ts2}.pdf`;
+  savePdfToDisk(pdf, "today", filename);
 
   const info = await transporter.sendMail({
     from: `"ABB Energy Monitoring" <${process.env.EMAIL_USER}>`,
@@ -586,24 +612,34 @@ function getDateRangeForFrequency(frequency) {
 export async function buildReportHtml({ breaker_ids, frequency, name }) {
   const { from, to } = getDateRangeForFrequency(frequency || "daily");
   const d = await buildReportData(from, to, breaker_ids);
+  d.frequency = frequency || "daily";
   return buildHtml(d);
 }
 
 export async function sendScheduledReport(schedule) {
+  const today = todayStr();
   const { from, to } = getDateRangeForFrequency(schedule.frequency || "daily");
   const d = await buildReportData(from, to, schedule.breaker_ids);
+  d.frequency = schedule.frequency || "daily";
   const html = buildHtml(d);
 
   const transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST || "smtp.gmail.com",
-    port: Number(process.env.EMAIL_PORT || 465),
+    host: "smtp.gmail.com",
+    port: 465,
     secure: true,
     auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_API_KEY },
+    socketTimeout: 30000,
+    greetingTimeout: 15000,
+    connectionTimeout: 15000,
+    family: 4,  // Force IPv4
   });
 
   console.log("📄 Generating PDF...");
   const pdf = await generatePdf(html);
-  const filename = `ABB-Energy-Report-${schedule.name.replace(/\s+/g,"-")}-${today}.pdf`;
+  const safeName = schedule.name.replace(/[^a-zA-Z0-9-_]/g, "-");
+  const ts = new Date().toTimeString().slice(0,8).replace(/:/g,"-");
+  const filename = `ABB-Energy-Report-${safeName}-${today}_${ts}.pdf`;
+  savePdfToDisk(pdf, "send-now", filename);
 
   await transporter.sendMail({
     from: `"ABB Energy Monitoring" <${process.env.EMAIL_USER}>`,
