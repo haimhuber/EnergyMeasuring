@@ -23,6 +23,7 @@ const SERVER_IP   = process.env.API_HOST || getLocalIp();
 const SERVER_PORT = process.env.API_PORT || 8000;
 const target      = `http://${SERVER_IP}:${SERVER_PORT}`;
 const commitHash  = getGitCommit();
+const buildTime   = new Date().toLocaleString("he-IL", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" });
 
 console.log(`🔗 Proxy target: ${target}`);
 console.log(`📦 Version: ${commitHash}`);
@@ -31,6 +32,7 @@ export default defineConfig({
   plugins: [react()],
   define: {
     'process.env.VITE_APP_VERSION': JSON.stringify(commitHash),
+    'process.env.VITE_BUILD_TIME': JSON.stringify(buildTime),
   },
   server: {
     host: '0.0.0.0',
@@ -42,4 +44,4 @@ export default defineConfig({
       }
     }
   }
-});
+})
