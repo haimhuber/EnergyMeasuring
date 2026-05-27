@@ -19,7 +19,6 @@ import OpenAI from "openai";
 import citiesConfig from "./public/cities.json" with { type: "json" };
 import { registerReportScheduleRoutes } from "./report-schedules-routes.js";
 
-
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 dayjs.extend(utc);
@@ -282,16 +281,16 @@ app.post("/api/ai-query", authRequired, async (req, res) => {
     });
 
     function buildSingleRowAnswer(row) {
-      if (row.total_consumption_today !== undefined) return `סך הצריכה להיום הוא ${row.total_consumption_today}.`;
-      if (row.total_consumption_this_month !== undefined) return `סך הצריכה החודש הוא ${row.total_consumption_this_month}.`;
+      if (row.total_consumption_today !== undefined) return `    ${row.total_consumption_today}.`;
+      if (row.total_consumption_this_month !== undefined) return `    ${row.total_consumption_this_month}.`;
       const bid = row.BreakerId ?? row.breakerid;
-      if (row.daily_consumption !== undefined && bid !== undefined) return `הצריכה היומית של מפסק ${bid} היא ${row.daily_consumption}.`;
-      if (row.daily_consumption !== undefined) return `הצריכה היומית היא ${row.daily_consumption}.`;
-      if (row.hourly_consumption !== undefined) return `הצריכה השעתית היא ${row.hourly_consumption}.`;
-      if (row.max_consumption !== undefined) return `הצריכה המקסימלית היא ${row.max_consumption}.`;
-      if (row.avg_consumption !== undefined) return `הצריכה הממוצעת היא ${row.avg_consumption}.`;
+      if (row.daily_consumption !== undefined && bid !== undefined) return `    ${bid}  ${row.daily_consumption}.`;
+      if (row.daily_consumption !== undefined) return `   ${row.daily_consumption}.`;
+      if (row.hourly_consumption !== undefined) return `   ${row.hourly_consumption}.`;
+      if (row.max_consumption !== undefined) return `   ${row.max_consumption}.`;
+      if (row.avg_consumption !== undefined) return `   ${row.avg_consumption}.`;
       const consumption = row.Consumption ?? row.consumption;
-      if (consumption !== undefined && bid !== undefined) return `מפסק ${bid} צרך ${consumption}.`;
+      if (consumption !== undefined && bid !== undefined) return ` ${bid}  ${consumption}.`;
       return null;
     }
 
@@ -300,25 +299,25 @@ app.post("/api/ai-query", authRequired, async (req, res) => {
       const allDaily = rows.every(r => (r.BreakerId??r.breakerid) !== undefined && r.daily_consumption !== undefined);
       if (allDaily) {
         const sorted = [...rows].sort((a,b) => b.daily_consumption - a.daily_consumption);
-        const parts = rows.map(r => `מפסק ${r.BreakerId??r.breakerid} צרך ${r.daily_consumption}`);
-        return `${parts.join(", ")}. הצריכה הגבוהה ביותר היא של מפסק ${sorted[0].BreakerId??sorted[0].breakerid} עם ${sorted[0].daily_consumption}.`;
+        const parts = rows.map(r => ` ${r.BreakerId??r.breakerid}  ${r.daily_consumption}`);
+        return `${parts.join(", ")}.       ${sorted[0].BreakerId??sorted[0].breakerid}  ${sorted[0].daily_consumption}.`;
       }
       return null;
     }
 
-    let finalAnswer = "לא נמצאה תשובה.";
+    let finalAnswer = "  .";
     if (safeData.length === 0) {
-      finalAnswer = "לא נמצאו נתונים עבור השאילתה המבוקשת.";
+      finalAnswer = "     .";
     } else if (safeData.length === 1) {
       finalAnswer = buildSingleRowAnswer(safeData[0]) || (await openai.responses.create({
         model: "gpt-4.1-mini",
-        input: `ענה בעברית קצרה ומדויקת. שאלה: ${question}\nנתונים: ${JSON.stringify(safeData)}`
-      })).output_text || "לא נמצאה תשובה.";
+        input: `   . : ${question}\n: ${JSON.stringify(safeData)}`
+      })).output_text || "  .";
     } else {
       finalAnswer = buildMultiRowAnswer(safeData) || (await openai.responses.create({
         model: "gpt-4.1-mini",
-        input: `ענה בעברית קצרה ומדויקת. שאלה: ${question}\nנתונים: ${JSON.stringify(safeData)}`
-      })).output_text || "לא נמצאה תשובה.";
+        input: `   . : ${question}\n: ${JSON.stringify(safeData)}`
+      })).output_text || "  .";
     }
 
     res.json({ sql: sqlQuery, data: safeData, answer: finalAnswer });
@@ -495,6 +494,141 @@ app.post("/api/register", async (req, res) => {
 // 13) Report Schedules
 // =========================
 registerReportScheduleRoutes(app, db, authRequired, DB_DRIVER);
+
+// =========================
+// 13b) WhatsApp Bot
+// =========================
+import twilio from "twilio";
+
+const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+
+async function sendWhatsApp(to, body) {
+  try {
+    await twilioClient.messages.create({
+      from: process.env.TWILIO_WHATSAPP_FROM || "whatsapp:+14155238886",
+      to: to.startsWith("whatsapp:") ? to : `whatsapp:${to}`,
+      body,
+    });
+  } catch (err) {
+    console.error("WhatsApp send error:", err.message);
+  }
+}
+
+async function handleWhatsAppMessage(from, body) {
+  const msg = body.trim().toLowerCase();
+
+  // Help
+  if (msg === "help" || msg === "?") {
+    return "*ABB Energy Monitoring Bot*\n\nCommands:\nconsumption - today kWh\ncost - today ILS\npeak - peak hours\nforecast - end-of-day\ncharging - PB1 stations\nhelp - this menu\n\nOr ask freely: How much did B0 consume today?";
+  }
+
+  // Fetch today's data
+  const today = new Date().toISOString().slice(0, 10);
+  
+  const BREAKERS = [
+    { id: "1",  name: "B0 — Main" },
+    { id: "22", name: "Roof — Main" },
+    { id: "27", name: "PB — Main" },
+    { id: "30", name: "PV Panels" },
+  ];
+
+  const fetchBreaker = async (id) => {
+    try {
+      const pool = await db.connectionToSqlDB();
+      // Use existing consumption logic
+      const tariffs = await db.getTariffs();
+      const rows = await db.getEnergyData(Number(id), new Date(today + "T00:00:00"), new Date(today + "T23:59:59"));
+      if (!rows || rows.length < 2) return { kwh: 0, ils: 0, peak_kwh: 0 };
+      const sorted = rows.map(r => ({ ae: Number(r.activeEnergy||r.ActiveEnergy||0), ts: new Date(r.timestamp||r.Timestamp) })).sort((a,b)=>a.ts-b.ts);
+      let kwh=0, peak_kwh=0, ils=0;
+      for (let i=1; i<sorted.length; i++) {
+        const delta = sorted[i].ae - sorted[i-1].ae;
+        if (delta<=0) continue;
+        const h=sorted[i].ts.getHours(), d=sorted[i].ts.getDay(), m=sorted[i].ts.getMonth()+1;
+        const season=(m===12||m<=2)?"winter":(m>=6&&m<=9)?"summer":"shoulder";
+        const isPeak=d>=0&&d<=4&&h>=17&&h<22;
+        const rate=isPeak?tariffs[season].peak:tariffs[season].off;
+        kwh+=delta; ils+=delta*rate;
+        if(isPeak) peak_kwh+=delta;
+      }
+      return { kwh: Math.round(kwh), ils: Math.round(ils), peak_kwh: Math.round(peak_kwh) };
+    } catch { return { kwh:0, ils:0, peak_kwh:0 }; }
+  };
+
+  if (msg.includes("consumption") || msg.includes("kwh")) {
+    const results = await Promise.all(BREAKERS.map(b => fetchBreaker(b.id).then(d => ({...b,...d}))));
+    const total = results.reduce((s,r)=>s+r.kwh,0);
+    const lines = results.map(r => "- " + r.name + ": " + r.kwh.toLocaleString() + " kWh").join("\n");
+    return "Consumption today (" + today + "):\n\n" + lines + "\n\nTotal: " + total.toLocaleString() + " kWh";
+  }
+
+  if (msg.includes("cost") || msg.includes("ils")) {
+    const results = await Promise.all(BREAKERS.map(b => fetchBreaker(b.id).then(d => ({...b,...d}))));
+    const total = results.reduce((s,r)=>s+r.ils,0);
+    const lines = results.map(r => "- " + r.name + ": ILS " + r.ils.toLocaleString()).join("\n");
+    return "Cost today (" + today + "):\n\n" + lines + "\n\nTotal: ILS " + total.toLocaleString() + "\nIncl VAT: ILS " + Math.round(total*1.18).toLocaleString();
+  }
+
+  if (msg.includes("peak")) {
+    const results = await Promise.all(BREAKERS.map(b => fetchBreaker(b.id).then(d => ({...b,...d}))));
+    const total = results.reduce((s,r)=>s+r.kwh,0);
+    const totalPeak = results.reduce((s,r)=>s+r.peak_kwh,0);
+    const pct = total > 0 ? Math.round(totalPeak/total*100) : 0;
+    const lines = results.map(r => "- " + r.name + ": " + r.peak_kwh + " kWh").join("\n");
+    return "Peak hours today:\n\n" + lines + "\n\nTotal peak: " + totalPeak.toLocaleString() + " kWh (" + pct + "%)";
+  }
+
+  if (msg.includes("forecast")) {
+    const results = await Promise.all(BREAKERS.map(b => fetchBreaker(b.id).then(d => ({...b,...d}))));
+    const totalKwh = results.reduce((s,r)=>s+r.kwh,0);
+    const now = new Date();
+    const hoursPassed = now.getHours() + now.getMinutes()/60;
+    const rate = hoursPassed > 0 ? totalKwh / hoursPassed : 0;
+    const forecast = Math.round(totalKwh + rate * (24 - hoursPassed));
+    return "End-of-day forecast:\n\nSo far: " + totalKwh.toLocaleString() + " kWh\nRate: " + Math.round(rate) + " kWh/h\n\nForecast: " + forecast.toLocaleString() + " kWh";
+  }
+
+  if (msg.includes("charging") || msg.includes("pb1")) {
+    const pb1 = await fetchBreaker("28");
+    const ac = await fetchBreaker("29");
+    return "Charging PB1 today:\n\nPB1 Main: " + pb1.kwh.toLocaleString() + " kWh | ILS " + pb1.ils + "\nAC Charges: " + ac.kwh.toLocaleString() + " kWh | ILS " + ac.ils + "\n\nTotal: " + (pb1.kwh+ac.kwh).toLocaleString() + " kWh";
+  }
+
+  // Free question via OpenAI
+  try {
+    const results = await Promise.all(BREAKERS.map(b => fetchBreaker(b.id).then(d => ({...b,...d}))));
+    const context = results.map(r=>`${r.name}: ${r.kwh} kWh, ₪${r.ils}`).join(", ");
+    const resp = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: "You are ABB Energy Bot. Today consumption data: " + context + ". Answer briefly." },
+        { role: "user", content: body }
+      ],
+      max_tokens: 200,
+    });
+    return resp.choices[0].message.content;
+  } catch {
+    return "Not understood. Send help for commands list.";
+  }
+}
+
+// Webhook endpoint
+app.post("/api/whatsapp/webhook", express.urlencoded({ extended: false }), async (req, res) => {
+  const from = req.body?.From || "";
+  const body = req.body?.Body || "";
+  console.log(`📱 WhatsApp from ${from}: ${body}`);
+  
+  try {
+    const reply = await handleWhatsAppMessage(from, body);
+    const MessagingResponse = twilio.twiml.MessagingResponse;
+    const twiml = new MessagingResponse();
+    twiml.message(reply);
+    res.type("text/xml").send(twiml.toString());
+  } catch (err) {
+    console.error("WhatsApp webhook error:", err.message);
+    res.status(500).send("");
+  }
+});
 
 // =========================
 // 14) Update API
