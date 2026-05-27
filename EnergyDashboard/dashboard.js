@@ -19,8 +19,6 @@ import OpenAI from "openai";
 import citiesConfig from "./public/cities.json" with { type: "json" };
 import { registerReportScheduleRoutes } from "./report-schedules-routes.js";
 
-// SMTP scheduler
-scheduleDailyReport();
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
