@@ -42,6 +42,7 @@ async function pgQuery(text, params = []) {
 async function generatePdf(html) {
   let browser;
   try {
+    console.log("🚀 Launching browser...");
     browser = await puppeteer.launch({
       headless: true,
       args: [
@@ -49,18 +50,27 @@ async function generatePdf(html) {
         "--disable-setuid-sandbox",
         "--disable-dev-shm-usage",
         "--disable-gpu",
+        "--disable-software-rasterizer",
       ],
+      timeout: 30000,
     });
+    console.log("✅ Browser launched");
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "domcontentloaded" });
-    await new Promise(r => setTimeout(r, 500));
+    console.log("📄 Setting content...");
+    await page.setContent(html, { waitUntil: "domcontentloaded", timeout: 15000 });
+    console.log("🖨️ Generating PDF...");
     const pdf = await page.pdf({
       format: "A4",
       printBackground: true,
       margin: { top: "10mm", right: "0", bottom: "10mm", left: "0" },
+      timeout: 15000,
     });
+    console.log("✅ PDF generated, size:", pdf.length, "bytes");
     await page.close();
     return pdf;
+  } catch (err) {
+    console.error("❌ PDF generation failed:", err.message);
+    throw err;
   } finally {
     if (browser) {
       try { await browser.close(); } catch {}
