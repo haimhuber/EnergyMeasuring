@@ -87,3 +87,22 @@
   transition: color 0.15s, background 0.15s;
 }
 .sb-logout:hover { color: #ff4444; background: rgba(255,0,0,0.05); }
+
+/* Report Scheduler highlight */
+.sb-item-highlight {
+  color: #CC0010;
+  border: 0.5px solid rgba(204,0,16,0.2);
+  border-radius: 6px;
+  background: rgba(204,0,16,0.06);
+  margin: 2px 0;
+}
+.sb-item-highlight:hover {
+  background: rgba(204,0,16,0.12);
+  color: #ff3344;
+}
+
+/* Update buttons */
+.sb-item-update { color: #f0a000; border: 0.5px solid rgba(240,160,0,0.3); border-radius: 6px; background: rgba(240,160,0,0.08); margin: 2px 0; }
+.sb-item-update:hover { background: rgba(240,160,0,0.15); }
+.sb-check-update { color: #555; font-size: 11px; }
+.sb-check-update:hover { color: #888; }

@@ -19,7 +19,6 @@ import OpenAI from "openai";
 import citiesConfig from "./public/cities.json" with { type: "json" };
 import { registerReportScheduleRoutes } from "./report-schedules-routes.js";
 
-
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 dayjs.extend(utc);
@@ -497,7 +496,66 @@ app.post("/api/register", async (req, res) => {
 registerReportScheduleRoutes(app, db, authRequired, DB_DRIVER);
 
 // =========================
-// 14) Catch-all for React Router
+// 14) Update API
+// =========================
+let updateStatus = { checking: false, applying: false, lastCheck: null, hasUpdate: false, localCommit: null, remoteCommit: null, error: null };
+
+app.get("/api/updates/check", authRequired, async (req, res) => {
+  try {
+    updateStatus.checking = true;
+    const { execSync } = await import("child_process");
+    const { default: https } = await import("https");
+
+    // Get local commit
+    const localCommit = execSync("git rev-parse HEAD", { cwd: "C:\\EnergyMeasuring" }).toString().trim();
+
+    // Get remote commit via GitHub API
+    const remoteCommit = await new Promise((resolve, reject) => {
+      const options = {
+        hostname: "api.github.com",
+        path: `/repos/${process.env.GITHUB_REPO}/commits/main`,
+        headers: {
+          "Authorization": `Bearer ${process.env.GITHUB_TOKEN}`,
+          "User-Agent": "EnergyMeasuring-App",
+          "Accept": "application/vnd.github.v3+json",
+        },
+        family: 4,
+      };
+      https.get(options, (r) => {
+        let data = "";
+        r.on("data", c => data += c);
+        r.on("end", () => {
+          try { resolve(JSON.parse(data).sha); } catch { reject(new Error("Failed to parse GitHub response")); }
+        });
+      }).on("error", reject);
+    });
+
+    const hasUpdate = localCommit !== remoteCommit;
+    updateStatus = { checking: false, applying: false, lastCheck: new Date().toISOString(), hasUpdate, localCommit: localCommit.slice(0,7), remoteCommit: remoteCommit?.slice(0,7), error: null };
+    res.json(updateStatus);
+  } catch (err) {
+    updateStatus = { ...updateStatus, checking: false, error: err.message };
+    res.status(500).json({ ...updateStatus, error: err.message });
+  }
+});
+
+app.post("/api/updates/apply", authRequired, async (req, res) => {
+  if (updateStatus.applying) return res.status(409).json({ detail: "Update already in progress" });
+  updateStatus.applying = true;
+  res.json({ ok: true, message: "Update started — server will restart in ~30 seconds" });
+  // Run update script after response is sent
+  setTimeout(async () => {
+    try {
+      const { exec } = await import("child_process");
+      exec("C:\\EnergyMeasuring\\EnergyDashboard\\update.bat", { cwd: "C:\\EnergyMeasuring" }, (err) => {
+        if (err) console.error("Update error:", err.message);
+      });
+    } catch (err) { console.error("Update failed:", err.message); }
+  }, 500);
+});
+
+// =========================
+// 15) Catch-all for React Router
 // =========================
 app.get("*", (req, res) => {
   if (req.path.startsWith("/api/")) return res.status(404).json({ detail: "Not found" });
@@ -505,6 +563,6 @@ app.get("*", (req, res) => {
 });
 
 // =========================
-// 15) Start
+// 16) Start
 // =========================
 app.listen(PORT, "0.0.0.0", () => { console.log(`✅ Energy API running — driver: ${DB_DRIVER}`); });
