@@ -9,6 +9,7 @@
     "dotenv": "^17.3.1",
     "jsonwebtoken": "^9.0.3",
     "nodemailer": "^8.0.9",
-    "pg": "^8.21.0"
+    "pg": "^8.21.0",
+    "puppeteer": "^25.1.0"
   }
 }
