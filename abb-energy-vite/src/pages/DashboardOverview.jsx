@@ -7,6 +7,7 @@ import "./DashboardOverview.css";
 
 
 
+
 const PERIOD_OPTIONS = [
   { label: "Today",     value: "today" },
   { label: "Yesterday", value: "yesterday" },
@@ -89,6 +90,7 @@ export default function DashboardOverview() {
   const [viewMode, setViewMode] = useState("main");
   const [chargingData, setChargingData] = useState([]); // "main" | "charging"
   const [showChat, setShowChat] = useState(false);
+  const [showReportScheduler, setShowReportScheduler] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [drillGroup, setDrillGroup] = useState(null);
   const [efficiency, setEfficiency] = useState({ yesterday: null, lastWeek: null, loading: true }); // null = main view
@@ -276,7 +278,7 @@ export default function DashboardOverview() {
 
   return (
     <>
-      <Navbar onOpenChat={() => setShowChat(true)} onOpenSettings={() => setShowSettings(true)} />
+      <Navbar onOpenChat={() => setShowChat(true)} onOpenSettings={() => setShowSettings(true)} onOpenReportScheduler={() => setShowReportScheduler(true)} />
       <div className="dov-page">
 
         {/* Period selector */}
@@ -286,6 +288,7 @@ export default function DashboardOverview() {
             <span className="dov-sub">Live consumption overview</span>
           </div>
           <div className="dov-period-btns">
+
             {PERIOD_OPTIONS.map(o => (
               <button key={o.value} className={`dov-period-btn${period===o.value?" active":""}`}
                 onClick={()=>setPeriod(o.value)}>{o.label}</button>
@@ -667,6 +670,7 @@ export default function DashboardOverview() {
 
       </div>
       {showChat && <AIChat onClose={() => setShowChat(false)} />}
+      {showReportScheduler && <ReportSchedulerModal onClose={() => setShowReportScheduler(false)} />}
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
     </>
   );

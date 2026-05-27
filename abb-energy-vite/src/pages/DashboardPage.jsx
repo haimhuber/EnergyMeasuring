@@ -22,6 +22,7 @@ export default function DashboardPage() {
   const [params, setParams] = useState({ breakerId: "", from: yesterdayStr(), to: todayStr(), view: "daily" });
   const [modal, setModal] = useState({ title: "", message: "" });
   const [showChat, setShowChat] = useState(false);
+  const [showReportScheduler, setShowReportScheduler] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [status, setStatus] = useState({ type: "", text: "Select a breaker and date range to generate a report." });
 
@@ -99,7 +100,7 @@ export default function DashboardPage() {
 
   return (
     <>
-      <Navbar onOpenChat={() => setShowChat(true)} onOpenSettings={() => setShowSettings(true)} />
+      <Navbar onOpenChat={() => setShowChat(true)} onOpenSettings={() => setShowSettings(true)} onOpenReportScheduler={() => setShowReportScheduler(true)} />
       <AbbModal title={modal.title} message={modal.message} onClose={() => setModal({ title: "", message: "" })} />
 
       <ReportControls params={params} onChange={onChange} onGenerate={handleGenerate} onGenerateMulti={() => showModal("Coming soon", "Multi-breaker report coming soon.")} loading={loading} />
@@ -198,6 +199,7 @@ export default function DashboardPage() {
         )}
       </div>
       {showChat && <AIChat onClose={() => setShowChat(false)} />}
+      {showReportScheduler && <ReportSchedulerModal onClose={() => setShowReportScheduler(false)} />}
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
     </>
   );
