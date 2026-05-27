@@ -56,7 +56,8 @@ export default function Sidebar({ onOpenChat, onOpenSettings }) {
     if (!confirm("Apply update " + updateState.remoteCommit + "?\n\nServer will restart in ~30 seconds.")) return;
     setUpdateState(s => ({ ...s, applying: true }));
     await fetch("/api/updates/apply", { method: "POST", credentials: "include" });
-    showToast("⬆ Update started — server restarting in ~30s", "update");
+    showToast("⬆ Update started — reloading in 60s...", "update");
+    setTimeout(() => window.location.reload(), 60000);
   };
 
   const initials = (user?.username || "?").slice(0, 2).toUpperCase();
