@@ -16,7 +16,7 @@ dotenv.config({ path: './.env.unified' });
 import breakersConfig from "../energyComsamption/breakerConfig.json" with { type: "json" };
 import db from "../energyComsamption/db.js";
 import OpenAI from "openai";
-import citiesConfig from "../EnergyDashboard/public/cities.json" with { type: "json" };
+import citiesConfig from "./public/cities.json" with { type: "json" };
 import { registerReportScheduleRoutes } from "./report-schedules-routes.js";
 
 
@@ -193,7 +193,7 @@ app.use(express.static(PUBLIC_DIR, { index: false }));
 // =========================
 app.get("/", (req, res) => {
   const user = getUserFromReq(req);
-  if (!user) return res.sendFile(path.join(PUBLIC_DIR, "login.html"));
+  if (!user) return res.sendFile(path.join(PUBLIC_DIR, "index.html"));
   return res.sendFile(path.join(PUBLIC_DIR, "index.html"));
 });
 
@@ -497,6 +497,14 @@ app.post("/api/register", async (req, res) => {
 registerReportScheduleRoutes(app, db, authRequired, DB_DRIVER);
 
 // =========================
-// 14) Start
+// 14) Catch-all for React Router
+// =========================
+app.get("*", (req, res) => {
+  if (req.path.startsWith("/api/")) return res.status(404).json({ detail: "Not found" });
+  res.sendFile(path.join(PUBLIC_DIR, "index.html"));
+});
+
+// =========================
+// 15) Start
 // =========================
 app.listen(PORT, "0.0.0.0", () => { console.log(`✅ Energy API running — driver: ${DB_DRIVER}`); });
