@@ -90,15 +90,18 @@
 
 /* Report Scheduler highlight */
 .sb-item-highlight {
-  color: #CC0010;
-  border: 0.5px solid rgba(204,0,16,0.2);
+  color: #ccc;
   border-radius: 6px;
-  background: rgba(204,0,16,0.06);
   margin: 2px 0;
 }
 .sb-item-highlight:hover {
-  background: rgba(204,0,16,0.12);
-  color: #ff3344;
+  color: #CC0010;
+  background: rgba(204,0,16,0.06);
+}
+.sb-item-highlight.active {
+  color: #CC0010;
+  border: 0.5px solid rgba(204,0,16,0.2);
+  background: rgba(204,0,16,0.06);
 }
 
 /* Update buttons */
