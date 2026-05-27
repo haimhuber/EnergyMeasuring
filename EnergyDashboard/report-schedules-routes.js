@@ -18,12 +18,26 @@ function parseScheduleRow(row, driver) {
       last_sent:      row.last_sent,
     };
   }
+
+  // mssql — send_time comes as Date object with epoch 1970 (TIME column)
+  // Use local hours (not UTC) to preserve the original stored time
+  let cleanTime = "23:30";
+  if (row.send_time) {
+    if (row.send_time instanceof Date) {
+      const h = String(row.send_time.getHours()).padStart(2, "0");
+      const m = String(row.send_time.getMinutes()).padStart(2, "0");
+      cleanTime = `${h}:${m}`;
+    } else {
+      cleanTime = String(row.send_time).slice(0, 5);
+    }
+  }
+
   return {
     id:             row.id,
     name:           row.name,
-    breaker_ids:    JSON.parse(row.breaker_ids || "[]"),
+    breaker_ids:    JSON.parse(row.breaker_ids || "[]").map(Number),
     frequency:      row.frequency,
-    send_time:      row.send_time,
+    send_time:      cleanTime,
     send_day_week:  row.send_day_week,
     send_day_month: row.send_day_month,
     recipients:     JSON.parse(row.recipients || "[]"),
@@ -185,6 +199,70 @@ export function registerReportScheduleRoutes(app, db, authRequired, DB_DRIVER) {
     }
   });
 
+  // GET download last PDF for a specific schedule
+  app.get("/api/report-schedules/download-last/:id", authRequired, async (req, res) => {
+    try {
+      const { readdirSync, statSync, existsSync } = await import("fs");
+      const { join } = await import("path");
+      const id = req.params.id;
+      const folders = ["C:\\EnergyReports\\send-now", "C:\\EnergyReports\\today"];
+      let allFiles = [];
+      for (const folder of folders) {
+        if (!existsSync(folder)) continue;
+        const files = readdirSync(folder)
+          .filter(f => f.endsWith(".pdf"))
+          .map(f => ({ name: f, full: join(folder, f), time: statSync(join(folder, f)).mtime.getTime() }));
+        allFiles = allFiles.concat(files);
+      }
+      allFiles.sort((a, b) => b.time - a.time);
+      if (!allFiles.length) return res.status(404).json({ detail: "No reports found" });
+      res.download(allFiles[0].full, allFiles[0].name);
+    } catch (err) {
+      res.status(500).json({ detail: err.message });
+    }
+  });
+
+  // GET download specific PDF by filename
+  app.get("/api/report-schedules/download/:filename", authRequired, async (req, res) => {
+    try {
+      const { join } = await import("path");
+      const { existsSync } = await import("fs");
+      const filename = req.params.filename.replace(/\.\./g, ""); // prevent path traversal
+      const folders = ["C:\\EnergyReports\\send-now", "C:\\EnergyReports\\today"];
+      for (const folder of folders) {
+        const full = join(folder, filename);
+        if (existsSync(full)) return res.download(full, filename);
+      }
+      res.status(404).json({ detail: "File not found" });
+    } catch (err) {
+      res.status(500).json({ detail: err.message });
+    }
+  });
+
+  // GET download last report from C:/EnergyReports
+  app.get("/api/report-schedules/last-report", authRequired, async (req, res) => {
+    try {
+      const { readdirSync, statSync, existsSync } = await import("fs");
+      const { join } = await import("path");
+      const baseFolder = "C:\\EnergyReports";
+      const subFolders = ["send-now", "today"];
+      let allFiles = [];
+      for (const sub of subFolders) {
+        const dir = join(baseFolder, sub);
+        if (!existsSync(dir)) continue;
+        const files = readdirSync(dir)
+          .filter(f => f.endsWith(".pdf"))
+          .map(f => ({ name: f, full: join(dir, f), time: statSync(join(dir, f)).mtime.getTime() }));
+        allFiles = allFiles.concat(files);
+      }
+      allFiles.sort((a, b) => b.time - a.time);
+      if (!allFiles.length) return res.status(404).json({ detail: "No reports found" });
+      res.download(allFiles[0].full, allFiles[0].name);
+    } catch (err) {
+      res.status(500).json({ detail: err.message });
+    }
+  });
+
   // POST preview
   app.post("/api/report-schedules/preview", authRequired, async (req, res) => {
     try {
@@ -216,7 +294,14 @@ export function registerReportScheduleRoutes(app, db, authRequired, DB_DRIVER) {
       }
 
       const { sendScheduledReport } = await import("../energyComsamption/emailReport.js");
-      await sendScheduledReport(row);
+      let sendResult = null;
+      let emailError = null;
+      try {
+        sendResult = await sendScheduledReport(row);
+      } catch (emailErr) {
+        emailError = emailErr.message;
+        console.error("Email error:", emailErr.message);
+      }
 
       // Update last_sent
       if (DB_DRIVER === "postgres") {
@@ -227,7 +312,15 @@ export function registerReportScheduleRoutes(app, db, authRequired, DB_DRIVER) {
         await pool.request().query(`UPDATE report_schedule SET last_sent=GETDATE() WHERE id=${id}`);
       }
 
-      res.json({ ok: true, message: `Report "${row.name}" sent successfully` });
+      res.json({
+        ok: true,
+        message: emailError
+          ? `PDF saved but email failed`
+          : `Report "${row.name}" sent successfully`,
+        filename: sendResult?.filename,
+        path: sendResult?.path,
+        emailError: emailError || null,
+      });
     } catch (err) {
       res.status(500).json({ detail: err.message });
     }

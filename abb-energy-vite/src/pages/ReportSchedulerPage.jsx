@@ -14,6 +14,12 @@ const FREQ_OPTIONS = [
 const DAYS_OF_WEEK = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const COLORS = ["#CC0010","#2255bb","#1a7f37","#f0a000","#7c3aed","#0891b2","#db2777"];
 
+const TIME_OPTIONS = Array.from({length: 48}, (_, i) => {
+  const h = Math.floor(i / 2);
+  const m = i % 2 === 0 ? "00" : "30";
+  return `${String(h).padStart(2,"0")}:${m}`;
+});
+
 const EMPTY_FORM = {
   name: "", breaker_ids: [], frequency: "daily",
   send_time: "23:30", send_day_week: 0, send_day_month: 1,
@@ -32,10 +38,17 @@ export default function ReportSchedulerPage() {
   const [sendingId, setSendingId] = useState(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [toasts, setToasts] = useState([]);
   const [showChat, setShowChat] = useState(false);
   const [previewHtml, setPreviewHtml] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+
+  const addToast = (msg, type = "ok", link = null) => {
+    const id = Date.now();
+    setToasts(t => [...t, { id, msg, type, link }]);
+    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 6000);
+  };
 
   const loadSchedules = useCallback(async () => {
     setLoading(true);
@@ -68,10 +81,9 @@ export default function ReportSchedulerPage() {
       const method = editId ? "PUT" : "POST";
       const res = await fetch(url, { method, credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       if (!res.ok) { const d = await res.json(); setError(d.detail || "Save failed"); return; }
-      setSuccess(editId ? "Schedule updated!" : "Schedule created!");
+      addToast(editId ? "✅ Schedule updated!" : "✅ Schedule created!", "ok");
       setShowForm(false); setEditId(null);
       await loadSchedules();
-      setTimeout(() => setSuccess(""), 3000);
     } catch { setError("Save failed"); }
     finally { setSaving(false); }
   };
@@ -88,19 +100,38 @@ export default function ReportSchedulerPage() {
     try {
       await fetch(`/api/report-schedules/${id}`, { method: "DELETE", credentials: "include" });
       await loadSchedules();
-      setSuccess("Schedule deleted");
-      setTimeout(() => setSuccess(""), 3000);
+      addToast("🗑 Schedule deleted", "ok");
     } catch { setError("Delete failed"); }
   };
 
   const sendNow = async (id, name) => {
     setSendingId(id);
+    addToast(`⏳ Generating report "${name}"...`, "info");
     try {
       const res = await fetch(`/api/report-schedules/${id}/send-now`, { method: "POST", credentials: "include" });
       const d = await res.json();
-      if (res.ok) { setSuccess(`✓ "${name}" sent successfully!`); setTimeout(() => setSuccess(""), 5000); }
-      else setError(d.detail || "Send failed");
-    } catch { setError("Send failed"); }
+      if (res.ok) {
+        // Download PDF automatically
+        if (d.filename) {
+          const link = document.createElement("a");
+          link.href = `/api/report-schedules/download/${d.filename}`;
+          link.download = d.filename;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          addToast(`💾 PDF downloaded: ${d.filename}`, "save");
+        }
+        // Show email status separately
+        if (d.emailError) {
+          addToast(`📧 Email not sent: ${d.emailError}`, "err");
+        } else {
+          addToast(`✅ Email sent successfully!`, "ok");
+        }
+        await loadSchedules();
+      } else {
+        addToast(d.detail || "Send failed", "err");
+      }
+    } catch { addToast("Send failed", "err"); }
     finally { setSendingId(null); }
   };
 
@@ -191,8 +222,12 @@ export default function ReportSchedulerPage() {
               {/* Time */}
               <div className="rsp-field">
                 <label>Send time</label>
-                <input type="time" className="rsp-input" value={form.send_time}
-                  onChange={e => setForm(f => ({...f, send_time: e.target.value}))}/>
+                <select className="rsp-input" value={form.send_time}
+                  onChange={e => setForm(f => ({...f, send_time: e.target.value}))}>
+                  {TIME_OPTIONS.map(t => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
               </div>
 
               {/* Day of week */}
@@ -310,6 +345,11 @@ export default function ReportSchedulerPage() {
                           disabled={sendingId === s.id}>
                           {sendingId === s.id ? "Sending..." : "▶ Send now"}
                         </button>
+                        <a className="rsp-action-btn rsp-action-download"
+                          href={`/api/report-schedules/download-last/${s.id}`}
+                          download>
+                          ⬇ Download PDF
+                        </a>
                         <button className="rsp-action-btn rsp-action-edit" onClick={() => openEdit(s)}>✏ Edit</button>
                         <button className="rsp-action-btn rsp-action-del" onClick={() => deleteSchedule(s.id)}>✕ Delete</button>
                       </div>
@@ -344,6 +384,25 @@ export default function ReportSchedulerPage() {
           </div>
         </div>
       )}
+      {/* Toast notifications */}
+      <div style={{position:"fixed",bottom:24,right:24,display:"flex",flexDirection:"column",gap:8,zIndex:99999}}>
+        {toasts.map(t => (
+          <div key={t.id} style={{
+            background: t.type==="err"?"#CC0010":t.type==="save"?"#2255bb":t.type==="info"?"#555":"#1a7f37",
+            color:"#fff", padding:"12px 16px", borderRadius:8, fontSize:13, fontWeight:500,
+            boxShadow:"0 4px 20px rgba(0,0,0,0.4)", minWidth:300, maxWidth:420,
+            display:"flex", flexDirection:"column", gap:4,
+            animation:"slideIn 0.2s ease", cursor: t.link ? "pointer" : "default"
+          }}>
+            <span>{t.msg}</span>
+            {t.link && (
+              <span style={{fontSize:11,opacity:0.8,fontFamily:"monospace",wordBreak:"break-all"}}>
+                📁 {t.link}
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
       {showChat && <AIChat onClose={() => setShowChat(false)} />}
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
     </>

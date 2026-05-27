@@ -15,6 +15,10 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, "../EnergyDashboard/.env.unified") });
 
+// Force IPv4 for all DNS lookups
+import { setDefaultResultOrder } from "dns";
+setDefaultResultOrder("ipv4first");
+
 // Direct PostgreSQL connection
 const pgPool = new pg.Pool({
   host:     process.env.PG_HOST,
@@ -59,8 +63,12 @@ async function generatePdf(html) {
   let browser;
   try {
     console.log("🚀 Launching browser...");
+    const execPath = process.env.PUPPETEER_EXECUTABLE_PATH;
+    if (!execPath) throw new Error("PUPPETEER_EXECUTABLE_PATH not set in .env.unified");
+    console.log("🌐 Using browser:", execPath);
     browser = await puppeteer.launch({
       headless: true,
+      executablePath: execPath,
       args: ["--no-sandbox","--disable-setuid-sandbox","--disable-dev-shm-usage","--disable-gpu","--disable-software-rasterizer"],
       timeout: 30000,
     });
@@ -349,6 +357,7 @@ export async function sendScheduledReport(schedule) {
     attachments: [{ filename, content: pdf, contentType: "application/pdf" }],
   });
   console.log(`✅ Scheduled report "${schedule.name}" sent to ${schedule.recipients.join(", ")}`);
+  return { filename, path: `C:/EnergyReports/send-now/${filename}` };
 }
 
 // ── Run directly ──────────────────────────────────────────
