@@ -168,6 +168,13 @@ export default function ReportSchedulerPage() {
     finally { setPreviewLoading(false); }
   };
 
+  if (loading) return (
+    <div className="rsp-page-loading">
+      <div className="rsp-spinner"/>
+      <div className="rsp-spinner-text">Loading schedules...</div>
+    </div>
+  );
+
   return (
     <>
       <Navbar onOpenChat={() => setShowChat(true)} onOpenSettings={() => setShowSettings(true)} />
@@ -296,9 +303,7 @@ export default function ReportSchedulerPage() {
 
         {/* Schedule list */}
         {!showForm && (
-          loading ? (
-            <div className="rsp-loading">Loading schedules...</div>
-          ) : schedules.length === 0 ? (
+          schedules.length === 0 ? (
             <div className="rsp-empty">
               <div className="rsp-empty-icon">📅</div>
               <div className="rsp-empty-text">No schedules yet</div>

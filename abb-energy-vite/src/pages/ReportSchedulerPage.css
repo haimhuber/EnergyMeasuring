@@ -117,3 +117,9 @@
 
 .rsp-action-download { background: rgba(240,160,0,0.1); border-color: rgba(240,160,0,0.3); color: #f0a000; text-decoration: none; text-align: center; }
 .rsp-action-download:hover { background: rgba(240,160,0,0.2); }
+
+/* Loading screen */
+.rsp-page-loading { position: fixed; inset: 0; background: #0a0b0d; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+.rsp-spinner { width: 36px; height: 36px; border: 3px solid #1e2025; border-top-color: #CC0010; border-radius: 50%; animation: spin 0.8s linear infinite; }
+.rsp-spinner-text { font-size: 13px; color: #555; }
+@keyframes spin { to { transform: rotate(360deg); } }
