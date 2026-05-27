@@ -17,10 +17,10 @@ import breakersConfig from "../energyComsamption/breakerConfig.json" with { type
 import db from "../energyComsamption/db.js";
 import OpenAI from "openai";
 import citiesConfig from "../EnergyDashboard/public/cities.json" with { type: "json" };
-import { scheduleDailyReport } from "../energyComsamption/emailReport.js";
 import { registerReportScheduleRoutes } from "./report-schedules-routes.js";
 
-
+// SMTP scheduler
+scheduleDailyReport();
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
