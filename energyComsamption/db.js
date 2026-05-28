@@ -156,9 +156,9 @@ async function getEnergyData(breakerId, fromDate, toDate) {
             [breakerId, fromDate, toDate]
         );
         return rows.map(r => ({
-            BreakerId:    r.BreakerId,
-            ActiveEnergy: r.ActiveEnergy,
-            timestamp:    r.timestamp,
+            BreakerId:    r.breakerid    ?? r.BreakerId,
+            ActiveEnergy: r.activeenergy ?? r.ActiveEnergy,
+            timestamp:    r.ts           ?? r.timestamp,
         }));
     }
     const { default: sql } = await import("mssql");

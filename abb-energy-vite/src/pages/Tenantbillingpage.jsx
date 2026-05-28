@@ -40,20 +40,29 @@ export default function TenantBillingPage() {
     setLoading(true);
     const { from, to } = getDateRange(p);
 
-    const [b4, b22, b26, b27, b28] = await Promise.all([
+    const [b4, b22, b26, b27, b28, b1, b30] = await Promise.all([
       api.consumption("4",  from, to, "daily").catch(() => null),
       api.consumption("22", from, to, "daily").catch(() => null),
       api.consumption("26", from, to, "daily").catch(() => null),
       api.consumption("27", from, to, "daily").catch(() => null),
       api.consumption("28", from, to, "daily").catch(() => null),
+      api.consumption("1",  from, to, "daily").catch(() => null),
+      api.consumption("30", from, to, "daily").catch(() => null),
     ]);
 
     // Building: breaker 4 direct
+    const b0TotalKwh = (b1?.total_kwh || 0) + (b30?.total_kwh || 0);
+    const b0TotalIls = (b1?.total_amount || 0) + (b30?.total_amount || 0);
     const building = {
-      kwh:      b4?.total_kwh      || 0,
-      peak_kwh: b4?.peak_kwh       || 0,
-      off_kwh:  b4?.offpeak_kwh    || 0,
-      ils:      b4?.total_amount   || 0,
+      kwh:       b4?.total_kwh    || 0,
+      peak_kwh:  b4?.peak_kwh     || 0,
+      off_kwh:   b4?.offpeak_kwh  || 0,
+      ils:       b4?.total_amount || 0,
+      b0Kwh:     b0TotalKwh,
+      b0Ils:     b0TotalIls,
+      otherKwh:  Math.max(0, b0TotalKwh - (b4?.total_kwh || 0)),
+      otherIls:  Math.max(0, b0TotalIls - (b4?.total_amount || 0)),
+      sharePct:  b0TotalKwh > 0 ? Math.round(((b4?.total_kwh || 0) / b0TotalKwh) * 100) : 0,
     };
 
     // Roof: (Roof Main * 0.27) + Q4 AEMAC CWM (breaker 26)
@@ -166,6 +175,51 @@ export default function TenantBillingPage() {
                   <div className="tbp-metric"><span>Consumption</span><span>{fmt(zones.building.kwh)} kWh</span></div>
                   <div className="tbp-metric"><span>Peak hours</span><span className="tbp-red">{fmt(zones.building.peak_kwh)} kWh</span></div>
                   <div className="tbp-metric"><span>Off-peak hours</span><span className="tbp-blue">{fmt(zones.building.off_kwh)} kWh</span></div>
+
+                  {/* Building comparison pie */}
+                  {zones.building.b0Kwh > 0 && (
+                    <div className="tbp-building-compare">
+                      <div className="tbp-compare-pie-row">
+                        <svg viewBox="0 0 60 60" width="58" height="58" style={{flexShrink:0}}>
+                          {(() => {
+                            const total = zones.building.b0Kwh || 1;
+                            const neu = Math.min(zones.building.kwh || 0, total);
+                            const pct = neu / total;
+                            const angle = pct * 2 * Math.PI;
+                            const x1 = 30 + 26 * Math.cos(-Math.PI/2);
+                            const y1 = 30 + 26 * Math.sin(-Math.PI/2);
+                            const x2 = 30 + 26 * Math.cos(-Math.PI/2 + angle);
+                            const y2 = 30 + 26 * Math.sin(-Math.PI/2 + angle);
+                            const large = angle > Math.PI ? 1 : 0;
+                            return pct >= 1 ? (
+                              <circle cx="30" cy="30" r="26" fill="#1a7f37"/>
+                            ) : (
+                              <>
+                                <circle cx="30" cy="30" r="26" fill="#CC0010"/>
+                                <path d={"M30,30 L"+x1.toFixed(1)+","+y1.toFixed(1)+" A26,26 0 "+large+",1 "+x2.toFixed(1)+","+y2.toFixed(1)+" Z"} fill="#1a7f37"/>
+                                <circle cx="30" cy="30" r="13" fill="#0f1216"/>
+                              </>
+                            );
+                          })()}
+                          <text x="30" y="27" textAnchor="middle" fill="#fff" fontSize="9" fontWeight="700">{zones.building.sharePct}%</text>
+                          <text x="30" y="36" textAnchor="middle" fill="#aaa" fontSize="6">NeuR.</text>
+                        </svg>
+                        <div className="tbp-compare-legend">
+                          <div className="tbp-compare-row">
+                            <span className="tbp-compare-dot" style={{background:"#1a7f37"}}/>
+                            <span className="tbp-compare-name">NeuReality</span>
+                            <span className="tbp-compare-val">{fmt(zones.building.kwh)} kWh</span>
+                          </div>
+                          <div className="tbp-compare-row">
+                            <span className="tbp-compare-dot" style={{background:"#CC0010"}}/>
+                            <span className="tbp-compare-name">B0 + PV total</span>
+                            <span className="tbp-compare-val">{fmt(zones.building.b0Kwh)} kWh</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="tbp-zone-total">
                     <span>Zone cost</span>
                     <span className="tbp-amount">{fmtIls(zones.building.ils)} ILS</span>
