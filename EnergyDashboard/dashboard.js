@@ -496,6 +496,104 @@ app.post("/api/register", async (req, res) => {
 registerReportScheduleRoutes(app, db, authRequired, DB_DRIVER);
 
 // =========================
+// 13a) Report Scheduler — runs every minute
+// =========================
+async function runScheduler() {
+  try {
+    const now = new Date();
+    const nowH = now.getHours();
+    const nowM = now.getMinutes();
+    const nowDay = now.getDay();       // 0=Sun
+    const nowDate = now.getDate();
+
+    let rows;
+    if (DB_DRIVER === "postgres") {
+      const pool = await db.connectionToSqlDB();
+      const result = await pool.query("SELECT * FROM report_schedule WHERE active = true");
+      rows = result.rows;
+    } else {
+      const pool = await db.connectionToSqlDB();
+      const result = await pool.request().query("SELECT * FROM report_schedule WHERE active = 1");
+      rows = result.recordset;
+    }
+
+    for (const rawRow of rows) {
+      try {
+        // Parse send_time
+        let schedH = 23, schedM = 30;
+        if (rawRow.send_time) {
+          if (rawRow.send_time instanceof Date) {
+            schedH = rawRow.send_time.getHours();
+            schedM = rawRow.send_time.getMinutes();
+          } else {
+            const parts = String(rawRow.send_time).slice(0,5).split(":");
+            schedH = Number(parts[0]); schedM = Number(parts[1]);
+          }
+        }
+
+        // Check if now matches scheduled time (within same minute)
+        if (nowH !== schedH || nowM !== schedM) continue;
+
+        // Check frequency
+        const freq = rawRow.frequency;
+        if (freq === "weekly") {
+          const dayWeek = Number(rawRow.send_day_week ?? 0);
+          if (nowDay !== dayWeek) continue;
+        }
+        if (freq === "monthly") {
+          const dayMonth = Number(rawRow.send_day_month ?? 1);
+          if (nowDate !== dayMonth) continue;
+        }
+
+        // Check if already sent today (prevent double-send)
+        const lastSent = rawRow.last_sent ? new Date(rawRow.last_sent) : null;
+        if (lastSent) {
+          const diffMs = now - lastSent;
+          if (diffMs < 60 * 1000) continue; // sent less than 1 min ago
+        }
+
+        console.log("[SCHEDULER] Sending report:", rawRow.name, "at", nowH + ":" + String(nowM).padStart(2,"0"));
+
+        const { sendScheduledReport } = await import("../energyComsamption/emailReport.js");
+        const breaker_ids = DB_DRIVER === "postgres"
+          ? (Array.isArray(rawRow.breaker_ids) ? rawRow.breaker_ids : [])
+          : JSON.parse(rawRow.breaker_ids || "[]").map(Number);
+        const recipients = DB_DRIVER === "postgres"
+          ? (Array.isArray(rawRow.recipients) ? rawRow.recipients : [])
+          : JSON.parse(rawRow.recipients || "[]");
+
+        const row = {
+          id: rawRow.id, name: rawRow.name, breaker_ids, frequency: freq,
+          send_time: schedH + ":" + String(schedM).padStart(2,"0"),
+          recipients,
+        };
+
+        await sendScheduledReport(row);
+
+        // Update last_sent
+        if (DB_DRIVER === "postgres") {
+          const pool = await db.connectionToSqlDB();
+          await pool.query("UPDATE report_schedule SET last_sent=NOW() WHERE id=$1", [rawRow.id]);
+        } else {
+          const pool = await db.connectionToSqlDB();
+          await pool.request().query("UPDATE report_schedule SET last_sent=GETDATE() WHERE id=" + rawRow.id);
+        }
+
+        console.log("[SCHEDULER] Report sent:", rawRow.name);
+      } catch (err) {
+        console.error("[SCHEDULER] Error for schedule", rawRow.id, ":", err.message);
+      }
+    }
+  } catch (err) {
+    console.error("[SCHEDULER] Fatal error:", err.message);
+  }
+}
+
+// Run every minute
+setInterval(runScheduler, 60 * 1000);
+console.log("[SCHEDULER] Report scheduler started");
+
+// =========================
 // 13b) WhatsApp Bot
 // =========================
 import twilio from "twilio";

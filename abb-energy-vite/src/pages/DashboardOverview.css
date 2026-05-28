@@ -2,13 +2,13 @@
 
 .dov-topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .dov-title { display: flex; flex-direction: column; gap: 2px; }
-.dov-label { font-size: 11px; font-weight: 500; color: #CC0010; text-transform: uppercase; letter-spacing: 2px; }
-.dov-sub { font-size: 20px; font-weight: 500; color: #fff; }
+.dov-label { font-size: 11px; font-weight: 600; color: #CC0010; text-transform: uppercase; letter-spacing: 2px; }
+.dov-sub { font-size: 22px; font-weight: 600; color: #fff; }
 .dov-period-btns { display: flex; gap: 6px; align-items: center; }
-.dov-period-btn { padding: 7px 16px; background: #0f1114; border: 0.5px solid #1e2025; border-radius: 8px; color: #888; font-size: 12px; cursor: pointer; transition: 0.15s; font-family: inherit; }
+.dov-period-btn { padding: 7px 16px; background: #0f1114; border: 0.5px solid #1e2025; border-radius: 8px; color: #aaa; font-size: 13px; cursor: pointer; transition: 0.15s; font-family: inherit; }
 .dov-period-btn:hover { color: #fff; border-color: #333; }
 .dov-period-btn.active { background: #CC0010; color: #fff; border-color: #CC0010; }
-.dov-refresh-btn { padding: 7px 12px; background: #0f1114; border: 0.5px solid #1e2025; border-radius: 8px; color: #888; font-size: 16px; cursor: pointer; transition: 0.15s; }
+.dov-refresh-btn { padding: 7px 12px; background: #0f1114; border: 0.5px solid #1e2025; border-radius: 8px; color: #aaa; font-size: 16px; cursor: pointer; transition: 0.15s; }
 .dov-refresh-btn:hover { color: #fff; transform: rotate(90deg); }
 
 .dov-progress-wrap { position: relative; height: 3px; background: #1e2025; border-radius: 2px; margin-bottom: 16px; overflow: hidden; }
@@ -18,62 +18,61 @@
 .dov-kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
 .dov-kpi-card { background: #0f1114; border: 0.5px solid #1e2025; border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 14px; }
 .dov-kpi-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
-.dov-kpi-label { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
-.dov-kpi-value { font-size: 20px; font-weight: 500; color: #fff; font-family: 'JetBrains Mono', monospace; }
-.dov-kpi-unit { font-size: 11px; color: #888; font-weight: 400; }
+.dov-kpi-label { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; font-weight: 500; }
+.dov-kpi-value { font-size: 22px; font-weight: 600; color: #fff; font-family: 'JetBrains Mono', monospace; }
+.dov-kpi-unit { font-size: 12px; color: #aaa; font-weight: 400; }
 
 .dov-main-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; margin-bottom: 20px; }
 .dov-card { background: #0f1114; border: 0.5px solid #1e2025; border-radius: 12px; padding: 18px; }
-.dov-card-title { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 16px; font-weight: 500; }
+.dov-card-title { font-size: 12px; color: #aaa; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 16px; font-weight: 600; }
 
 .dov-pie-card { grid-column: span 2; }
 .dov-pie-wrap { display: flex; align-items: center; gap: 20px; }
 .dov-pie-legend { display: flex; flex-direction: column; gap: 6px; flex: 1; max-height: 200px; overflow-y: auto; }
-.dov-legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.dov-legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
 .dov-legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
 .dov-legend-name { flex: 1; color: #ddd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.dov-legend-val { color: #aaa; font-family: monospace; font-size: 11px; }
-.dov-legend-more { font-size: 11px; color: #555; margin-top: 4px; }
+.dov-legend-val { color: #bbb; font-family: monospace; font-size: 12px; }
+.dov-legend-more { font-size: 12px; color: #666; margin-top: 4px; }
 
 .dov-top-card { grid-column: span 2; }
-.dov-top-list { display: flex; flex-direction: column; gap: 12px; }
+.dov-top-list { display: flex; flex-direction: column; gap: 14px; }
 .dov-top-item { display: flex; align-items: center; gap: 12px; }
-.dov-top-rank { font-size: 18px; font-weight: 500; width: 20px; flex-shrink: 0; font-family: monospace; }
+.dov-top-rank { font-size: 18px; font-weight: 600; width: 20px; flex-shrink: 0; font-family: monospace; }
 .dov-top-info { flex: 1; }
-.dov-top-name { font-size: 12px; color: #ddd; margin-bottom: 4px; }
+.dov-top-name { font-size: 13px; color: #ddd; margin-bottom: 5px; font-weight: 500; }
 .dov-top-bar-wrap { height: 4px; background: #1e2025; border-radius: 2px; overflow: hidden; }
 .dov-top-bar { height: 100%; border-radius: 2px; transition: width 0.5s; }
 .dov-top-nums { text-align: right; }
-.dov-top-kwh { font-size: 13px; font-weight: 600; color: #fff; font-family: monospace; }
-.dov-top-ils { font-size: 11px; color: #888; font-family: monospace; }
+.dov-top-kwh { font-size: 14px; font-weight: 600; color: #fff; font-family: monospace; }
+.dov-top-ils { font-size: 12px; color: #aaa; font-family: monospace; }
 
 .dov-group-card { display: flex; flex-direction: column; }
 .dov-group-bars { display: flex; align-items: flex-end; justify-content: space-around; flex: 1; gap: 12px; padding-top: 8px; min-height: 160px; }
 .dov-group-bar-item { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
-.dov-group-bar-val { font-size: 12px; color: #bbb; font-weight: 500; font-family: monospace; }
+.dov-group-bar-val { font-size: 13px; color: #ddd; font-weight: 600; font-family: monospace; }
 .dov-group-bar-wrap { display: flex; align-items: flex-end; height: 120px; }
 .dov-group-bar { width: 32px; border-radius: 4px 4px 0 0; transition: height 0.5s; min-height: 4px; }
-.dov-group-bar-label { font-size: 11px; color: #aaa; }
+.dov-group-bar-label { font-size: 13px; color: #bbb; font-weight: 500; }
 
-.dov-split-card {}
 .dov-split-wrap { display: flex; align-items: center; gap: 16px; }
 .dov-split-legend { display: flex; flex-direction: column; gap: 16px; }
 .dov-split-item { display: flex; align-items: center; gap: 10px; }
 .dov-split-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
-.dov-split-label { font-size: 11px; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
-.dov-split-val { font-size: 16px; font-weight: 600; color: #fff; font-family: monospace; margin-top: 2px; }
+.dov-split-label { font-size: 12px; color: #bbb; text-transform: uppercase; letter-spacing: 1px; font-weight: 500; }
+.dov-split-val { font-size: 18px; font-weight: 600; color: #fff; font-family: monospace; margin-top: 2px; }
 
 .dov-table-card { overflow: hidden; }
 .dov-table-wrap { overflow-x: auto; max-height: 420px; overflow-y: auto; }
-.dov-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-.dov-table th { padding: 9px 12px; font-size: 10px; text-transform: uppercase; color: #555; letter-spacing: 1px; background: #0a0b0d; border-bottom: 0.5px solid #1e2025; position: sticky; top: 0; text-align: left; }
+.dov-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.dov-table th { padding: 10px 12px; font-size: 11px; text-transform: uppercase; color: #888; letter-spacing: 1px; background: #0a0b0d; border-bottom: 0.5px solid #1e2025; position: sticky; top: 0; text-align: left; font-weight: 600; }
 .dov-table th.n { text-align: right; }
-.dov-table td { padding: 8px 12px; border-bottom: 0.5px solid #0f1114; font-family: 'JetBrains Mono', monospace; color: #ccc; }
+.dov-table td { padding: 9px 12px; border-bottom: 0.5px solid #0f1114; font-family: 'JetBrains Mono', monospace; color: #ddd; }
 .dov-table td.n { text-align: right; }
 .dov-table tr:hover td { background: #13151a; }
 .dov-row-zero td { opacity: 0.35; }
-.dov-rank-cell { color: #555; font-size: 11px; }
-.dov-group-badge { padding: 2px 8px; border-radius: 4px; font-size: 10px; font-family: sans-serif; color: #ccc; }
+.dov-rank-cell { color: #666; font-size: 12px; }
+.dov-group-badge { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-family: sans-serif; color: #ddd; font-weight: 500; }
 .dov-share-wrap { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
 .dov-share-bar { height: 4px; background: #CC0010; border-radius: 2px; min-width: 2px; max-width: 60px; }
 
@@ -88,32 +87,32 @@
 .dov-eff-wrap { display: flex; flex-direction: column; gap: 14px; flex: 1; justify-content: center; }
 .dov-eff-item { display: flex; flex-direction: column; gap: 4px; }
 .dov-eff-today { display: flex; flex-direction: column; gap: 4px; }
-.dov-eff-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+.dov-eff-label { font-size: 12px; color: #aaa; text-transform: uppercase; letter-spacing: 1px; font-weight: 500; }
 .dov-eff-value { font-size: 28px; font-weight: 600; font-family: 'JetBrains Mono', monospace; line-height: 1; }
-.dov-eff-sub { font-size: 11px; color: #777; font-family: monospace; }
+.dov-eff-sub { font-size: 12px; color: #888; font-family: monospace; }
 .dov-eff-bar-wrap { height: 3px; background: #1e2025; border-radius: 2px; overflow: hidden; margin-top: 4px; }
 .dov-eff-bar { height: 100%; border-radius: 2px; transition: width 0.6s; min-width: 2px; }
-.dov-eff-divider { height: 0.5px; background: #252830; }
+.dov-eff-divider { height: 0.5px; background: #252830; margin: 6px 0; }
 
 /* Forecast card */
 .dov-forecast-card { display: flex; flex-direction: column; }
 .dov-forecast-wrap { display: flex; flex-direction: column; gap: 14px; flex: 1; justify-content: center; }
 .dov-forecast-item { display: flex; flex-direction: column; gap: 4px; }
 .dov-forecast-value { font-size: 26px; font-weight: 600; font-family: 'JetBrains Mono', monospace; color: #fff; line-height: 1; }
-.dov-peak-badge { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500; margin-top: 4px; }
+.dov-peak-badge { display: inline-block; padding: 5px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; margin-top: 4px; }
 .dov-peak-active { background: rgba(204,0,16,0.15); color: #CC0010; border: 0.5px solid rgba(204,0,16,0.3); }
 .dov-peak-soon   { background: rgba(240,160,0,0.12); color: #f0a000; border: 0.5px solid rgba(240,160,0,0.3); }
-.dov-peak-off    { background: rgba(26,127,55,0.12);  color: #1a7f37; border: 0.5px solid rgba(26,127,55,0.3); }
+.dov-peak-off    { background: rgba(26,127,55,0.12);  color: #3fb950; border: 0.5px solid rgba(26,127,55,0.3); }
 
 /* Tabs */
 .dov-tab-header { display: flex; gap: 4px; margin-bottom: 14px; border-bottom: 0.5px solid #1e2025; padding-bottom: 10px; }
-.dov-tab-btn { padding: 5px 12px; background: none; border: 0.5px solid #252830; border-radius: 6px; color: #888; font-size: 11px; cursor: pointer; font-family: inherit; transition: 0.15s; }
+.dov-tab-btn { padding: 5px 12px; background: none; border: 0.5px solid #252830; border-radius: 6px; color: #aaa; font-size: 12px; cursor: pointer; font-family: inherit; transition: 0.15s; font-weight: 500; }
 .dov-tab-btn:hover { color: #fff; border-color: #333; }
 .dov-tab-btn.active { background: rgba(204,0,16,0.12); color: #CC0010; border-color: rgba(204,0,16,0.3); }
 
 /* View toggle */
 .dov-view-toggle { display: flex; background: #0a0b0d; border: 0.5px solid #1e2025; border-radius: 8px; overflow: hidden; }
-.dov-view-btn { padding: 7px 14px; background: none; border: none; color: #888; font-size: 12px; cursor: pointer; font-family: inherit; transition: 0.15s; }
+.dov-view-btn { padding: 7px 14px; background: none; border: none; color: #aaa; font-size: 13px; cursor: pointer; font-family: inherit; transition: 0.15s; }
 .dov-view-btn:hover { color: #fff; }
 .dov-view-btn.active { background: #CC0010; color: #fff; }
 
@@ -121,39 +120,44 @@
 .dov-charging-card { display: flex; flex-direction: column; }
 .dov-charging-wrap { display: flex; flex-direction: column; gap: 6px; flex: 1; justify-content: center; }
 .dov-charging-item { display: flex; flex-direction: column; gap: 2px; }
-.dov-charging-name { font-size: 11px; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
+.dov-charging-name { font-size: 12px; color: #bbb; text-transform: uppercase; letter-spacing: 1px; font-weight: 500; }
 .dov-charging-kwh { font-size: 22px; font-weight: 600; color: #fff; font-family: 'JetBrains Mono', monospace; line-height: 1.2; }
-.dov-charging-ils { font-size: 12px; color: #888; font-family: monospace; }
+.dov-charging-ils { font-size: 13px; color: #aaa; font-family: monospace; }
 .dov-charging-total .dov-charging-kwh { font-size: 18px; color: #2255bb; }
-
 
 /* ── Pie card new layout ─────────────────────────────── */
 .dov-pie-main-layout { display: grid; grid-template-columns: 1fr 0.5px 1fr; gap: 0; }
-.dov-pie-left { padding-right: 14px; display: flex; align-items: center; gap: 12px; }
+.dov-pie-left { padding-right: 20px; display: flex; align-items: center; gap: 12px; }
 .dov-pie-divider { background: rgba(255,255,255,0.06); }
-.dov-pie-right { padding-left: 14px; display: flex; flex-direction: column; justify-content: center; gap: 0; }
+.dov-pie-right { padding-left: 20px; display: flex; flex-direction: column; justify-content: center; gap: 0; }
 
 /* Bar legend */
-.dov-legend-item-bar { display: flex; flex-direction: column; gap: 3px; margin-bottom: 7px; }
+.dov-legend-item-bar { display: flex; flex-direction: column; gap: 3px; margin-bottom: 8px; }
 .dov-legend-item-bar:last-child { margin-bottom: 0; }
 .dov-legend-row { display: flex; align-items: center; gap: 7px; }
-.dov-legend-kwh { font-size: 12px; font-weight: 500; color: #e0e0e0; }
+.dov-legend-kwh { font-size: 13px; font-weight: 600; color: #e0e0e0; }
 .dov-legend-bar-track { height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; }
 .dov-legend-bar-fill { height: 100%; border-radius: 2px; }
 
 /* Savings */
-.dov-savings-title { font-size: 10px; color: rgba(255,255,255,0.25); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
+.dov-savings-title { font-size: 10px; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 14px; display: flex; align-items: center; gap: 6px; font-weight: 600; }
 .dov-savings-dot { width: 5px; height: 5px; border-radius: 50%; background: #00a8cc; display: inline-block; }
 .dov-sav-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 0.5px solid rgba(255,255,255,0.04); position: relative; }
 .dov-sav-row:last-child { border-bottom: none; }
 .dov-sav-dot { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
-.dov-sav-name { flex: 1; font-size: 14px; color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 110px; }
-.dov-sav-peak { padding: 2px 7px; border-radius: 3px; font-size: 11px; background: rgba(122,0,8,0.1); color: #7a3040; white-space: nowrap; }
-.dov-sav-peak.high { background: rgba(240,160,0,0.1); color: #a07010; }
-.dov-sav-amount { font-size: 15px; font-weight: 600; color: #00a8cc; min-width: 42px; text-align: right; }
+.dov-sav-name { flex: 1; font-size: 13px; color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; font-weight: 500; }
+.dov-sav-peak { padding: 2px 7px; border-radius: 3px; font-size: 11px; background: rgba(122,0,8,0.1); color: #a05060; white-space: nowrap; font-weight: 500; }
+.dov-sav-peak.high { background: rgba(240,160,0,0.1); color: #c09020; }
+.dov-sav-amount { font-size: 15px; font-weight: 700; color: #00a8cc; min-width: 42px; text-align: right; }
 .dov-sav-amount.high { color: #f0a000; }
-.dov-sav-info-icon { width: 16px; height: 16px; border-radius: 50%; border: 0.5px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.2); font-size: 10px; display: flex; align-items: center; justify-content: center; cursor: help; font-style: italic; font-family: serif; flex-shrink: 0; position: relative; }
-.dov-sav-tooltip { display: none; position: absolute; right: 20px; top: -4px; background: #1a1d24; border: 0.5px solid rgba(0,168,204,0.3); border-radius: 8px; padding: 10px 12px; width: 200px; z-index: 100; font-size: 11px; color: #8a9099; line-height: 1.5; box-shadow: 0 8px 24px rgba(0,0,0,0.6); }
+.dov-sav-info-icon { width: 16px; height: 16px; border-radius: 50%; border: 0.5px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.3); font-size: 10px; display: flex; align-items: center; justify-content: center; cursor: help; font-style: italic; font-family: serif; flex-shrink: 0; position: relative; }
+.dov-sav-tooltip { display: none; position: absolute; right: 20px; top: -4px; background: #1a1d24; border: 0.5px solid rgba(0,168,204,0.3); border-radius: 8px; padding: 10px 12px; width: 210px; z-index: 100; font-size: 12px; color: #aaa; line-height: 1.6; box-shadow: 0 8px 24px rgba(0,0,0,0.6); }
 .dov-sav-tooltip strong { color: #00a8cc; font-weight: 600; }
-.dov-sav-tooltip-title { font-size: 10px; color: #e0e0e0; font-weight: 500; margin-bottom: 5px; }
+.dov-sav-tooltip-title { font-size: 11px; color: #fff; font-weight: 600; margin-bottom: 5px; }
 .dov-sav-info-icon:hover .dov-sav-tooltip { display: block; }
+
+/* Summary card (non-today periods) */
+.dov-summary-item { display: flex; flex-direction: column; gap: 3px; }
+.dov-summary-label { font-size: 12px; color: #aaa; text-transform: uppercase; letter-spacing: 1px; font-weight: 500; }
+.dov-summary-value { font-size: 24px; font-weight: 700; color: #fff; font-family: 'JetBrains Mono', monospace; line-height: 1; }
+.dov-summary-sub { font-size: 12px; color: #888; }

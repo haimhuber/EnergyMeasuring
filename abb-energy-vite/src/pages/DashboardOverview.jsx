@@ -44,12 +44,11 @@ const PIE_COLORS = [
   "#1e1b4b","#713f12","#4a044e",
 ];
 
-// Main breakers — one per panel group (without PB1)
+// Main breakers — one per panel group (PV merged into B0)
 const MAIN_BREAKERS = [
-  { id: "1",  name: "Q0 Main Breaker", group: "B0",   displayName: "B0 — Main" },
+  { id: "1",  name: "Q0 Main Breaker", group: "B0",   displayName: "B0 — Main (incl. PV)", pvId: "30" },
   { id: "22", name: "Q0 Main Breaker", group: "Roof",  displayName: "Roof — Main" },
   { id: "27", name: "Q0 Main Breaker", group: "PB",    displayName: "PB — Main" },
-  { id: "30", name: "PV Panels",       group: "PV",    displayName: "PV Panels" },
 ];
 
 // Charging stations (PB1)
@@ -110,11 +109,21 @@ export default function DashboardOverview() {
     const settled = await Promise.allSettled(
       breakerList.map(b => api.consumption(b.id, from, to, "daily"))
     );
+    // Also fetch PV (id=30) for B0 merge
+    const pvResult = viewMode !== "charging" ? await api.consumption("30", from, to, "daily").catch(()=>null) : null;
     const results = settled.map((res, j) => {
       const b = breakerList[j];
       if (res.status === "fulfilled") {
         const d = res.value;
-        return { ...b, kwh: d.total_kwh||0, ils: d.total_amount||0, peak_kwh: d.peak_kwh||0, off_kwh: d.offpeak_kwh||0 };
+        let kwh = d.total_kwh||0, ils = d.total_amount||0, peak_kwh = d.peak_kwh||0, off_kwh = d.offpeak_kwh||0;
+        // Merge PV into B0
+        if (b.pvId && pvResult) {
+          kwh += pvResult.total_kwh||0;
+          ils += pvResult.total_amount||0;
+          peak_kwh += pvResult.peak_kwh||0;
+          off_kwh += pvResult.offpeak_kwh||0;
+        }
+        return { ...b, kwh, ils, peak_kwh, off_kwh };
       }
       return { ...b, kwh: 0, ils: 0, peak_kwh: 0, off_kwh: 0 };
     });
@@ -267,7 +276,7 @@ export default function DashboardOverview() {
   });
 
   // Group bar chart data
-  const groups = viewMode==="charging" ? ["PB1"] : ["B0","Roof","PB","PV"];
+  const groups = viewMode==="charging" ? ["PB1"] : ["B0","Roof","PB"];
   const groupTotals = groups.map(g => ({
     group: g,
     kwh: data.filter(r=>r.group===g).reduce((s,r)=>s+r.kwh,0)
@@ -566,20 +575,48 @@ export default function DashboardOverview() {
 
                 {activeTab === "forecast" && (
                   <div className="dov-forecast-wrap">
-                    <div className="dov-forecast-item">
-                      <div className="dov-eff-label">End-of-day forecast</div>
-                      <div className="dov-forecast-value">{forecast.toLocaleString()} <span style={{fontSize:12,color:"#888"}}>kWh</span></div>
-                      <div className="dov-eff-sub">{pctDay}% of day elapsed · {Math.round(ratePerHour)} kWh/h</div>
-                      <div className="dov-eff-bar-wrap" style={{marginTop:6}}>
-                        <div style={{height:"100%",width:`${pctDay}%`,background:"#2255bb",borderRadius:2,transition:"width 0.6s"}}/>
-                      </div>
-                    </div>
-                    <div className="dov-eff-divider"/>
-                    <div className="dov-forecast-item">
-                      <div className="dov-eff-label">Current pace</div>
-                      <div className="dov-forecast-value" style={{fontSize:20}}>{Math.round(ratePerHour)} <span style={{fontSize:12,color:"#888"}}>kWh/h</span></div>
-                      <div className="dov-eff-sub">Hours remaining: {hoursLeft.toFixed(1)}h</div>
-                    </div>
+                    {period === "today" ? (
+                      <>
+                        <div className="dov-forecast-item">
+                          <div className="dov-eff-label">End-of-day forecast</div>
+                          <div className="dov-forecast-value">{forecast.toLocaleString()} <span style={{fontSize:12,color:"#888"}}>kWh</span></div>
+                          <div className="dov-eff-sub">{pctDay}% of day elapsed · {Math.round(ratePerHour)} kWh/h</div>
+                          <div className="dov-eff-bar-wrap" style={{marginTop:6}}>
+                            <div style={{height:"100%",width:`${pctDay}%`,background:"#2255bb",borderRadius:2,transition:"width 0.6s"}}/>
+                          </div>
+                        </div>
+                        <div className="dov-eff-divider"/>
+                        <div className="dov-forecast-item">
+                          <div className="dov-eff-label">Current pace</div>
+                          <div className="dov-forecast-value" style={{fontSize:20}}>{Math.round(ratePerHour)} <span style={{fontSize:12,color:"#888"}}>kWh/h</span></div>
+                          <div className="dov-eff-sub">Hours remaining: {hoursLeft.toFixed(1)}h</div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="dov-summary-item">
+                          <div className="dov-summary-label">Total consumption</div>
+                          <div className="dov-summary-value">{fmt(totalKwh)} <span style={{fontSize:13,color:"#888",fontWeight:400}}>kWh</span></div>
+                          <div className="dov-summary-sub">{period === "yesterday" ? "Yesterday" : period === "week" ? "This week" : "This month"}</div>
+                        </div>
+                        <div className="dov-eff-divider"/>
+                        <div className="dov-summary-item">
+                          <div className="dov-summary-label">Total cost</div>
+                          <div className="dov-summary-value" style={{color:"#1a7f37"}}>₪{fmtIls(totalIls)}</div>
+                          <div className="dov-summary-sub">Incl. VAT: ₪{fmtIls(totalIls * 1.18)}</div>
+                        </div>
+                        <div className="dov-eff-divider"/>
+                        <div className="dov-summary-item">
+                          <div className="dov-summary-label">{period === "yesterday" ? "Peak ratio" : "Daily average"}</div>
+                          <div className="dov-summary-value" style={{fontSize:20}}>
+                            {period === "yesterday"
+                              ? `${peakPct}%`
+                              : `${fmt(period === "week" ? totalKwh/7 : totalKwh/30)} kWh`}
+                          </div>
+                          <div className="dov-summary-sub">{period === "yesterday" ? `${fmt(totalPeak)} kWh peak` : "per day"}</div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
 

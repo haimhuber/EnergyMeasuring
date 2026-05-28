@@ -205,7 +205,7 @@ export function registerReportScheduleRoutes(app, db, authRequired, DB_DRIVER) {
       const { readdirSync, statSync, existsSync } = await import("fs");
       const { join } = await import("path");
       const id = req.params.id;
-      const folders = ["C:\\EnergyReports\\send-now", "C:\\EnergyReports\\today"];
+      const folders = ["C:\\EnergyReports\\Manual", "C:\\EnergyReports\\Daily", "C:\\EnergyReports\\Weekly", "C:\\EnergyReports\\Monthly"];
       let allFiles = [];
       for (const folder of folders) {
         if (!existsSync(folder)) continue;
@@ -228,7 +228,7 @@ export function registerReportScheduleRoutes(app, db, authRequired, DB_DRIVER) {
       const { join } = await import("path");
       const { existsSync } = await import("fs");
       const filename = req.params.filename.replace(/\.\./g, ""); // prevent path traversal
-      const folders = ["C:\\EnergyReports\\send-now", "C:\\EnergyReports\\today"];
+      const folders = ["C:\\EnergyReports\\Manual", "C:\\EnergyReports\\Daily", "C:\\EnergyReports\\Weekly", "C:\\EnergyReports\\Monthly"];
       for (const folder of folders) {
         const full = join(folder, filename);
         if (existsSync(full)) return res.download(full, filename);

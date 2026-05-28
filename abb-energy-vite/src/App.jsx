@@ -4,6 +4,7 @@ import { TariffProvider } from "./context/TariffContext";
 import DashboardPage from "./pages/DashboardPage";
 import DashboardOverview from "./pages/DashboardOverview";
 import ReportSchedulerPage from "./pages/ReportSchedulerPage";
+import TenantBillingPage from "./pages/TenantBillingPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import "./App.css";
@@ -45,6 +46,13 @@ function AppRoutes() {
         <ProtectedRoute>
           <TariffProvider>
             <ReportSchedulerPage />
+          </TariffProvider>
+        </ProtectedRoute>
+      } />
+      <Route path="/tenant-billing" element={
+        <ProtectedRoute>
+          <TariffProvider>
+            <TenantBillingPage />
           </TariffProvider>
         </ProtectedRoute>
       } />

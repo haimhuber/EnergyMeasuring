@@ -336,7 +336,7 @@ export async function buildReportHtml({ breaker_ids, frequency, name }) {
   return buildHtml(d);
 }
 
-export async function sendScheduledReport(schedule) {
+export async function sendScheduledReport(schedule, manual = false) {
   const today = todayStr();
   const { from, to } = getDateRangeForFrequency(schedule.frequency || "daily");
   const d = await buildReportData(from, to, schedule.breaker_ids);
@@ -347,7 +347,9 @@ export async function sendScheduledReport(schedule) {
   const safeName = schedule.name.replace(/[^a-zA-Z0-9-_]/g,"-");
   const ts = new Date().toTimeString().slice(0,8).replace(/:/g,"-");
   const filename = `ABB-Energy-Report-${safeName}-${today}_${ts}.pdf`;
-  savePdfToDisk(pdf, "send-now", filename);
+  // Save to folder based on frequency
+  const freqFolder = manual ? "Manual" : {daily:"Daily",weekly:"Weekly",monthly:"Monthly"}[schedule.frequency] || "Daily";
+  savePdfToDisk(pdf, freqFolder, filename);
   const transporter = createTransporter();
   await transporter.sendMail({
     from: `"ABB Energy Monitoring" <${process.env.EMAIL_USER}>`,
@@ -357,7 +359,7 @@ export async function sendScheduledReport(schedule) {
     attachments: [{ filename, content: pdf, contentType: "application/pdf" }],
   });
   console.log(`✅ Scheduled report "${schedule.name}" sent to ${schedule.recipients.join(", ")}`);
-  return { filename, path: `C:/EnergyReports/send-now/${filename}` };
+  const freqFolderRet = manual ? 'Manual' : ({daily:'Daily',weekly:'Weekly',monthly:'Monthly'}[schedule.frequency]||'Daily'); return { filename, path: `C:/EnergyReports/${freqFolderRet}/${filename}` };
 }
 
 // ── Run directly ──────────────────────────────────────────
