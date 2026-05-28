@@ -13,7 +13,16 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.join(__dirname, "../EnergyDashboard/.env.unified") });
+// Try multiple paths for .env.unified
+const envPaths = [
+  path.join(__dirname, "../EnergyDashboard/.env.unified"),
+  "C:\\EnergyMeasuring\\EnergyDashboard\\.env.unified",
+  path.join(process.cwd(), ".env.unified"),
+];
+for (const p of envPaths) {
+  const result = dotenv.config({ path: p });
+  if (!result.error) { console.log("[emailReport] Loaded env from:", p); break; }
+}
 
 // Force IPv4 for all DNS lookups
 import { setDefaultResultOrder } from "dns";

@@ -729,6 +729,30 @@ app.post("/api/whatsapp/webhook", express.urlencoded({ extended: false }), async
 });
 
 // =========================
+// 13c) Test Report Endpoint
+// =========================
+app.post("/api/test-report", authRequired, async (req, res) => {
+  try {
+    console.log("[TEST] Starting test report...");
+    console.log("[TEST] PUPPETEER_EXECUTABLE_PATH:", process.env.PUPPETEER_EXECUTABLE_PATH);
+    console.log("[TEST] EMAIL_USER:", process.env.EMAIL_USER);
+    const { sendScheduledReport } = await import("../energyComsamption/emailReport.js");
+    const testSchedule = {
+      id: 0,
+      name: "Test Report",
+      breaker_ids: [1, 22, 27],
+      frequency: "daily",
+      recipients: [process.env.EMAIL_RECIPIENTS || "haimhuber90@gmail.com"],
+    };
+    const result = await sendScheduledReport(testSchedule, true);
+    res.json({ ok: true, message: "Test report sent!", filename: result?.filename, path: result?.path });
+  } catch (err) {
+    console.error("[TEST] Error:", err.message);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// =========================
 // 14) Update API
 // =========================
 let updateStatus = { checking: false, applying: false, lastCheck: null, hasUpdate: false, localCommit: null, remoteCommit: null, error: null };

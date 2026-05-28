@@ -93,16 +93,21 @@ export default function Sidebar({ onOpenChat, onOpenSettings }) {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v6H3z"/></svg>
             Dashboard
           </div>
-           {user?.role === "admin" && (
+          <div className={`sb-item${window.location.pathname === "/" ? " active" : ""}`} onClick={() => window.location.href = "/"}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            Report &amp; Billing
+          </div>
+          <div className="sb-item" onClick={() => onOpenChat?.()}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 0 1 10 10c0 5.52-4.48 10-10 10a9.96 9.96 0 0 1-5.19-1.45L2 22l1.45-4.81A9.96 9.96 0 0 1 2 12 10 10 0 0 1 12 2z"/></svg>
+            AI Assistant
+          </div>
+
+          {user?.role === "admin" && (
             <div className={`sb-item${window.location.pathname === "/tenant-billing" ? " active" : ""}`} onClick={() => window.location.href = "/tenant-billing"}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 8h.01M11 8h6M7 12h.01M11 12h6"/></svg>
               Tenant Billing
             </div>
           )}
-          <div className={`sb-item${window.location.pathname === "/" ? " active" : ""}`} onClick={() => window.location.href = "/"}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-            Report &amp; Billing
-          </div>
           {user?.role === "admin" && (
             <div className={`sb-item${window.location.pathname === "/report-scheduler" ? " active" : ""}`} onClick={() => window.location.href = "/report-scheduler"}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -112,10 +117,6 @@ export default function Sidebar({ onOpenChat, onOpenSettings }) {
               Report Scheduler
             </div>
           )}
-           <div className="sb-item" onClick={() => onOpenChat?.()}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 0 1 10 10c0 5.52-4.48 10-10 10a9.96 9.96 0 0 1-5.19-1.45L2 22l1.45-4.81A9.96 9.96 0 0 1 2 12 10 10 0 0 1 12 2z"/></svg>
-            AI Assistant
-          </div>
 
           <div className="sb-section">Current Season</div>
           <div className="sb-season-card">
@@ -146,6 +147,18 @@ export default function Sidebar({ onOpenChat, onOpenSettings }) {
                 {updateState.checking ? "Checking..." : "Check for updates"}
               </div>
 
+              <div className="sb-item" onClick={async () => {
+                showToast("Sending test report...", "update");
+                try {
+                  const r = await fetch("/api/test-report", { method: "POST", credentials: "include" });
+                  const d = await r.json();
+                  if (d.ok) showToast("Test report sent: " + d.filename, "ok");
+                  else showToast("Error: " + d.error, "err");
+                } catch { showToast("Test failed", "err"); }
+              }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+                Send test report
+              </div>
               <div className="sb-item" onClick={() => onOpenSettings?.()}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                 Tariff Settings
