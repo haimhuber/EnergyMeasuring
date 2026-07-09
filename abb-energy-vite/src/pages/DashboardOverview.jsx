@@ -7,7 +7,6 @@ import "./DashboardOverview.css";
 
 
 
-
 const PERIOD_OPTIONS = [
   { label: "Today",     value: "today" },
   { label: "Yesterday", value: "yesterday" },
@@ -45,12 +44,11 @@ const PIE_COLORS = [
   "#1e1b4b","#713f12","#4a044e",
 ];
 
-// Main breakers — one per panel group (without PB1)
+// Main breakers — one per panel group (PV merged into B0)
 const MAIN_BREAKERS = [
-  { id: "1",  name: "Q0 Main Breaker", group: "B0",   displayName: "B0 — Main" },
+  { id: "1",  name: "Q0 Main Breaker", group: "B0",   displayName: "B0 — Main (incl. PV)", pvId: "30" },
   { id: "22", name: "Q0 Main Breaker", group: "Roof",  displayName: "Roof — Main" },
   { id: "27", name: "Q0 Main Breaker", group: "PB",    displayName: "PB — Main" },
-  { id: "30", name: "PV Panels",       group: "PV",    displayName: "PV Panels" },
 ];
 
 // Charging stations (PB1)
@@ -90,7 +88,6 @@ export default function DashboardOverview() {
   const [viewMode, setViewMode] = useState("main");
   const [chargingData, setChargingData] = useState([]); // "main" | "charging"
   const [showChat, setShowChat] = useState(false);
-  const [showReportScheduler, setShowReportScheduler] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [drillGroup, setDrillGroup] = useState(null);
   const [efficiency, setEfficiency] = useState({ yesterday: null, lastWeek: null, loading: true }); // null = main view
@@ -112,11 +109,21 @@ export default function DashboardOverview() {
     const settled = await Promise.allSettled(
       breakerList.map(b => api.consumption(b.id, from, to, "daily"))
     );
+    // Also fetch PV (id=30) for B0 merge
+    const pvResult = viewMode !== "charging" ? await api.consumption("30", from, to, "daily").catch(()=>null) : null;
     const results = settled.map((res, j) => {
       const b = breakerList[j];
       if (res.status === "fulfilled") {
         const d = res.value;
-        return { ...b, kwh: d.total_kwh||0, ils: d.total_amount||0, peak_kwh: d.peak_kwh||0, off_kwh: d.offpeak_kwh||0 };
+        let kwh = d.total_kwh||0, ils = d.total_amount||0, peak_kwh = d.peak_kwh||0, off_kwh = d.offpeak_kwh||0;
+        // Merge PV into B0
+        if (b.pvId && pvResult) {
+          kwh += pvResult.total_kwh||0;
+          ils += pvResult.total_amount||0;
+          peak_kwh += pvResult.peak_kwh||0;
+          off_kwh += pvResult.offpeak_kwh||0;
+        }
+        return { ...b, kwh, ils, peak_kwh, off_kwh };
       }
       return { ...b, kwh: 0, ils: 0, peak_kwh: 0, off_kwh: 0 };
     });
@@ -269,7 +276,7 @@ export default function DashboardOverview() {
   });
 
   // Group bar chart data
-  const groups = viewMode==="charging" ? ["PB1"] : ["B0","Roof","PB","PV"];
+  const groups = viewMode==="charging" ? ["PB1"] : ["B0","Roof","PB"];
   const groupTotals = groups.map(g => ({
     group: g,
     kwh: data.filter(r=>r.group===g).reduce((s,r)=>s+r.kwh,0)
@@ -278,7 +285,7 @@ export default function DashboardOverview() {
 
   return (
     <>
-      <Navbar onOpenChat={() => setShowChat(true)} onOpenSettings={() => setShowSettings(true)} onOpenReportScheduler={() => setShowReportScheduler(true)} />
+      <Navbar onOpenChat={() => setShowChat(true)} onOpenSettings={() => setShowSettings(true)} />
       <div className="dov-page">
 
         {/* Period selector */}
@@ -346,32 +353,77 @@ export default function DashboardOverview() {
 
         <div className="dov-main-grid">
 
-          {/* Pie chart */}
+          {/* Pie chart + Savings */}
           <div className="dov-card dov-pie-card">
             <div className="dov-card-title">Consumption by breaker</div>
-            <div className="dov-pie-wrap">
-              <svg viewBox="0 0 200 200" width="180" height="180">
-                {pieSlices.length === 0 && <circle cx={PIE_CX} cy={PIE_CY} r={PIE_R} fill="#1e2025"/>}
-                {pieSlices.map((s,i) => (
-                  pieSlices.length === 1
-                    ? <circle key={i} cx={PIE_CX} cy={PIE_CY} r={PIE_R} fill={s.color}/>
-                    : <path key={i}
-                        d={`M${PIE_CX},${PIE_CY} L${s.x1},${s.y1} A${PIE_R},${PIE_R} 0 ${s.large},1 ${s.x2},${s.y2} Z`}
-                        fill={s.color} stroke="#111317" strokeWidth="1.5"/>
-                ))}
-                <circle cx={PIE_CX} cy={PIE_CY} r={46} fill="#111317"/>
-                <text x={PIE_CX} y={PIE_CY-6} textAnchor="middle" fill="#fff" fontSize="14" fontWeight="500">{fmt(totalKwh)}</text>
-                <text x={PIE_CX} y={PIE_CY+10} textAnchor="middle" fill="#888" fontSize="9">kWh total</text>
-              </svg>
-              <div className="dov-pie-legend">
-                {pieData.slice(0,10).map((r,i) => (
-                  <div key={r.id} className="dov-legend-item">
-                    <span className="dov-legend-dot" style={{background:PIE_COLORS[i%PIE_COLORS.length]}}/>
-                    <span className="dov-legend-name">{r.displayName || r.name}</span>
-                    <span className="dov-legend-val">{Math.round((r.kwh/totalKwh)*100)}%</span>
-                  </div>
-                ))}
-                {pieData.length > 10 && <div className="dov-legend-more">+{pieData.length-10} more</div>}
+            <div className="dov-pie-main-layout">
+              {/* Left: Pie + bar legend */}
+              <div className="dov-pie-left">
+                <svg viewBox="0 0 200 200" width="140" height="140">
+                  {pieSlices.length === 0 && <circle cx={PIE_CX} cy={PIE_CY} r={PIE_R} fill="#1e2025"/>}
+                  {pieSlices.map((s,i) => (
+                    pieSlices.length === 1
+                      ? <circle key={i} cx={PIE_CX} cy={PIE_CY} r={PIE_R} fill={s.color}/>
+                      : <path key={i}
+                          d={`M${PIE_CX},${PIE_CY} L${s.x1},${s.y1} A${PIE_R},${PIE_R} 0 ${s.large},1 ${s.x2},${s.y2} Z`}
+                          fill={s.color} stroke="#111317" strokeWidth="1.5"/>
+                  ))}
+                  <circle cx={PIE_CX} cy={PIE_CY} r={46} fill="#111317"/>
+                  <text x={PIE_CX} y={PIE_CY-6} textAnchor="middle" fill="#fff" fontSize="14" fontWeight="500">{fmt(totalKwh)}</text>
+                  <text x={PIE_CX} y={PIE_CY+10} textAnchor="middle" fill="#888" fontSize="9">kWh total</text>
+                </svg>
+                <div className="dov-pie-legend">
+                  {pieData.slice(0,10).map((r,i) => {
+                    const pct = totalKwh > 0 ? Math.round((r.kwh/totalKwh)*100) : 0;
+                    return (
+                      <div key={r.id} className="dov-legend-item-bar">
+                        <div className="dov-legend-row">
+                          <span className="dov-legend-dot" style={{background:PIE_COLORS[i%PIE_COLORS.length]}}/>
+                          <span className="dov-legend-name">{r.displayName || r.name}</span>
+                          <span className="dov-legend-kwh">{fmt(r.kwh)}</span>
+                          <span className="dov-legend-val">{pct}%</span>
+                        </div>
+                        <div className="dov-legend-bar-track">
+                          <div className="dov-legend-bar-fill" style={{width:`${pct}%`, background:PIE_COLORS[i%PIE_COLORS.length]}}/>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {pieData.length > 10 && <div className="dov-legend-more">+{pieData.length-10} more</div>}
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="dov-pie-divider"/>
+
+              {/* Right: Savings potential */}
+              <div className="dov-pie-right">
+                <div className="dov-savings-title">
+                  <span className="dov-savings-dot"/>
+                  Savings potential
+                </div>
+                {pieData.slice(0,10).map((r,i) => {
+                  const peakKwh = r.peak_kwh || 0;
+                  const peakPct = r.kwh > 0 ? Math.round((peakKwh/r.kwh)*100) : 0;
+                  // Estimate saving: peak_kwh * (peak_rate - off_rate) ≈ peak_kwh * 0.04
+                  const saving = Math.round(peakKwh * 0.04 * 100) / 100;
+                  const isHigh = peakPct > 25;
+                  return (
+                    <div key={r.id} className="dov-sav-row">
+                      <span className="dov-sav-dot" style={{background:PIE_COLORS[i%PIE_COLORS.length]}}/>
+                      <span className="dov-sav-name">{r.displayName || r.name}</span>
+                      <span className={`dov-sav-peak${isHigh?" high":""}`}>{peakPct}% peak</span>
+                      <span className={`dov-sav-amount${isHigh?" high":""}`}>₪{Math.round(saving)}</span>
+                      <div className="dov-sav-info-icon">i
+                        <div className="dov-sav-tooltip">
+                          <div className="dov-sav-tooltip-title">{r.displayName || r.name}</div>
+                          {fmt(peakKwh)} kWh נצרכו בשעות שיא (17:00–22:00).
+                          אם תזיז עומסים לשעות off-peak תחסוך <strong>₪{Math.round(saving)}</strong> ביום זה.
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -523,20 +575,48 @@ export default function DashboardOverview() {
 
                 {activeTab === "forecast" && (
                   <div className="dov-forecast-wrap">
-                    <div className="dov-forecast-item">
-                      <div className="dov-eff-label">End-of-day forecast</div>
-                      <div className="dov-forecast-value">{forecast.toLocaleString()} <span style={{fontSize:12,color:"#888"}}>kWh</span></div>
-                      <div className="dov-eff-sub">{pctDay}% of day elapsed · {Math.round(ratePerHour)} kWh/h</div>
-                      <div className="dov-eff-bar-wrap" style={{marginTop:6}}>
-                        <div style={{height:"100%",width:`${pctDay}%`,background:"#2255bb",borderRadius:2,transition:"width 0.6s"}}/>
-                      </div>
-                    </div>
-                    <div className="dov-eff-divider"/>
-                    <div className="dov-forecast-item">
-                      <div className="dov-eff-label">Current pace</div>
-                      <div className="dov-forecast-value" style={{fontSize:20}}>{Math.round(ratePerHour)} <span style={{fontSize:12,color:"#888"}}>kWh/h</span></div>
-                      <div className="dov-eff-sub">Hours remaining: {hoursLeft.toFixed(1)}h</div>
-                    </div>
+                    {period === "today" ? (
+                      <>
+                        <div className="dov-forecast-item">
+                          <div className="dov-eff-label">End-of-day forecast</div>
+                          <div className="dov-forecast-value">{forecast.toLocaleString()} <span style={{fontSize:12,color:"#888"}}>kWh</span></div>
+                          <div className="dov-eff-sub">{pctDay}% of day elapsed · {Math.round(ratePerHour)} kWh/h</div>
+                          <div className="dov-eff-bar-wrap" style={{marginTop:6}}>
+                            <div style={{height:"100%",width:`${pctDay}%`,background:"#2255bb",borderRadius:2,transition:"width 0.6s"}}/>
+                          </div>
+                        </div>
+                        <div className="dov-eff-divider"/>
+                        <div className="dov-forecast-item">
+                          <div className="dov-eff-label">Current pace</div>
+                          <div className="dov-forecast-value" style={{fontSize:20}}>{Math.round(ratePerHour)} <span style={{fontSize:12,color:"#888"}}>kWh/h</span></div>
+                          <div className="dov-eff-sub">Hours remaining: {hoursLeft.toFixed(1)}h</div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="dov-summary-item">
+                          <div className="dov-summary-label">Total consumption</div>
+                          <div className="dov-summary-value">{fmt(totalKwh)} <span style={{fontSize:13,color:"#888",fontWeight:400}}>kWh</span></div>
+                          <div className="dov-summary-sub">{period === "yesterday" ? "Yesterday" : period === "week" ? "This week" : "This month"}</div>
+                        </div>
+                        <div className="dov-eff-divider"/>
+                        <div className="dov-summary-item">
+                          <div className="dov-summary-label">Total cost</div>
+                          <div className="dov-summary-value" style={{color:"#1a7f37"}}>₪{fmtIls(totalIls)}</div>
+                          <div className="dov-summary-sub">Incl. VAT: ₪{fmtIls(totalIls * 1.18)}</div>
+                        </div>
+                        <div className="dov-eff-divider"/>
+                        <div className="dov-summary-item">
+                          <div className="dov-summary-label">{period === "yesterday" ? "Peak ratio" : "Daily average"}</div>
+                          <div className="dov-summary-value" style={{fontSize:20}}>
+                            {period === "yesterday"
+                              ? `${peakPct}%`
+                              : `${fmt(period === "week" ? totalKwh/7 : totalKwh/30)} kWh`}
+                          </div>
+                          <div className="dov-summary-sub">{period === "yesterday" ? `${fmt(totalPeak)} kWh peak` : "per day"}</div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
 
@@ -670,7 +750,6 @@ export default function DashboardOverview() {
 
       </div>
       {showChat && <AIChat onClose={() => setShowChat(false)} />}
-      {showReportScheduler && <ReportSchedulerModal onClose={() => setShowReportScheduler(false)} />}
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
     </>
   );

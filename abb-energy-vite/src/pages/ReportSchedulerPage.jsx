@@ -326,7 +326,7 @@ export default function ReportSchedulerPage() {
                       </div>
                       <div className="rsp-card-breakers">
                         {s.breaker_ids.slice(0, 6).map((id, i) => (
-                          <span key={id} className="rsp-chip" style={{borderColor: COLORS[i % COLORS.length], color: COLORS[i % COLORS.length]}}>
+                          <span key={id} className="rsp-chip">
                             {allBreakers[String(id)]?.displayName || `Breaker ${id}`}
                           </span>
                         ))}
@@ -334,31 +334,19 @@ export default function ReportSchedulerPage() {
                       </div>
                       {s.last_sent && <div className="rsp-last-sent">Last sent: {new Date(s.last_sent).toLocaleString()}</div>}
                     </div>
-
-                    <div className="rsp-card-side">
-                      <label className="rsp-toggle">
-                        <input type="checkbox" checked={s.active} onChange={() => toggleActive(s.id)}/>
-                        <span className="rsp-toggle-slider"/>
-                      </label>
-                      <div className="rsp-card-actions">
-                        <button className="rsp-action-btn rsp-action-preview"
-                          onClick={() => fetchPreview(s)}>
-                          👁 Preview
-                        </button>
-                        <button className="rsp-action-btn rsp-action-send"
-                          onClick={() => sendNow(s.id, s.name)}
-                          disabled={sendingId === s.id}>
-                          {sendingId === s.id ? "Sending..." : "▶ Send now"}
-                        </button>
-                        <a className="rsp-action-btn rsp-action-download"
-                          href={`/api/report-schedules/download-last/${s.id}`}
-                          download>
-                          ⬇ Download PDF
-                        </a>
-                        <button className="rsp-action-btn rsp-action-edit" onClick={() => openEdit(s)}>✏ Edit</button>
-                        <button className="rsp-action-btn rsp-action-del" onClick={() => deleteSchedule(s.id)}>✕ Delete</button>
-                      </div>
-                    </div>
+                    <label className="rsp-toggle">
+                      <input type="checkbox" checked={s.active} onChange={() => toggleActive(s.id)}/>
+                      <span className="rsp-toggle-slider"/>
+                    </label>
+                  </div>
+                  <div className="rsp-card-bottom">
+                    <button className="rsp-action-btn rsp-action-preview" onClick={() => fetchPreview(s)}>👁 Preview</button>
+                    <button className="rsp-action-btn rsp-action-send" onClick={() => sendNow(s.id, s.name)} disabled={sendingId === s.id}>
+                      {sendingId === s.id ? "Sending..." : "▶ Send now"}
+                    </button>
+                    <a className="rsp-action-btn rsp-action-download" href={`/api/report-schedules/download-last/${s.id}`} download>⬇ Download PDF</a>
+                    <button className="rsp-action-btn rsp-action-edit" onClick={() => openEdit(s)}>✏ Edit</button>
+                    <button className="rsp-action-btn rsp-action-del" onClick={() => deleteSchedule(s.id)}>✕ Delete</button>
                   </div>
                 </div>
               ))}

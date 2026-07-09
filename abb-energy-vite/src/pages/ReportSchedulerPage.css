@@ -2,7 +2,7 @@
 
 .rsp-topbar { display: flex; align-items: center; justify-content: space-between; padding: 24px 0 20px; border-bottom: 0.5px solid #1e2025; margin-bottom: 24px; }
 .rsp-label { font-size: 22px; font-weight: 600; color: #fff; display: block; }
-.rsp-sub { font-size: 12px; color: #555; display: block; margin-top: 2px; }
+.rsp-sub { font-size: 12px; color: #ccb; display: block; margin-top: 2px; }
 
 .rsp-btn-new { padding: 9px 18px; background: #CC0010; border: none; border-radius: 7px; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
 .rsp-btn-new:hover { background: #aa000c; }
@@ -54,41 +54,46 @@
 .rsp-btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* Schedule list */
-.rsp-list { display: flex; flex-direction: column; gap: 12px; }
-.rsp-card { background: #111317; border: 0.5px solid #1e2025; border-radius: 10px; overflow: hidden; transition: border-color 0.15s; }
-.rsp-card:hover { border-color: #252830; }
+.rsp-list { display: flex; flex-direction: column; gap: 10px; }
+.rsp-card { background: #0f1216; border: 0.5px solid rgba(255,255,255,0.07); border-radius: 10px; overflow: hidden; transition: border-color 0.15s; }
+.rsp-card:hover { border-color: rgba(255,255,255,0.12); }
 .rsp-card-inactive { opacity: 0.5; }
-.rsp-card-body { padding: 18px 20px; display: flex; gap: 20px; justify-content: space-between; align-items: flex-start; }
+.rsp-card-body { padding: 16px 18px; border-left: 2px solid #7a0008; display: flex; gap: 16px; justify-content: space-between; align-items: flex-start; }
 .rsp-card-main { flex: 1; min-width: 0; }
-.rsp-card-name { font-size: 16px; font-weight: 600; color: #fff; margin-bottom: 8px; }
+.rsp-card-name { font-size: 15px; font-weight: 500; color: #f0f0f0; margin-bottom: 8px; letter-spacing: 0.2px; }
 .rsp-card-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
-.rsp-freq-badge { padding: 3px 9px; border-radius: 3px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
-.rsp-freq-daily { background: rgba(204,0,16,0.15); color: #CC0010; }
-.rsp-freq-weekly { background: rgba(34,85,187,0.15); color: #2255bb; }
-.rsp-freq-monthly { background: rgba(26,127,55,0.15); color: #1a7f37; }
-.rsp-card-info { font-size: 12px; color: #666; }
+.rsp-freq-badge { padding: 2px 8px; border-radius: 3px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; }
+.rsp-freq-daily { background: rgba(122,0,8,0.15); color: #a0141e; border: 0.5px solid rgba(122,0,8,0.25); }
+.rsp-freq-weekly { background: rgba(0,168,204,0.08); color: #00a8cc; border: 0.5px solid rgba(0,168,204,0.2); }
+.rsp-freq-monthly { background: rgba(124,58,237,0.08); color: #a78bfa; border: 0.5px solid rgba(124,58,237,0.2); }
+.rsp-card-info { font-size: 12px; color: #ccc; }
 .rsp-card-breakers { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
-.rsp-chip { padding: 3px 9px; border: 0.5px solid; border-radius: 12px; font-size: 11px; font-weight: 500; white-space: nowrap; max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
-.rsp-chip-more { font-size: 11px; color: #444; padding: 3px 8px; }
-.rsp-last-sent { font-size: 12px; color: #aaa; font-weight: 500; margin-top: 4px; }
-.rsp-card-side { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; flex-shrink: 0; }
-.rsp-card-actions { display: flex; flex-direction: column; gap: 6px; }
-.rsp-action-btn { padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; font-family: inherit; border: 0.5px solid; white-space: nowrap; }
-.rsp-action-send { background: rgba(26,127,55,0.1); border-color: rgba(26,127,55,0.3); color: #1a7f37; }
-.rsp-action-send:hover { background: rgba(26,127,55,0.2); }
-.rsp-action-send:disabled { opacity: 0.5; cursor: not-allowed; }
-.rsp-action-edit { background: rgba(34,85,187,0.1); border-color: rgba(34,85,187,0.3); color: #2255bb; }
-.rsp-action-edit:hover { background: rgba(34,85,187,0.2); }
-.rsp-action-del { background: rgba(204,0,16,0.1); border-color: rgba(204,0,16,0.2); color: #CC0010; }
-.rsp-action-del:hover { background: rgba(204,0,16,0.2); }
+.rsp-chip { padding: 3px 9px; border-radius: 4px; font-size: 10px; font-weight: 500; background: rgba(0,168,204,0.05); border: 0.5px solid rgba(0,168,204,0.15); color: #00a8cc; opacity: 0.85; white-space: nowrap; max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
+.rsp-chip-more { font-size: 10px; color: #2a3040; padding: 3px 8px; }
+.rsp-last-sent { font-size: 11px; color: #ccc; margin-top: 4px; display: flex; align-items: center; gap: 5px; }
+.rsp-last-sent::before { content: ''; display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: #00a8cc; flex-shrink: 0; }
+.rsp-card-body { display: flex; justify-content: space-between; align-items: flex-start; }
+.rsp-card-bottom { background: #0a0c0f; border-top: 0.5px solid rgba(255,255,255,0.04); padding: 9px 18px; display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+.rsp-action-btn { padding: 5px 12px; border-radius: 5px; font-size: 11px; font-weight: 500; cursor: pointer; font-family: inherit; border: 0.5px solid; white-space: nowrap; letter-spacing: 0.2px; }
+.rsp-action-preview { background: transparent; border-color: rgba(255,255,255,0.06); color: #3f4550; }
+.rsp-action-preview:hover { color: #ccc; }
+.rsp-action-send { background: rgba(122,0,8,0.07); border-color: rgba(122,0,8,0.2); color: #a0141e; }
+.rsp-action-send:hover { background: rgba(122,0,8,0.12); }
+.rsp-action-send:disabled { opacity: 0.4; cursor: not-allowed; }
+.rsp-action-download { background: rgba(0,168,204,0.06); border-color: rgba(0,168,204,0.18); color: #0090b0; text-decoration: none; text-align: center; }
+.rsp-action-download:hover { background: rgba(0,168,204,0.1); }
+.rsp-action-edit { background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.06); color: #3f4550; }
+.rsp-action-edit:hover { color: #6b7480; background: rgba(255,255,255,0.04); }
+.rsp-action-del { background: transparent; border-color: rgba(122,0,8,0.1); color: rgba(160,20,30,0.4); }
+.rsp-action-del:hover { color: #a0141e; border-color: rgba(122,0,8,0.25); }
 
 /* Toggle */
-.rsp-toggle { position: relative; display: inline-block; width: 40px; height: 22px; }
+.rsp-toggle { position: relative; display: inline-block; width: 32px; height: 17px; }
 .rsp-toggle input { opacity: 0; width: 0; height: 0; }
-.rsp-toggle-slider { position: absolute; inset: 0; background: #1e2025; border-radius: 22px; cursor: pointer; transition: 0.2s; }
-.rsp-toggle-slider::before { content: ""; position: absolute; width: 16px; height: 16px; left: 3px; bottom: 3px; background: #555; border-radius: 50%; transition: 0.2s; }
-.rsp-toggle input:checked + .rsp-toggle-slider { background: rgba(26,127,55,0.3); }
-.rsp-toggle input:checked + .rsp-toggle-slider::before { transform: translateX(18px); background: #1a7f37; }
+.rsp-toggle-slider { position: absolute; inset: 0; background: rgba(122,0,8,0.12); border: 0.5px solid rgba(122,0,8,0.2); border-radius: 17px; cursor: pointer; transition: 0.2s; }
+.rsp-toggle-slider::before { content: ""; position: absolute; width: 11px; height: 11px; left: 2px; top: 2px; background: #7a0008; border-radius: 50%; transition: 0.2s; }
+.rsp-toggle input:checked + .rsp-toggle-slider { background: rgba(0,168,204,0.18); border-color: rgba(0,168,204,0.25); }
+.rsp-toggle input:checked + .rsp-toggle-slider::before { transform: translateX(15px); background: #00a8cc; }
 
 /* Preview button */
 .rsp-btn-preview { padding: 9px 18px; background: rgba(34,85,187,0.1); border: 0.5px solid rgba(34,85,187,0.3); border-radius: 6px; color: #2255bb; font-size: 13px; cursor: pointer; font-family: inherit; }
