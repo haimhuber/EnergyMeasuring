@@ -15,11 +15,8 @@ import dotenv from "dotenv";
 dotenv.config({ path: './.env.unified' });
 import breakersConfig from "../energyComsamption/breakerConfig.json" with { type: "json" };
 import db from "../energyComsamption/db.js";
-import OpenAI from "openai";
 import citiesConfig from "./public/cities.json" with { type: "json" };
 import { registerReportScheduleRoutes } from "./report-schedules-routes.js";
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -76,6 +73,7 @@ function authRequired(req, res, next) {
 }
 
 // =========================
+
 // 5) Network
 // =========================
 function getAllLanIps() {
@@ -196,137 +194,137 @@ app.get("/", (req, res) => {
   return res.sendFile(path.join(PUBLIC_DIR, "index.html"));
 });
 
-// =========================
-// 10) AI Query
-// =========================
-const MSSQL_PROMPT = `
-You generate SQL Server queries for energy analysis.
-Rules:
-1. EnergyData.ActiveEnergy is cumulative. Never SUM directly.
-2. Consumption = differences between consecutive readings using LAG().
-3. Use SQL Server syntax only. Return ONLY raw SQL. No markdown. No backticks.
-4. Only SELECT or WITH...SELECT queries.
-5. [timestamp] is stored in correct local Israel time. Use GETDATE() for current time.
-6. Use [timestamp] with brackets. Ignore negative deltas.
-7. Use aliases: total_consumption_today, daily_consumption, etc.
+// // =========================
+// // 10) AI Query
+// // =========================
+// const MSSQL_PROMPT = `
+// You generate SQL Server queries for energy analysis.
+// Rules:
+// 1. EnergyData.ActiveEnergy is cumulative. Never SUM directly.
+// 2. Consumption = differences between consecutive readings using LAG().
+// 3. Use SQL Server syntax only. Return ONLY raw SQL. No markdown. No backticks.
+// 4. Only SELECT or WITH...SELECT queries.
+// 5. [timestamp] is stored in correct local Israel time. Use GETDATE() for current time.
+// 6. Use [timestamp] with brackets. Ignore negative deltas.
+// 7. Use aliases: total_consumption_today, daily_consumption, etc.
 
-Schema: Table EnergyData — BreakerId INT, ActiveEnergy FLOAT, [timestamp] DATETIME2
+// Schema: Table EnergyData — BreakerId INT, ActiveEnergy FLOAT, [timestamp] DATETIME2
 
-Example:
-WITH h AS (SELECT BreakerId,[timestamp],ActiveEnergy-LAG(ActiveEnergy)OVER(PARTITION BY BreakerId ORDER BY [timestamp])AS Consumption FROM EnergyData)
-SELECT BreakerId,CAST([timestamp]AS DATE)AS day,SUM(Consumption)AS daily_consumption FROM h WHERE Consumption>=0 GROUP BY BreakerId,CAST([timestamp]AS DATE) ORDER BY day;
-`;
+// Example:
+// WITH h AS (SELECT BreakerId,[timestamp],ActiveEnergy-LAG(ActiveEnergy)OVER(PARTITION BY BreakerId ORDER BY [timestamp])AS Consumption FROM EnergyData)
+// SELECT BreakerId,CAST([timestamp]AS DATE)AS day,SUM(Consumption)AS daily_consumption FROM h WHERE Consumption>=0 GROUP BY BreakerId,CAST([timestamp]AS DATE) ORDER BY day;
+// `;
 
-const PG_PROMPT = `
-You generate PostgreSQL queries for energy analysis.
-Rules:
-1. energydata.activeenergy is cumulative. Never SUM directly.
-2. Consumption = differences between consecutive readings using LAG().
-3. Use PostgreSQL syntax only. Return ONLY raw SQL. No markdown. No backticks.
-4. Only SELECT or WITH...SELECT queries.
-5. ts column is stored in correct local Israel time. Use NOW() for current time.
-6. Column names are lowercase: breakerid, activeenergy, ts. Ignore negative deltas.
-7. Use aliases: total_consumption_today, daily_consumption, etc.
+// const PG_PROMPT = `
+// You generate PostgreSQL queries for energy analysis.
+// Rules:
+// 1. energydata.activeenergy is cumulative. Never SUM directly.
+// 2. Consumption = differences between consecutive readings using LAG().
+// 3. Use PostgreSQL syntax only. Return ONLY raw SQL. No markdown. No backticks.
+// 4. Only SELECT or WITH...SELECT queries.
+// 5. ts column is stored in correct local Israel time. Use NOW() for current time.
+// 6. Column names are lowercase: breakerid, activeenergy, ts. Ignore negative deltas.
+// 7. Use aliases: total_consumption_today, daily_consumption, etc.
 
-Schema: Table energydata — breakerid INT, activeenergy FLOAT, ts TIMESTAMP
+// Schema: Table energydata — breakerid INT, activeenergy FLOAT, ts TIMESTAMP
 
-Example:
-WITH h AS (SELECT breakerid,ts,activeenergy-LAG(activeenergy)OVER(PARTITION BY breakerid ORDER BY ts)AS consumption FROM energydata)
-SELECT breakerid,ts::date AS day,SUM(consumption)AS daily_consumption FROM h WHERE consumption>=0 GROUP BY breakerid,ts::date ORDER BY day;
-`;
+// Example:
+// WITH h AS (SELECT breakerid,ts,activeenergy-LAG(activeenergy)OVER(PARTITION BY breakerid ORDER BY ts)AS consumption FROM energydata)
+// SELECT breakerid,ts::date AS day,SUM(consumption)AS daily_consumption FROM h WHERE consumption>=0 GROUP BY breakerid,ts::date ORDER BY day;
+// `;
 
-app.post("/api/ai-query", authRequired, async (req, res) => {
-  const { question } = req.body;
-  if (!question || typeof question !== "string") return res.status(400).json({ error: "Missing question" });
+// app.post("/api/ai-query", authRequired, async (req, res) => {
+//   const { question } = req.body;
+//   if (!question || typeof question !== "string") return res.status(400).json({ error: "Missing question" });
 
-  try {
-    const prompt = DB_DRIVER === "postgres" ? PG_PROMPT : MSSQL_PROMPT;
-    const sqlResponse = await openai.responses.create({
-      model: "gpt-4.1-mini",
-      input: `${prompt}\n\nUser question:\n${question}`
-    });
+//   try {
+//     const prompt = DB_DRIVER === "postgres" ? PG_PROMPT : MSSQL_PROMPT;
+//     const sqlResponse = await openai.responses.create({
+//       model: "gpt-4.1-mini",
+//       input: `${prompt}\n\nUser question:\n${question}`
+//     });
 
-    let sqlQuery = (sqlResponse.output_text || "").trim().replace(/```sql/gi,"").replace(/```/g,"").trim();
-    console.log("Generated SQL:", sqlQuery);
+//     let sqlQuery = (sqlResponse.output_text || "").trim().replace(/```sql/gi,"").replace(/```/g,"").trim();
+//     console.log("Generated SQL:", sqlQuery);
 
-    const lower = sqlQuery.toLowerCase().trim();
-    const forbidden = ["delete","update","insert","drop","alter","truncate","create","merge","exec","execute"];
-    if (!lower.startsWith("select") && !lower.startsWith("with")) return res.status(400).json({ error: "Only SELECT/WITH queries allowed", sql: sqlQuery });
-    if (forbidden.some(w => lower.includes(w))) return res.status(400).json({ error: "Forbidden keyword", sql: sqlQuery });
+//     const lower = sqlQuery.toLowerCase().trim();
+//     const forbidden = ["delete","update","insert","drop","alter","truncate","create","merge","exec","execute"];
+//     if (!lower.startsWith("select") && !lower.startsWith("with")) return res.status(400).json({ error: "Only SELECT/WITH queries allowed", sql: sqlQuery });
+//     if (forbidden.some(w => lower.includes(w))) return res.status(400).json({ error: "Forbidden keyword", sql: sqlQuery });
 
-    let recordset;
-    if (DB_DRIVER === "postgres") {
-      const pool = await db.connectionToSqlDB();
-      const result = await pool.query(sqlQuery);
-      recordset = result.rows;
-    } else {
-      const pool = await db.connectionToSqlDB();
-      const result = await pool.request().query(sqlQuery);
-      recordset = result.recordset;
-    }
+//     let recordset;
+//     if (DB_DRIVER === "postgres") {
+//       const pool = await db.connectionToSqlDB();
+//       const result = await pool.query(sqlQuery);
+//       recordset = result.rows;
+//     } else {
+//       const pool = await db.connectionToSqlDB();
+//       const result = await pool.request().query(sqlQuery);
+//       recordset = result.recordset;
+//     }
 
-    function formatLocalDateTime(d) {
-      const dt = new Date(d);
-      return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0")+" "+String(dt.getHours()).padStart(2,"0")+":"+String(dt.getMinutes()).padStart(2,"0")+":"+String(dt.getSeconds()).padStart(2,"0");
-    }
+//     function formatLocalDateTime(d) {
+//       const dt = new Date(d);
+//       return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0")+" "+String(dt.getHours()).padStart(2,"0")+":"+String(dt.getMinutes()).padStart(2,"0")+":"+String(dt.getSeconds()).padStart(2,"0");
+//     }
 
-    const safeData = recordset.map(row => {
-      const safeRow = { ...row };
-      const tsKey = row.timestamp !== undefined ? "timestamp" : row.ts !== undefined ? "ts" : null;
-      if (tsKey) {
-        if (row[tsKey] instanceof Date) { safeRow.local_timestamp = formatLocalDateTime(row[tsKey]); delete safeRow[tsKey]; }
-        else if (row[tsKey]) { safeRow.local_timestamp = row[tsKey]; delete safeRow[tsKey]; }
-      }
-      return safeRow;
-    });
+//     const safeData = recordset.map(row => {
+//       const safeRow = { ...row };
+//       const tsKey = row.timestamp !== undefined ? "timestamp" : row.ts !== undefined ? "ts" : null;
+//       if (tsKey) {
+//         if (row[tsKey] instanceof Date) { safeRow.local_timestamp = formatLocalDateTime(row[tsKey]); delete safeRow[tsKey]; }
+//         else if (row[tsKey]) { safeRow.local_timestamp = row[tsKey]; delete safeRow[tsKey]; }
+//       }
+//       return safeRow;
+//     });
 
-    function buildSingleRowAnswer(row) {
-      if (row.total_consumption_today !== undefined) return `    ${row.total_consumption_today}.`;
-      if (row.total_consumption_this_month !== undefined) return `    ${row.total_consumption_this_month}.`;
-      const bid = row.BreakerId ?? row.breakerid;
-      if (row.daily_consumption !== undefined && bid !== undefined) return `    ${bid}  ${row.daily_consumption}.`;
-      if (row.daily_consumption !== undefined) return `   ${row.daily_consumption}.`;
-      if (row.hourly_consumption !== undefined) return `   ${row.hourly_consumption}.`;
-      if (row.max_consumption !== undefined) return `   ${row.max_consumption}.`;
-      if (row.avg_consumption !== undefined) return `   ${row.avg_consumption}.`;
-      const consumption = row.Consumption ?? row.consumption;
-      if (consumption !== undefined && bid !== undefined) return ` ${bid}  ${consumption}.`;
-      return null;
-    }
+//     function buildSingleRowAnswer(row) {
+//       if (row.total_consumption_today !== undefined) return `    ${row.total_consumption_today}.`;
+//       if (row.total_consumption_this_month !== undefined) return `    ${row.total_consumption_this_month}.`;
+//       const bid = row.BreakerId ?? row.breakerid;
+//       if (row.daily_consumption !== undefined && bid !== undefined) return `    ${bid}  ${row.daily_consumption}.`;
+//       if (row.daily_consumption !== undefined) return `   ${row.daily_consumption}.`;
+//       if (row.hourly_consumption !== undefined) return `   ${row.hourly_consumption}.`;
+//       if (row.max_consumption !== undefined) return `   ${row.max_consumption}.`;
+//       if (row.avg_consumption !== undefined) return `   ${row.avg_consumption}.`;
+//       const consumption = row.Consumption ?? row.consumption;
+//       if (consumption !== undefined && bid !== undefined) return ` ${bid}  ${consumption}.`;
+//       return null;
+//     }
 
-    function buildMultiRowAnswer(rows) {
-      if (!Array.isArray(rows) || rows.length === 0) return null;
-      const allDaily = rows.every(r => (r.BreakerId??r.breakerid) !== undefined && r.daily_consumption !== undefined);
-      if (allDaily) {
-        const sorted = [...rows].sort((a,b) => b.daily_consumption - a.daily_consumption);
-        const parts = rows.map(r => ` ${r.BreakerId??r.breakerid}  ${r.daily_consumption}`);
-        return `${parts.join(", ")}.       ${sorted[0].BreakerId??sorted[0].breakerid}  ${sorted[0].daily_consumption}.`;
-      }
-      return null;
-    }
+//     function buildMultiRowAnswer(rows) {
+//       if (!Array.isArray(rows) || rows.length === 0) return null;
+//       const allDaily = rows.every(r => (r.BreakerId??r.breakerid) !== undefined && r.daily_consumption !== undefined);
+//       if (allDaily) {
+//         const sorted = [...rows].sort((a,b) => b.daily_consumption - a.daily_consumption);
+//         const parts = rows.map(r => ` ${r.BreakerId??r.breakerid}  ${r.daily_consumption}`);
+//         return `${parts.join(", ")}.       ${sorted[0].BreakerId??sorted[0].breakerid}  ${sorted[0].daily_consumption}.`;
+//       }
+//       return null;
+//     }
 
-    let finalAnswer = "  .";
-    if (safeData.length === 0) {
-      finalAnswer = "     .";
-    } else if (safeData.length === 1) {
-      finalAnswer = buildSingleRowAnswer(safeData[0]) || (await openai.responses.create({
-        model: "gpt-4.1-mini",
-        input: `   . : ${question}\n: ${JSON.stringify(safeData)}`
-      })).output_text || "  .";
-    } else {
-      finalAnswer = buildMultiRowAnswer(safeData) || (await openai.responses.create({
-        model: "gpt-4.1-mini",
-        input: `   . : ${question}\n: ${JSON.stringify(safeData)}`
-      })).output_text || "  .";
-    }
+//     let finalAnswer = "  .";
+//     if (safeData.length === 0) {
+//       finalAnswer = "     .";
+//     } else if (safeData.length === 1) {
+//       finalAnswer = buildSingleRowAnswer(safeData[0]) || (await openai.responses.create({
+//         model: "gpt-4.1-mini",
+//         input: `   . : ${question}\n: ${JSON.stringify(safeData)}`
+//       })).output_text || "  .";
+//     } else {
+//       finalAnswer = buildMultiRowAnswer(safeData) || (await openai.responses.create({
+//         model: "gpt-4.1-mini",
+//         input: `   . : ${question}\n: ${JSON.stringify(safeData)}`
+//       })).output_text || "  .";
+//     }
 
-    res.json({ sql: sqlQuery, data: safeData, answer: finalAnswer });
+//     res.json({ sql: sqlQuery, data: safeData, answer: finalAnswer });
 
-  } catch (err) {
-    console.error("AI Query error:", err);
-    res.status(500).json({ error: "AI query failed", detail: err.message });
-  }
-});
+//   } catch (err) {
+//     console.error("AI Query error:", err);
+//     res.status(500).json({ error: "AI query failed", detail: err.message });
+//   }
+// });
 
 // =========================
 // 11) Auth API
@@ -612,103 +610,103 @@ async function sendWhatsApp(to, body) {
   }
 }
 
-async function handleWhatsAppMessage(from, body) {
-  const msg = body.trim().toLowerCase();
+// async function handleWhatsAppMessage(from, body) {
+//   const msg = body.trim().toLowerCase();
 
-  // Help
-  if (msg === "help" || msg === "?") {
-    return "*ABB Energy Monitoring Bot*\n\nCommands:\nconsumption - today kWh\ncost - today ILS\npeak - peak hours\nforecast - end-of-day\ncharging - PB1 stations\nhelp - this menu\n\nOr ask freely: How much did B0 consume today?";
-  }
+//   // Help
+//   if (msg === "help" || msg === "?") {
+//     return "*ABB Energy Monitoring Bot*\n\nCommands:\nconsumption - today kWh\ncost - today ILS\npeak - peak hours\nforecast - end-of-day\ncharging - PB1 stations\nhelp - this menu\n\nOr ask freely: How much did B0 consume today?";
+//   }
 
-  // Fetch today's data
-  const today = new Date().toISOString().slice(0, 10);
+//   // Fetch today's data
+//   const today = new Date().toISOString().slice(0, 10);
   
-  const BREAKERS = [
-    { id: "1",  name: "B0 — Main" },
-    { id: "22", name: "Roof — Main" },
-    { id: "27", name: "PB — Main" },
-    { id: "30", name: "PV Panels" },
-  ];
+//   const BREAKERS = [
+//     { id: "1",  name: "B0 — Main" },
+//     { id: "22", name: "Roof — Main" },
+//     { id: "27", name: "PB — Main" },
+//     { id: "30", name: "PV Panels" },
+//   ];
 
-  const fetchBreaker = async (id) => {
-    try {
-      const pool = await db.connectionToSqlDB();
-      // Use existing consumption logic
-      const tariffs = await db.getTariffs();
-      const rows = await db.getEnergyData(Number(id), new Date(today + "T00:00:00"), new Date(today + "T23:59:59"));
-      if (!rows || rows.length < 2) return { kwh: 0, ils: 0, peak_kwh: 0 };
-      const sorted = rows.map(r => ({ ae: Number(r.activeEnergy||r.ActiveEnergy||0), ts: new Date(r.timestamp||r.Timestamp) })).sort((a,b)=>a.ts-b.ts);
-      let kwh=0, peak_kwh=0, ils=0;
-      for (let i=1; i<sorted.length; i++) {
-        const delta = sorted[i].ae - sorted[i-1].ae;
-        if (delta<=0) continue;
-        const h=sorted[i].ts.getHours(), d=sorted[i].ts.getDay(), m=sorted[i].ts.getMonth()+1;
-        const season=(m===12||m<=2)?"winter":(m>=6&&m<=9)?"summer":"shoulder";
-        const isPeak=d>=0&&d<=4&&h>=17&&h<22;
-        const rate=isPeak?tariffs[season].peak:tariffs[season].off;
-        kwh+=delta; ils+=delta*rate;
-        if(isPeak) peak_kwh+=delta;
-      }
-      return { kwh: Math.round(kwh), ils: Math.round(ils), peak_kwh: Math.round(peak_kwh) };
-    } catch { return { kwh:0, ils:0, peak_kwh:0 }; }
-  };
+//   const fetchBreaker = async (id) => {
+//     try {
+//       const pool = await db.connectionToSqlDB();
+//       // Use existing consumption logic
+//       const tariffs = await db.getTariffs();
+//       const rows = await db.getEnergyData(Number(id), new Date(today + "T00:00:00"), new Date(today + "T23:59:59"));
+//       if (!rows || rows.length < 2) return { kwh: 0, ils: 0, peak_kwh: 0 };
+//       const sorted = rows.map(r => ({ ae: Number(r.activeEnergy||r.ActiveEnergy||0), ts: new Date(r.timestamp||r.Timestamp) })).sort((a,b)=>a.ts-b.ts);
+//       let kwh=0, peak_kwh=0, ils=0;
+//       for (let i=1; i<sorted.length; i++) {
+//         const delta = sorted[i].ae - sorted[i-1].ae;
+//         if (delta<=0) continue;
+//         const h=sorted[i].ts.getHours(), d=sorted[i].ts.getDay(), m=sorted[i].ts.getMonth()+1;
+//         const season=(m===12||m<=2)?"winter":(m>=6&&m<=9)?"summer":"shoulder";
+//         const isPeak=d>=0&&d<=4&&h>=17&&h<22;
+//         const rate=isPeak?tariffs[season].peak:tariffs[season].off;
+//         kwh+=delta; ils+=delta*rate;
+//         if(isPeak) peak_kwh+=delta;
+//       }
+//       return { kwh: Math.round(kwh), ils: Math.round(ils), peak_kwh: Math.round(peak_kwh) };
+//     } catch { return { kwh:0, ils:0, peak_kwh:0 }; }
+//   };
 
-  if (msg.includes("consumption") || msg.includes("kwh")) {
-    const results = await Promise.all(BREAKERS.map(b => fetchBreaker(b.id).then(d => ({...b,...d}))));
-    const total = results.reduce((s,r)=>s+r.kwh,0);
-    const lines = results.map(r => "- " + r.name + ": " + r.kwh.toLocaleString() + " kWh").join("\n");
-    return "Consumption today (" + today + "):\n\n" + lines + "\n\nTotal: " + total.toLocaleString() + " kWh";
-  }
+//   if (msg.includes("consumption") || msg.includes("kwh")) {
+//     const results = await Promise.all(BREAKERS.map(b => fetchBreaker(b.id).then(d => ({...b,...d}))));
+//     const total = results.reduce((s,r)=>s+r.kwh,0);
+//     const lines = results.map(r => "- " + r.name + ": " + r.kwh.toLocaleString() + " kWh").join("\n");
+//     return "Consumption today (" + today + "):\n\n" + lines + "\n\nTotal: " + total.toLocaleString() + " kWh";
+//   }
 
-  if (msg.includes("cost") || msg.includes("ils")) {
-    const results = await Promise.all(BREAKERS.map(b => fetchBreaker(b.id).then(d => ({...b,...d}))));
-    const total = results.reduce((s,r)=>s+r.ils,0);
-    const lines = results.map(r => "- " + r.name + ": ILS " + r.ils.toLocaleString()).join("\n");
-    return "Cost today (" + today + "):\n\n" + lines + "\n\nTotal: ILS " + total.toLocaleString() + "\nIncl VAT: ILS " + Math.round(total*1.18).toLocaleString();
-  }
+//   if (msg.includes("cost") || msg.includes("ils")) {
+//     const results = await Promise.all(BREAKERS.map(b => fetchBreaker(b.id).then(d => ({...b,...d}))));
+//     const total = results.reduce((s,r)=>s+r.ils,0);
+//     const lines = results.map(r => "- " + r.name + ": ILS " + r.ils.toLocaleString()).join("\n");
+//     return "Cost today (" + today + "):\n\n" + lines + "\n\nTotal: ILS " + total.toLocaleString() + "\nIncl VAT: ILS " + Math.round(total*1.18).toLocaleString();
+//   }
 
-  if (msg.includes("peak")) {
-    const results = await Promise.all(BREAKERS.map(b => fetchBreaker(b.id).then(d => ({...b,...d}))));
-    const total = results.reduce((s,r)=>s+r.kwh,0);
-    const totalPeak = results.reduce((s,r)=>s+r.peak_kwh,0);
-    const pct = total > 0 ? Math.round(totalPeak/total*100) : 0;
-    const lines = results.map(r => "- " + r.name + ": " + r.peak_kwh + " kWh").join("\n");
-    return "Peak hours today:\n\n" + lines + "\n\nTotal peak: " + totalPeak.toLocaleString() + " kWh (" + pct + "%)";
-  }
+//   if (msg.includes("peak")) {
+//     const results = await Promise.all(BREAKERS.map(b => fetchBreaker(b.id).then(d => ({...b,...d}))));
+//     const total = results.reduce((s,r)=>s+r.kwh,0);
+//     const totalPeak = results.reduce((s,r)=>s+r.peak_kwh,0);
+//     const pct = total > 0 ? Math.round(totalPeak/total*100) : 0;
+//     const lines = results.map(r => "- " + r.name + ": " + r.peak_kwh + " kWh").join("\n");
+//     return "Peak hours today:\n\n" + lines + "\n\nTotal peak: " + totalPeak.toLocaleString() + " kWh (" + pct + "%)";
+//   }
 
-  if (msg.includes("forecast")) {
-    const results = await Promise.all(BREAKERS.map(b => fetchBreaker(b.id).then(d => ({...b,...d}))));
-    const totalKwh = results.reduce((s,r)=>s+r.kwh,0);
-    const now = new Date();
-    const hoursPassed = now.getHours() + now.getMinutes()/60;
-    const rate = hoursPassed > 0 ? totalKwh / hoursPassed : 0;
-    const forecast = Math.round(totalKwh + rate * (24 - hoursPassed));
-    return "End-of-day forecast:\n\nSo far: " + totalKwh.toLocaleString() + " kWh\nRate: " + Math.round(rate) + " kWh/h\n\nForecast: " + forecast.toLocaleString() + " kWh";
-  }
+//   if (msg.includes("forecast")) {
+//     const results = await Promise.all(BREAKERS.map(b => fetchBreaker(b.id).then(d => ({...b,...d}))));
+//     const totalKwh = results.reduce((s,r)=>s+r.kwh,0);
+//     const now = new Date();
+//     const hoursPassed = now.getHours() + now.getMinutes()/60;
+//     const rate = hoursPassed > 0 ? totalKwh / hoursPassed : 0;
+//     const forecast = Math.round(totalKwh + rate * (24 - hoursPassed));
+//     return "End-of-day forecast:\n\nSo far: " + totalKwh.toLocaleString() + " kWh\nRate: " + Math.round(rate) + " kWh/h\n\nForecast: " + forecast.toLocaleString() + " kWh";
+//   }
 
-  if (msg.includes("charging") || msg.includes("pb1")) {
-    const pb1 = await fetchBreaker("28");
-    const ac = await fetchBreaker("29");
-    return "Charging PB1 today:\n\nPB1 Main: " + pb1.kwh.toLocaleString() + " kWh | ILS " + pb1.ils + "\nAC Charges: " + ac.kwh.toLocaleString() + " kWh | ILS " + ac.ils + "\n\nTotal: " + (pb1.kwh+ac.kwh).toLocaleString() + " kWh";
-  }
+//   if (msg.includes("charging") || msg.includes("pb1")) {
+//     const pb1 = await fetchBreaker("28");
+//     const ac = await fetchBreaker("29");
+//     return "Charging PB1 today:\n\nPB1 Main: " + pb1.kwh.toLocaleString() + " kWh | ILS " + pb1.ils + "\nAC Charges: " + ac.kwh.toLocaleString() + " kWh | ILS " + ac.ils + "\n\nTotal: " + (pb1.kwh+ac.kwh).toLocaleString() + " kWh";
+//   }
 
-  // Free question via OpenAI
-  try {
-    const results = await Promise.all(BREAKERS.map(b => fetchBreaker(b.id).then(d => ({...b,...d}))));
-    const context = results.map(r=>`${r.name}: ${r.kwh} kWh, ₪${r.ils}`).join(", ");
-    const resp = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: "You are ABB Energy Bot. Today consumption data: " + context + ". Answer briefly." },
-        { role: "user", content: body }
-      ],
-      max_tokens: 200,
-    });
-    return resp.choices[0].message.content;
-  } catch {
-    return "Not understood. Send help for commands list.";
-  }
-}
+//   // Free question via OpenAI
+//   try {
+//     const results = await Promise.all(BREAKERS.map(b => fetchBreaker(b.id).then(d => ({...b,...d}))));
+//     const context = results.map(r=>`${r.name}: ${r.kwh} kWh, ₪${r.ils}`).join(", ");
+//     const resp = await openai.chat.completions.create({
+//       model: "gpt-4o-mini",
+//       messages: [
+//         { role: "system", content: "You are ABB Energy Bot. Today consumption data: " + context + ". Answer briefly." },
+//         { role: "user", content: body }
+//       ],
+//       max_tokens: 200,
+//     });
+//     return resp.choices[0].message.content;
+//   } catch {
+//     return "Not understood. Send help for commands list.";
+//   }
+// }
 
 // Webhook endpoint
 app.post("/api/whatsapp/webhook", express.urlencoded({ extended: false }), async (req, res) => {
