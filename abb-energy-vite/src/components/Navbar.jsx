@@ -61,10 +61,7 @@ export default function Sidebar({ onOpenChat, onOpenSettings }) {
             Report &amp; Billing
           </div>
 
-          <div className="sb-item" onClick={() => onOpenChat?.()}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 0 1 10 10c0 5.52-4.48 10-10 10a9.96 9.96 0 0 1-5.19-1.45L2 22l1.45-4.81A9.96 9.96 0 0 1 2 12 10 10 0 0 1 12 2z"/></svg>
-            AI Assistant
-          </div>
+         
 
           {user?.role === "admin" && (
             <div className={`sb-item sb-item-highlight${window.location.pathname==="/report-scheduler"?" active":""}`} onClick={() => window.location.href="/report-scheduler"}>
